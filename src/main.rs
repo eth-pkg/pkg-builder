@@ -1,3 +1,6 @@
+
+mod v1_build;
+
 fn main() {
-    println!("Hello, world!");
+    v1_build::cli::run_cli();
 }
