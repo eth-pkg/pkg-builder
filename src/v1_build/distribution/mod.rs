@@ -1,2 +1,3 @@
-pub mod bookworm;
 pub mod packager;
+pub mod debian;
+pub mod ubuntu;
