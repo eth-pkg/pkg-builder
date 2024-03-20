@@ -13,8 +13,9 @@ pub trait Packager {
     type Config: PackagerConfig;
     fn new(config: Self::Config) -> Self;
     fn package(&self) -> Result<bool, String>;
+    fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>;
 }
-enum PackagerType {
+enum Distribution {
     Bookworm(BookwormPackagerConfig),
     JammyJellyfish(JammyJellyfishPackagerConfig),
 }
@@ -33,10 +34,42 @@ pub struct DistributionPackagerConfig {
     git_source: String,
     is_virtual_package: bool,
     is_git: bool,
-    build_env: String,
+    lang_env: String,
 }
 
-pub enum BuildEnv {
+pub struct BuildConfig {
+    codename: String,
+    arch: String,
+    lang_env: LanguageEnv,
+}
+
+impl BuildConfig {
+    pub fn new(codename: &str, arch: &str, lang_env: LanguageEnv) -> Self {
+        return BuildConfig {
+            codename: codename.to_string(),
+            arch: arch.to_string(),
+            lang_env,
+        };
+    }
+    pub fn codename(&self) -> &String {
+        &self.codename
+    }
+    pub fn arch(&self) -> &String {
+        &self.arch
+    }
+    pub fn lang_env(&self) -> &LanguageEnv {
+        &self.lang_env
+    }
+}
+
+pub trait BackendBuildEnv {
+    fn clean(&self) -> Result<(), String>;
+    fn create(&self) -> Result<(), String>;
+    fn build(&self) -> Result<(), String>;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum LanguageEnv {
     Rust,
     Go,
     JavaScript,
@@ -46,16 +79,16 @@ pub enum BuildEnv {
     Zig,
 }
 
-impl BuildEnv {
-    pub fn from_string(build_env: &str) -> Option<Self> {
-        match build_env.to_lowercase().as_str() {
-            "rust" => Some(BuildEnv::Rust),
-            "go" => Some(BuildEnv::Go),
-            "javascript" => Some(BuildEnv::JavaScript),
-            "java" => Some(BuildEnv::Java),
-            "csharp" => Some(BuildEnv::CSharp),
-            "typescript" => Some(BuildEnv::TypeScript),
-            "zig" => Some(BuildEnv::Zig),
+impl LanguageEnv {
+    pub fn from_string(lang_env: &str) -> Option<Self> {
+        match lang_env.to_lowercase().as_str() {
+            "rust" => Some(LanguageEnv::Rust),
+            "go" => Some(LanguageEnv::Go),
+            "javascript" => Some(LanguageEnv::JavaScript),
+            "java" => Some(LanguageEnv::Java),
+            "csharp" => Some(LanguageEnv::CSharp),
+            "typescript" => Some(LanguageEnv::TypeScript),
+            "zig" => Some(LanguageEnv::Zig),
             _ => None,
         }
     }
@@ -71,7 +104,7 @@ impl DistributionPackager {
     pub fn new(config: DistributionPackagerConfig) -> Self {
         return DistributionPackager { config };
     }
-    fn map_config(&self) -> Result<PackagerType, PackagerError> {
+    fn map_config(&self) -> Result<Distribution, PackagerError> {
         let config = match self.config.codename.as_str() {
             "bookworm" | "debian 12" => BookwormPackagerConfigBuilder::new()
                 .arch(self.config.arch.clone())
@@ -81,9 +114,9 @@ impl DistributionPackager {
                 .git_source(self.config.git_source.clone())
                 .is_virtual_package(self.config.is_virtual_package)
                 .is_git(self.config.is_git)
-                .build_env(self.config.build_env.clone())
+                .lang_env(self.config.lang_env.clone())
                 .config()
-                .map(|config| PackagerType::Bookworm(config))
+                .map(|config| Distribution::Bookworm(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
             "jammy jellyfish" | "ubuntu 22.04" => JammJellyfishPackagerConfigBuilder::new()
                 .arch(self.config.arch.clone())
@@ -93,8 +126,9 @@ impl DistributionPackager {
                 .git_source(self.config.git_source.clone())
                 .is_virtual_package(self.config.is_virtual_package)
                 .is_git(self.config.is_git)
+                .lang_env(self.config.lang_env.clone())
                 .config()
-                .map(|config| PackagerType::JammyJellyfish(config))
+                .map(|config| Distribution::JammyJellyfish(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
             invalid_codename => {
                 return Err(PackagerError::InvalidCodename(format!(
@@ -110,13 +144,13 @@ impl DistributionPackager {
 
         match packager_type {
             // Match on specific types of PackagerConfig
-            PackagerType::Bookworm(config) => {
+            Distribution::Bookworm(config) => {
                 let packager = BookwormPackager::new(config);
                 return packager
                     .package()
                     .map_err(|err| PackagerError::PackagingError(err.to_string()));
             }
-            PackagerType::JammyJellyfish(config) => {
+            Distribution::JammyJellyfish(config) => {
                 let packager = JammyJellyfishPackager::new(config);
                 return packager
                     .package()

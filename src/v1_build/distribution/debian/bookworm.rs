@@ -1,6 +1,14 @@
 use std::fs;
 
-use crate::v1_build::distribution::packager::{BuildEnv, Packager, PackagerConfig};
+use crate::v1_build::distribution::build::SbuildGo;
+use crate::v1_build::distribution::build::SbuildJava;
+use crate::v1_build::distribution::build::SbuildNode;
+use crate::v1_build::distribution::build::SbuildRust;
+use crate::v1_build::distribution::build::SbuildDotnet;
+use crate::v1_build::distribution::build::SbuildZig;
+use crate::v1_build::distribution::packager::{
+    BuildConfig, BackendBuildEnv, LanguageEnv, Packager, PackagerConfig,
+};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -13,7 +21,6 @@ pub struct BookwormPackager {
 pub struct BookwormPackagerOptions {
     work_dir: String,
     verbose: bool,
-    is_sbuild: bool,
 }
 pub struct BookwormPackagerConfig {
     arch: String,
@@ -23,7 +30,7 @@ pub struct BookwormPackagerConfig {
     git_source: String,
     is_virtual_package: bool,
     is_git: bool,
-    build_env: BuildEnv,
+    lang_env: LanguageEnv,
 }
 
 impl PackagerConfig for BookwormPackagerConfig {}
@@ -35,8 +42,9 @@ pub struct BookwormPackagerConfigBuilder {
     git_source: Option<String>,
     is_virtual_package: bool,
     is_git: bool,
-    build_env: Option<BuildEnv>,
+    lang_env: Option<LanguageEnv>,
 }
+
 impl BookwormPackagerConfigBuilder {
     pub fn new() -> Self {
         BookwormPackagerConfigBuilder {
@@ -47,7 +55,7 @@ impl BookwormPackagerConfigBuilder {
             git_source: None,
             is_virtual_package: false,
             is_git: false,
-            build_env: None,
+            lang_env: None,
         }
     }
 
@@ -86,8 +94,8 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
-    pub fn build_env(mut self, build_env: String) -> Self {
-        self.build_env = BuildEnv::from_string(&build_env);
+    pub fn lang_env(mut self, lang_env: String) -> Self {
+        self.lang_env = LanguageEnv::from_string(&lang_env);
         self
     }
 
@@ -105,9 +113,9 @@ impl BookwormPackagerConfigBuilder {
         let git_source = self
             .git_source
             .ok_or_else(|| "Missing git_source field".to_string())?;
-        let build_env = self
-            .build_env
-            .ok_or_else(|| "Missing build_env field".to_string())?;
+        let lang_env = self
+            .lang_env
+            .ok_or_else(|| "Missing lang_env field".to_string())?;
 
         Ok(BookwormPackagerConfig {
             arch,
@@ -117,7 +125,7 @@ impl BookwormPackagerConfigBuilder {
             git_source,
             is_virtual_package: self.is_virtual_package,
             is_git: self.is_git,
-            build_env,
+            lang_env,
         })
     }
 }
@@ -131,21 +139,31 @@ impl Packager for BookwormPackager {
             options: BookwormPackagerOptions {
                 work_dir: "/tmp/debian".to_string(),
                 verbose: true,
-                is_sbuild: true,
             },
         };
     }
-
+    fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String> {
+        let build_config = BuildConfig::new("bookworm", &self.config.arch, self.config.lang_env);
+        let backend_build_env: Box<dyn BackendBuildEnv> = match self.config.lang_env {
+            LanguageEnv::Rust => Box::new(SbuildRust::new(build_config)),
+            LanguageEnv::Go => Box::new(SbuildGo::new(build_config)),
+            LanguageEnv::JavaScript => Box::new(SbuildNode::new(build_config)),
+            LanguageEnv::Java => Box::new(SbuildJava::new(build_config)),
+            LanguageEnv::CSharp => Box::new(SbuildDotnet::new(build_config)),
+            LanguageEnv::TypeScript => Box::new(SbuildNode::new(build_config)),
+            LanguageEnv::Zig => Box::new(SbuildZig::new(build_config)),
+        };
+        Ok(backend_build_env)
+    }
     fn package(&self) -> Result<bool, String> {
         let packaging_dir = self.create_package_dir()?;
         self.download_source(&packaging_dir)?;
         self.extract_source(&packaging_dir)?;
         self.create_debian_dir(&packaging_dir)?;
         self.patch_source(&packaging_dir)?;
-        if self.options.is_sbuild {
-            self.sbuild_setup()?;
-            self.sbuild()?;
-        }
+
+        let backend_build_env = self.create_build_env()?;
+        backend_build_env.build()?;
         Ok(true)
     }
 }
@@ -295,13 +313,5 @@ impl BookwormPackager {
         }
 
         Ok(true)
-    }
-    fn sbuild_setup(&self) -> Result<bool, String> {
-        println!("Copying .sbuildrc from to /tmp/.sbuildrc",);
-        fs::copy(".sbuildrc-bookworm", "/tmp/.sbuildrc").map_err(|err| err.to_string())?;
-        Ok(true)
-    }
-    fn sbuild(&self) -> Result<bool, String> {
-        todo!()
     }
 }

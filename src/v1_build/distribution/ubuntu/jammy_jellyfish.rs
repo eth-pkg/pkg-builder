@@ -1,7 +1,6 @@
 // ubuntu 22.04 LTS
 
-use crate::v1_build::distribution::packager::{Packager, PackagerConfig};
-
+use crate::v1_build::distribution::packager::{BackendBuildEnv, LanguageEnv, Packager, PackagerConfig};
 
 pub struct JammyJellyfishPackager {
     config: JammyJellyfishPackagerConfig,
@@ -14,6 +13,7 @@ pub struct JammyJellyfishPackagerConfig {
     git_source: String,
     is_virtual_package: bool,
     is_git: bool,
+    lang_env: LanguageEnv,
 }
 
 impl PackagerConfig for JammyJellyfishPackagerConfig {}
@@ -25,6 +25,7 @@ pub struct JammJellyfishPackagerConfigBuilder {
     git_source: Option<String>,
     is_virtual_package: bool,
     is_git: bool,
+    lang_env: Option<LanguageEnv>,
 }
 impl JammJellyfishPackagerConfigBuilder {
     pub fn new() -> Self {
@@ -36,6 +37,7 @@ impl JammJellyfishPackagerConfigBuilder {
             git_source: None,
             is_virtual_package: false,
             is_git: false,
+            lang_env: None,
         }
     }
 
@@ -74,13 +76,29 @@ impl JammJellyfishPackagerConfigBuilder {
         self
     }
 
+    pub fn lang_env(mut self, lang_env: String) -> Self {
+        self.lang_env = LanguageEnv::from_string(&lang_env);
+        self
+    }
+
     pub fn config(self) -> Result<JammyJellyfishPackagerConfig, String> {
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
-        let package_name = self.package_name.ok_or_else(|| "Missing package_name field".to_string())?;
-        let version_number = self.version_number.ok_or_else(|| "Missing version_number field".to_string())?;
-        let tarball_url = self.tarball_url.ok_or_else(|| "Missing tarball_url field".to_string())?;
-        let git_source = self.git_source.ok_or_else(|| "Missing git_source field".to_string())?;
-        
+        let package_name = self
+            .package_name
+            .ok_or_else(|| "Missing package_name field".to_string())?;
+        let version_number = self
+            .version_number
+            .ok_or_else(|| "Missing version_number field".to_string())?;
+        let tarball_url = self
+            .tarball_url
+            .ok_or_else(|| "Missing tarball_url field".to_string())?;
+        let git_source = self
+            .git_source
+            .ok_or_else(|| "Missing git_source field".to_string())?;
+        let lang_env = self
+            .lang_env
+            .ok_or_else(|| "Missing lang_env field".to_string())?;
+
         Ok(JammyJellyfishPackagerConfig {
             arch,
             package_name,
@@ -89,6 +107,7 @@ impl JammJellyfishPackagerConfigBuilder {
             git_source,
             is_virtual_package: self.is_virtual_package,
             is_git: self.is_git,
+            lang_env,
         })
     }
 }
@@ -98,7 +117,9 @@ impl Packager for JammyJellyfishPackager {
     fn new(config: Self::Config) -> Self {
         return JammyJellyfishPackager { config };
     }
-
+    fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>{
+        todo!();
+    }
     fn package(&self) -> Result<bool, String> {
         todo!()
     }
