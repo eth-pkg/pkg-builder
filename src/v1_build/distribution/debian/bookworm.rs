@@ -1,11 +1,11 @@
 use std::fs;
 
-use crate::v1_build::distribution::build::SbuildGo;
-use crate::v1_build::distribution::build::SbuildJava;
-use crate::v1_build::distribution::build::SbuildNode;
-use crate::v1_build::distribution::build::SbuildRust;
-use crate::v1_build::distribution::build::SbuildDotnet;
-use crate::v1_build::distribution::build::SbuildZig;
+use crate::v1_build::build::SbuildGo;
+use crate::v1_build::build::SbuildJava;
+use crate::v1_build::build::SbuildNode;
+use crate::v1_build::build::SbuildRust;
+use crate::v1_build::build::SbuildDotnet;
+use crate::v1_build::build::SbuildZig;
 use crate::v1_build::distribution::packager::{
     BuildConfig, BackendBuildEnv, LanguageEnv, Packager, PackagerConfig,
 };

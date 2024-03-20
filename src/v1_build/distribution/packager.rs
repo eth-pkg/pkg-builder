@@ -140,10 +140,9 @@ impl DistributionPackager {
         return config;
     }
     pub fn package(&self) -> Result<bool, PackagerError> {
-        let packager_type = self.map_config()?;
+        let distribution = self.map_config()?;
 
-        match packager_type {
-            // Match on specific types of PackagerConfig
+        match distribution {
             Distribution::Bookworm(config) => {
                 let packager = BookwormPackager::new(config);
                 return packager

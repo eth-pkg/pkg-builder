@@ -1,23 +1,23 @@
 use crate::v1_build::distribution::packager::{BuildConfig, BackendBuildEnv};
 use std::process::Command;
 
-pub struct SbuildZig {
+pub struct SbuildNode {
     config: BuildConfig,
 }
 
 // TODO: this is not the finished implementation, use default chroot for now 
-impl SbuildZig {
+impl SbuildNode {
     pub fn new(config: BuildConfig) -> Self {
-        return SbuildZig { config: config };
+        return SbuildNode { config };
     }
-
     fn get_build_name(&self) -> String {
-        return format!("{}-{}-go", self.config.codename(), self.config.arch());
+        return format!("{}-{}-node", self.config.codename(), self.config.arch());
     }
 }
 
-impl BackendBuildEnv for SbuildZig {
-  
+impl BackendBuildEnv for SbuildNode {
+ 
+
     fn clean(&self) -> Result<(), String> {
         let chroot_prefix = self.get_build_name();
 

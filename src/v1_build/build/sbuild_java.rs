@@ -1,23 +1,23 @@
 use crate::v1_build::distribution::packager::{BuildConfig, BackendBuildEnv};
 use std::process::Command;
 
-pub struct SbuildDotnet {
+pub struct SbuildJava {
     config: BuildConfig,
 }
 
 // TODO: this is not the finished implementation, use default chroot for now 
-impl SbuildDotnet {
+impl SbuildJava {
     pub fn new(config: BuildConfig) -> Self {
-        return SbuildDotnet { config: config };
+        return SbuildJava { config };
     }
-
     fn get_build_name(&self) -> String {
-        return format!("{}-{}-go", self.config.codename(), self.config.arch());
+        return format!("{}-{}-java", self.config.codename(), self.config.arch());
     }
 }
 
-impl BackendBuildEnv for SbuildDotnet {
-  
+impl BackendBuildEnv for SbuildJava {
+ 
+
     fn clean(&self) -> Result<(), String> {
         let chroot_prefix = self.get_build_name();
 
