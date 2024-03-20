@@ -33,11 +33,38 @@ pub struct DistributionPackagerConfig {
     git_source: String,
     is_virtual_package: bool,
     is_git: bool,
+    build_env: String,
 }
+
+pub enum BuildEnv {
+    Rust,
+    Go,
+    JavaScript,
+    Java,
+    CSharp,
+    TypeScript,
+    Zig,
+}
+
+impl BuildEnv {
+    pub fn from_string(build_env: &str) -> Option<Self> {
+        match build_env.to_lowercase().as_str() {
+            "rust" => Some(BuildEnv::Rust),
+            "go" => Some(BuildEnv::Go),
+            "javascript" => Some(BuildEnv::JavaScript),
+            "java" => Some(BuildEnv::Java),
+            "csharp" => Some(BuildEnv::CSharp),
+            "typescript" => Some(BuildEnv::TypeScript),
+            "zig" => Some(BuildEnv::Zig),
+            _ => None,
+        }
+    }
+}
+
 pub enum PackagerError {
     InvalidCodename(String),
     MissingConfigFields(String),
-    PackagingError(String)
+    PackagingError(String),
 }
 
 impl DistributionPackager {
@@ -54,6 +81,7 @@ impl DistributionPackager {
                 .git_source(self.config.git_source.clone())
                 .is_virtual_package(self.config.is_virtual_package)
                 .is_git(self.config.is_git)
+                .build_env(self.config.build_env.clone())
                 .config()
                 .map(|config| PackagerType::Bookworm(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
