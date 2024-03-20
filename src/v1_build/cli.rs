@@ -1,60 +1,36 @@
-use clap::{App, Arg};
-use super::package_build::PackageBuild;
-use super::config::PackageBuildConfig;
+use super::distribution::packager::DistributionPackagerConfig;
+use super::distribution::packager::DistributionPackager;
 
-pub fn run_cli() {
-    let matches = App::new("My Package Builder")
-        .version("1.0")
-        .author("Your Name <email@example.com>")
-        .about("Builds and tests packages")
-        .arg(Arg::with_name("arch")
-            .long("arch")
-            .value_name("ARCH")
-            .help("Sets the target architecture")
-            .takes_value(true)
-            .default_value("amd64"))
-        .arg(Arg::with_name("source_url")
-            .long("source-url")
-            .value_name("URL")
-            .help("Sets the source URL")
-            .takes_value(true)
-            .required(true))
-        .arg(Arg::with_name("previous_build_hash")
-            .long("prev-build-hash")
-            .value_name("HASH")
-            .help("Sets the hash of the previous build")
-            .takes_value(true)
-            .default_value(""))
-        .arg(Arg::with_name("source_is_git")
-            .long("source-is-git")
-            .help("Indicates if the source is a git repository")
-            .takes_value(false))
-        .get_matches();
+use std::{fs, path::Path};
+use toml;
+use thiserror::Error; 
 
-    let arch = matches.value_of("arch").unwrap().to_string();
-    let source_url = matches.value_of("source_url").unwrap().to_string();
-    let previous_build_hash = matches.value_of("previous_build_hash").unwrap().to_string();
-    let source_is_git = matches.is_present("source_is_git");
+#[derive(Debug, Error)]
+pub enum CliConfigError {
+    #[error("Failed to read the packageconfig file: {0}")]
+    ReadError(#[from] std::io::Error),
 
-    let config = PackageBuildConfig {
-        arch: vec![arch],
-        source_url,
-        previous_build_hash,
-        source_is_git,
-    };
+    #[error("Failed to parse TOML content of the packagefile: {0}")]
+    ParseError(#[from] toml::de::Error),
+}
 
-    let pkg_build = PackageBuild::new(config);
 
-    match pkg_build.prepare() {
-        Ok(_) => println!("Prepare successful"),
-        Err(e) => println!("Error during preparation: {}", e),
-    }
-    match pkg_build.build_and_test() {
-        Ok(_) => println!("Build and test successful"),
-        Err(e) => println!("Error during build and test: {}", e),
-    }
-    match pkg_build.verify() {
-        Ok(_) => println!("Verify successful"),
-        Err(e) => println!("Error during verify: {}", e),
-    }
+fn read_config(path: &Path) -> Result<DistributionPackagerConfig, CliConfigError> {
+    let toml_content = fs::read_to_string(path)?;
+
+    let config: DistributionPackagerConfig = toml::from_str(&toml_content)?;
+
+    Ok(config)
+}
+
+pub fn run_cli() -> Result<(), CliConfigError> {
+    let path = Path::new("config.toml");
+
+    let config = read_config(&path)?;
+
+    let distribution = DistributionPackager::new(config);
+
+    let _ = distribution.package();
+
+    Ok(())
 }

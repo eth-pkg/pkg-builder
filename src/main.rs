@@ -2,5 +2,5 @@
 mod v1_build;
 
 fn main() {
-    v1_build::cli::run_cli();
+    let _ = v1_build::cli::run_cli();
 }
