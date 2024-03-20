@@ -120,7 +120,7 @@ impl Packager for JammyJellyfishPackager {
     fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>{
         todo!();
     }
-    fn package(&self) -> Result<bool, String> {
+    fn package(&self) -> Result<(), String> {
         todo!()
     }
 }

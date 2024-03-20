@@ -155,7 +155,7 @@ impl Packager for BookwormPackager {
         };
         Ok(backend_build_env)
     }
-    fn package(&self) -> Result<bool, String> {
+    fn package(&self) -> Result<(), String> {
         let packaging_dir = self.create_package_dir()?;
         self.download_source(&packaging_dir)?;
         self.extract_source(&packaging_dir)?;
@@ -164,7 +164,7 @@ impl Packager for BookwormPackager {
 
         let backend_build_env = self.create_build_env()?;
         backend_build_env.build()?;
-        Ok(true)
+        Ok(())
     }
 }
 
@@ -179,7 +179,7 @@ impl BookwormPackager {
             Err(err) => Err(err.to_string()), // Convert the error to a string
         }
     }
-    fn download_source(&self, packaging_dir: &String) -> Result<bool, String> {
+    fn download_source(&self, packaging_dir: &String) -> Result<(), String> {
         let tarball_path = format!(
             "{}/{}.orig.tar.gz",
             &packaging_dir, self.config.package_name
@@ -201,7 +201,7 @@ impl BookwormPackager {
                     return Err("Download failed".to_string());
                 }
             }
-            Ok(true)
+            Ok(())
         } else {
             if self.options.verbose {
                 println!("Creating empty .tar.gz for virtual package");
@@ -214,10 +214,10 @@ impl BookwormPackager {
             if !output.status.success() {
                 return Err("Extract failed".to_string());
             }
-            Ok(true)
+            Ok(())
         }
     }
-    fn extract_source(&self, packaging_dir: &String) -> Result<bool, String> {
+    fn extract_source(&self, packaging_dir: &String) -> Result<(), String> {
         let tarball_path = format!(
             "{}/{}.orig.tar.gz",
             &packaging_dir, self.config.package_name
@@ -236,9 +236,9 @@ impl BookwormPackager {
         if !output.status.success() {
             return Err("Extraction failed".to_string());
         }
-        Ok(true)
+        Ok(())
     }
-    fn create_debian_dir(&self, packaging_dir: &String) -> Result<bool, String> {
+    fn create_debian_dir(&self, packaging_dir: &String) -> Result<(), String> {
         let output = Command::new("debcrafter")
             .arg(format!("{}.sss", self.config.package_name))
             .arg("/tmp")
@@ -261,9 +261,9 @@ impl BookwormPackager {
         );
         fs::copy(&tmp_debian_dir, &packaging_dir_debian).map_err(|err| err.to_string())?;
 
-        Ok(true)
+        Ok(())
     }
-    fn patch_source(&self, packaging_dir: &String) -> Result<bool, String> {
+    fn patch_source(&self, packaging_dir: &String) -> Result<(), String> {
         let packaging_dir_debian: String = format!("{}/debian", packaging_dir);
 
         // Patch quilt
@@ -312,6 +312,6 @@ impl BookwormPackager {
             }
         }
 
-        Ok(true)
+        Ok(())
     }
 }

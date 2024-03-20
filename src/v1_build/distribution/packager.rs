@@ -12,7 +12,7 @@ pub trait PackagerConfig {}
 pub trait Packager {
     type Config: PackagerConfig;
     fn new(config: Self::Config) -> Self;
-    fn package(&self) -> Result<bool, String>;
+    fn package(&self) -> Result<(), String>;
     fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>;
 }
 enum Distribution {
@@ -139,7 +139,7 @@ impl DistributionPackager {
         };
         return config;
     }
-    pub fn package(&self) -> Result<bool, PackagerError> {
+    pub fn package(&self) -> Result<(), PackagerError> {
         let distribution = self.map_config()?;
 
         match distribution {
