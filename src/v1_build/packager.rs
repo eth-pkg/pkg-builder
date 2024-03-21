@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use super::{
+use super::distribution::{
     debian::bookworm::{BookwormPackager, BookwormPackagerConfig, BookwormPackagerConfigBuilder},
     ubuntu::jammy_jellyfish::{
         JammJellyfishPackagerConfigBuilder, JammyJellyfishPackager, JammyJellyfishPackagerConfig,
@@ -37,12 +37,14 @@ pub struct DistributionPackagerConfig {
     lang_env: String,
 }
 
+#[allow(dead_code)]
 pub struct BuildConfig {
     codename: String,
     arch: String,
     lang_env: LanguageEnv,
 }
 
+#[allow(dead_code)]
 impl BuildConfig {
     pub fn new(codename: &str, arch: &str, lang_env: LanguageEnv) -> Self {
         return BuildConfig {

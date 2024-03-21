@@ -1,4 +1,4 @@
-use crate::v1_build::distribution::packager::{BuildConfig, BackendBuildEnv};
+use crate::v1_build::packager::{BuildConfig, BackendBuildEnv};
 use std::process::Command;
 
 pub struct SbuildGo {

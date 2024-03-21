@@ -1,10 +1,11 @@
 // ubuntu 22.04 LTS
 
-use crate::v1_build::distribution::packager::{BackendBuildEnv, LanguageEnv, Packager, PackagerConfig};
-
+use crate::v1_build::packager::{BackendBuildEnv, LanguageEnv, Packager, PackagerConfig};
+#[allow(dead_code)]
 pub struct JammyJellyfishPackager {
     config: JammyJellyfishPackagerConfig,
 }
+#[allow(dead_code)]
 pub struct JammyJellyfishPackagerConfig {
     arch: String,
     package_name: String,

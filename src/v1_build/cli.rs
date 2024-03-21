@@ -1,5 +1,5 @@
-use super::distribution::packager::DistributionPackagerConfig;
-use super::distribution::packager::DistributionPackager;
+use super::packager::DistributionPackagerConfig;
+use super::packager::DistributionPackager;
 
 use std::{fs, path::Path};
 use toml;
