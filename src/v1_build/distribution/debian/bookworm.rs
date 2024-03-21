@@ -6,9 +6,11 @@ use crate::v1_build::build::SbuildJava;
 use crate::v1_build::build::SbuildNode;
 use crate::v1_build::build::SbuildRust;
 use crate::v1_build::build::SbuildZig;
+use crate::v1_build::debcrafter_helper;
 use crate::v1_build::packager::{
-    BackendBuildEnv, BuildConfig, LanguageEnv, Packager, PackagerConfig,
+    BackendBuildEnv, BuildConfig, LanguageEnv, Packager, PackagerConfig
 };
+
 use log::info;
 use std::io::Write;
 use std::path::Path;
@@ -36,6 +38,7 @@ pub struct BookwormPackagerConfig {
     is_virtual_package: bool,
     is_git: bool,
     lang_env: LanguageEnv,
+    debcrafter_version: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -56,6 +59,7 @@ pub struct BookwormPackagerConfigBuilder {
     is_virtual_package: bool,
     is_git: bool,
     lang_env: Option<LanguageEnv>,
+    debcrafter_version: Option<String>,
 }
 
 impl BookwormPackagerConfigBuilder {
@@ -69,6 +73,7 @@ impl BookwormPackagerConfigBuilder {
             is_virtual_package: false,
             is_git: false,
             lang_env: None,
+            debcrafter_version: None,
         }
     }
 
@@ -112,6 +117,11 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
+    pub fn debcrafter_version(mut self, debcrafter_version: String) -> Self {
+        self.debcrafter_version = Some(debcrafter_version);
+        self
+    }
+
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
         let package_name = self
@@ -129,6 +139,9 @@ impl BookwormPackagerConfigBuilder {
         let lang_env = self
             .lang_env
             .ok_or_else(|| "Missing lang_env field".to_string())?;
+        let debcrafter_version = self
+            .debcrafter_version
+            .ok_or_else(|| "Missing debcrafter_version field".to_string())?;
 
         Ok(BookwormPackagerConfig {
             arch,
@@ -139,6 +152,7 @@ impl BookwormPackagerConfigBuilder {
             is_virtual_package: self.is_virtual_package,
             is_git: self.is_git,
             lang_env,
+            debcrafter_version,
         })
     }
 }
@@ -183,7 +197,12 @@ impl Packager for BookwormPackager {
             self.config.is_git,
         )?;
         extract_source(&packaging_dir, &tarball_path)?;
-        create_debian_dir(&self.config, &packaging_dir)?;
+        create_debian_dir(
+            &packaging_dir,
+            &self.config.debcrafter_version,
+            &self.config.package_name,
+            &self.config.version_number,
+        )?;
         patch_source(&packaging_dir)?;
 
         let backend_build_env = self.create_build_env()?;
@@ -256,32 +275,24 @@ fn extract_source(packaging_dir: &String, tarball_path: &String) -> Result<(), S
         .output()
         .map_err(|err| err.to_string())?;
     if !output.status.success() {
-        return Err("Extraction failed".to_string());
+        let error_message = String::from_utf8(output.stderr)
+            .unwrap_or_else(|_| "Unknown error occurred during extraction".to_string());
+        return Err(format!("Extraction failed: {}", error_message));
     }
+    println!("{:?}", output.status);
     Ok(())
 }
 fn create_debian_dir(
-    config: &BookwormPackagerConfig,
     packaging_dir: &String,
+    debcrafter_version: &String,
+    package_name: &String,
+    version_number: &String,
 ) -> Result<(), String> {
-    let output = Command::new("debcrafter")
-        .arg(format!("{}.sss", config.package_name))
-        .arg("/tmp")
-        .output()
-        .map_err(|err| err.to_string())?;
-
-    if !output.status.success() {
-        return Err("Debcrafter failed".to_string());
-    }
-
-    let tmp_debian_dir = format!("/tmp/{}-{}", config.package_name, config.version_number);
-    let packaging_dir_debian: String = format!("{}/debian", packaging_dir);
-
-    info!(
-        "Copying debian directory from {} to {}",
-        &tmp_debian_dir, &packaging_dir_debian
-    );
-    fs::copy(&tmp_debian_dir, &packaging_dir_debian).map_err(|err| err.to_string())?;
+    debcrafter_helper::check_if_installed()?;
+    debcrafter_helper::check_version_compatibility(debcrafter_version)?;
+    let tmp_debian_dir = debcrafter_helper::create_debian_dir(package_name)?;
+    let target_dir = format!("{}/{}-{}/debian", packaging_dir, package_name, version_number);
+    debcrafter_helper::copy_debian_dir(tmp_debian_dir, &target_dir)?;
 
     Ok(())
 }
@@ -339,6 +350,7 @@ fn patch_source(packaging_dir: &String) -> Result<(), String> {
 mod tests {
     use super::*;
     use httpmock::prelude::*;
+    use std::path::PathBuf;
     use tempfile::tempdir;
 
     fn setup_mock_server() -> MockServer {
@@ -394,13 +406,10 @@ mod tests {
 
     #[test]
     fn test_download_source_non_virtual_package() {
-        // Setup the mock server
         let server = setup_mock_server();
 
-        // Create a temporary directory
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        // Define the packaging directory and tarball name
         let packaging_dir = temp_dir.path().join("test_package");
         let tarball_name = "test_package.tar.gz";
         let tarball_path = temp_dir.path().join(tarball_name);
@@ -408,7 +417,6 @@ mod tests {
         let is_virtual_package = false;
         let is_git = false;
 
-        // Call the function to download the source
         let result = download_source(
             &packaging_dir.to_string_lossy().to_string(),
             &tarball_path.to_string_lossy().to_string(),
@@ -417,21 +425,18 @@ mod tests {
             is_git,
         );
 
-        // Assert that the result is Ok and the tarball file exists
         assert!(result.is_ok());
         assert!(tarball_path.exists());
     }
 
     #[test]
     fn test_download_source_with_invalid_combination() {
-        // Define test inputs
         let packaging_dir = "/tmp/test_package".to_string();
         let tarball_path = "/tmp/test_package.tar.gz".to_string();
         let tarball_url = "http://example.com/test_package.tar.gz".to_string();
         let is_virtual_package = true;
         let is_git = true;
 
-        // Call the function under test
         let result = download_source(
             &packaging_dir,
             &tarball_path,
@@ -440,7 +445,6 @@ mod tests {
             is_git,
         );
 
-        // Assert that the function returns an error
         assert!(result.is_err());
     }
 
@@ -448,5 +452,29 @@ mod tests {
     fn test_download_source_with_git_package() {
         // TODO: Write test case for downloading source for a Git package
         assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_extract_source() {
+        let package_name = "test_package";
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let tarball_path: PathBuf = PathBuf::from("tests/test_package.tar.gz");
+
+        let packaging_dir = temp_dir.path().to_string_lossy().to_string();
+
+        assert!(tarball_path.exists());
+
+        let result = extract_source(&packaging_dir, &tarball_path.to_string_lossy().to_string());
+
+        assert!(result.is_ok(), "{:?}", result);
+
+        let empty_file_path = PathBuf::from(packaging_dir)
+            .join(package_name)
+            .join("empty_file.txt");
+
+        assert!(
+            empty_file_path.exists(),
+            "Empty file not found after extraction"
+        );
     }
 }

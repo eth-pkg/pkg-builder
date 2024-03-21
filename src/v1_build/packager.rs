@@ -35,6 +35,7 @@ pub struct DistributionPackagerConfig {
     is_virtual_package: bool,
     is_git: bool,
     lang_env: String,
+    debcrafter_version: String,
 }
 
 #[allow(dead_code)]
@@ -117,6 +118,7 @@ impl DistributionPackager {
                 .is_virtual_package(self.config.is_virtual_package)
                 .is_git(self.config.is_git)
                 .lang_env(self.config.lang_env.clone())
+                .debcrafter_version(self.config.debcrafter_version.clone())
                 .config()
                 .map(|config| Distribution::Bookworm(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
