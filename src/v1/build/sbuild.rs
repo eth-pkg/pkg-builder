@@ -1,24 +1,50 @@
-use crate::v1_build::packager::{BuildConfig, BackendBuildEnv};
+use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv};
 use std::process::Command;
 
-pub struct SbuildRust {
-    config: BuildConfig,
+pub enum Sbuild {
+    Rust(BuildConfig),
+    Go(BuildConfig),
+    JavaScript(BuildConfig),
+    Java(BuildConfig),
+    CSharp(BuildConfig),
+    TypeScript(BuildConfig),
+    Zig(BuildConfig),
 }
 
-// TODO: this is not the finished implementation, use default chroot for now 
-
-impl SbuildRust {
-    pub fn new(config: BuildConfig) -> Self {
-        return SbuildRust { config };
+impl Sbuild {
+    pub fn new(build_config: BuildConfig) -> Sbuild {
+        match build_config.lang_env() {
+            LanguageEnv::Rust => Sbuild::Rust(build_config),
+            LanguageEnv::Go => Sbuild::Go(build_config),
+            LanguageEnv::JavaScript => Sbuild::JavaScript(build_config),
+            LanguageEnv::Java => Sbuild::Java(build_config),
+            LanguageEnv::CSharp => Sbuild::CSharp(build_config),
+            LanguageEnv::TypeScript => Sbuild::TypeScript(build_config),
+            LanguageEnv::Zig => Sbuild::Zig(build_config),
+        }
+    }
+    pub fn config(&self) -> &BuildConfig {
+        match self {
+            Sbuild::Rust(build_config) => build_config,
+            Sbuild::Go(build_config) => build_config,
+            Sbuild::JavaScript(build_config) => build_config,
+            Sbuild::Java(build_config) => build_config,
+            Sbuild::CSharp(build_config) => build_config,
+            Sbuild::TypeScript(build_config) => build_config,
+            Sbuild::Zig(build_config) => build_config,
+        }
     }
     fn get_build_name(&self) -> String {
-        return format!("{}-{}-rust", self.config.codename(), self.config.arch());
+        return format!(
+            "{}-{}-{}",
+            self.config().codename(),
+            self.config().arch(),
+            self.config().lang_env()
+        );
     }
 }
 
-impl BackendBuildEnv for SbuildRust {
- 
-
+impl BackendBuildEnv for Sbuild {
     fn clean(&self) -> Result<(), String> {
         let chroot_prefix = self.get_build_name();
 
@@ -45,7 +71,7 @@ impl BackendBuildEnv for SbuildRust {
             .arg("--merged-usr")
             .arg("--chroot-prefix")
             .arg(&chroot_prefix)
-            .arg(&self.config.codename())
+            .arg(&self.config().codename())
             .arg(&format!("/srv/chroot/{}", chroot_prefix))
             .arg("http://deb.debian.org/debian")
             .status();
@@ -61,7 +87,7 @@ impl BackendBuildEnv for SbuildRust {
         let create_result = Command::new("sbuild")
             .arg("-c")
             .arg(self.get_build_name())
-            .arg(self.config.codename())
+            .arg(self.config().codename())
             .status();
 
         if let Err(err) = create_result {

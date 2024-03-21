@@ -1,4 +1,4 @@
-// src/v1_build/mod.rs
+// src/v1/mod.rs
 pub mod cli;
 pub mod distribution;
 pub mod build;

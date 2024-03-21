@@ -1,3 +1,5 @@
+use core::fmt;
+
 use serde::Deserialize;
 
 use super::distribution::{
@@ -80,6 +82,20 @@ pub enum LanguageEnv {
     CSharp,
     TypeScript,
     Zig,
+}
+
+impl fmt::Display for LanguageEnv {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LanguageEnv::Rust => write!(f, "rust"),
+            LanguageEnv::Go => write!(f, "go"),
+            LanguageEnv::JavaScript => write!(f, "javascript"),
+            LanguageEnv::Java => write!(f, "java"),
+            LanguageEnv::CSharp => write!(f, "csharp"),
+            LanguageEnv::TypeScript => write!(f, "typescript"),
+            LanguageEnv::Zig => write!(f, "zig"),
+        }
+    }
 }
 
 impl LanguageEnv {

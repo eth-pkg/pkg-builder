@@ -1,15 +1,8 @@
 use std::fs;
 
-use crate::v1_build::build::SbuildDotnet;
-use crate::v1_build::build::SbuildGo;
-use crate::v1_build::build::SbuildJava;
-use crate::v1_build::build::SbuildNode;
-use crate::v1_build::build::SbuildRust;
-use crate::v1_build::build::SbuildZig;
-use crate::v1_build::debcrafter_helper;
-use crate::v1_build::packager::{
-    BackendBuildEnv, BuildConfig, LanguageEnv, Packager, PackagerConfig
-};
+use crate::v1::build::*;
+use crate::v1::debcrafter_helper;
+use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv, Packager, PackagerConfig};
 
 use log::info;
 use std::io::Write;
@@ -170,16 +163,8 @@ impl Packager for BookwormPackager {
     }
     fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String> {
         let build_config = BuildConfig::new("bookworm", &self.config.arch, self.config.lang_env);
-        let backend_build_env: Box<dyn BackendBuildEnv> = match self.config.lang_env {
-            LanguageEnv::Rust => Box::new(SbuildRust::new(build_config)),
-            LanguageEnv::Go => Box::new(SbuildGo::new(build_config)),
-            LanguageEnv::JavaScript => Box::new(SbuildNode::new(build_config)),
-            LanguageEnv::Java => Box::new(SbuildJava::new(build_config)),
-            LanguageEnv::CSharp => Box::new(SbuildDotnet::new(build_config)),
-            LanguageEnv::TypeScript => Box::new(SbuildNode::new(build_config)),
-            LanguageEnv::Zig => Box::new(SbuildZig::new(build_config)),
-        };
-        Ok(backend_build_env)
+        let backend_build_env = Sbuild::new(build_config);
+        Ok(Box::new(backend_build_env))
     }
     fn package(&self) -> Result<(), String> {
         let packaging_dir = format!("{}/{}", self.options.work_dir, self.config.package_name);
@@ -291,7 +276,10 @@ fn create_debian_dir(
     debcrafter_helper::check_if_installed()?;
     debcrafter_helper::check_version_compatibility(debcrafter_version)?;
     let tmp_debian_dir = debcrafter_helper::create_debian_dir(package_name)?;
-    let target_dir = format!("{}/{}-{}/debian", packaging_dir, package_name, version_number);
+    let target_dir = format!(
+        "{}/{}-{}/debian",
+        packaging_dir, package_name, version_number
+    );
     debcrafter_helper::copy_debian_dir(tmp_debian_dir, &target_dir)?;
 
     Ok(())
