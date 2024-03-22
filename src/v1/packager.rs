@@ -15,9 +15,8 @@ pub trait Packager {
     type Config: PackagerConfig;
     fn new(config: Self::Config) -> Self;
     fn package(&self) -> Result<(), String>;
-    fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>;
 }
-enum Distribution {
+pub enum Distribution {
     Bookworm(BookwormPackagerConfig),
     JammyJellyfish(JammyJellyfishPackagerConfig),
 }
@@ -28,16 +27,16 @@ pub struct DistributionPackager {
 
 #[derive(Debug, Deserialize)]
 pub struct DistributionPackagerConfig {
-    codename: String,
-    arch: String,
-    package_name: String,
-    version_number: String,
-    tarball_url: String,
-    git_source: String,
+    codename: Option<String>,
+    arch: Option<String>,
+    package_name: Option<String>,
+    version_number: Option<String>,
+    tarball_url: Option<String>,
+    git_source: Option<String>,
     is_virtual_package: bool,
     is_git: bool,
-    lang_env: String,
-    debcrafter_version: String,
+    lang_env: Option<String>,
+    debcrafter_version: Option<String>,
 }
 
 #[allow(dead_code)]
@@ -113,6 +112,7 @@ impl LanguageEnv {
     }
 }
 
+#[derive(Debug)]
 pub enum PackagerError {
     InvalidCodename(String),
     MissingConfigFields(String),
@@ -124,7 +124,7 @@ impl DistributionPackager {
         return DistributionPackager { config };
     }
     fn map_config(&self) -> Result<Distribution, PackagerError> {
-        let config = match self.config.codename.as_str() {
+        let config = match self.config.codename.clone().unwrap_or_default().as_str() {
             "bookworm" | "debian 12" => BookwormPackagerConfigBuilder::new()
                 .arch(self.config.arch.clone())
                 .package_name(self.config.package_name.clone())

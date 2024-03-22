@@ -1,6 +1,6 @@
 // ubuntu 22.04 LTS
 
-use crate::v1::packager::{BackendBuildEnv, LanguageEnv, Packager, PackagerConfig};
+use crate::v1::packager::{LanguageEnv, Packager, PackagerConfig};
 #[allow(dead_code)]
 pub struct JammyJellyfishPackager {
     config: JammyJellyfishPackagerConfig,
@@ -42,28 +42,28 @@ impl JammJellyfishPackagerConfigBuilder {
         }
     }
 
-    pub fn arch(mut self, arch: String) -> Self {
-        self.arch = Some(arch);
+    pub fn arch(mut self, arch: Option<String>) -> Self {
+        self.arch = arch;
         self
     }
 
-    pub fn package_name(mut self, package_name: String) -> Self {
-        self.package_name = Some(package_name);
+    pub fn package_name(mut self, package_name: Option<String>) -> Self {
+        self.package_name = package_name;
         self
     }
 
-    pub fn version_number(mut self, version_number: String) -> Self {
-        self.version_number = Some(version_number);
+    pub fn version_number(mut self, version_number: Option<String>) -> Self {
+        self.version_number = version_number;
         self
     }
 
-    pub fn tarball_url(mut self, tarball_url: String) -> Self {
-        self.tarball_url = Some(tarball_url);
+    pub fn tarball_url(mut self, tarball_url: Option<String>) -> Self {
+        self.tarball_url = tarball_url;
         self
     }
 
-    pub fn git_source(mut self, git_source: String) -> Self {
-        self.git_source = Some(git_source);
+    pub fn git_source(mut self, git_source: Option<String>) -> Self {
+        self.git_source = git_source;
         self
     }
 
@@ -77,8 +77,8 @@ impl JammJellyfishPackagerConfigBuilder {
         self
     }
 
-    pub fn lang_env(mut self, lang_env: String) -> Self {
-        self.lang_env = LanguageEnv::from_string(&lang_env);
+    pub fn lang_env(mut self, lang_env: Option<String>) -> Self {
+        self.lang_env = LanguageEnv::from_string(&lang_env.unwrap_or_default());
         self
     }
 
@@ -117,9 +117,6 @@ impl Packager for JammyJellyfishPackager {
 
     fn new(config: Self::Config) -> Self {
         return JammyJellyfishPackager { config };
-    }
-    fn create_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>{
-        todo!();
     }
     fn package(&self) -> Result<(), String> {
         todo!()

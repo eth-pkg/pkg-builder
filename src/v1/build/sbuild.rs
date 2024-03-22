@@ -83,7 +83,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
     fn build(&self) -> Result<(), String> {
-        // Create new chroot
+        // Run in chroot
         let create_result = Command::new("sbuild")
             .arg("-c")
             .arg(self.get_build_name())
