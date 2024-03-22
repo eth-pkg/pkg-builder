@@ -5,6 +5,7 @@ use crate::v1::debcrafter_helper;
 use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv, Packager, PackagerConfig};
 
 use log::info;
+use log::warn;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -21,21 +22,14 @@ pub struct BookwormPackager {
 pub struct BookwormPackagerOptions {
     work_dir: String,
 }
-#[derive(Debug, PartialEq)]
-pub enum PackageType {
-    InvalidCombination,
-    NormalPackage,
-    GitPackage,
-    VirtualPackage,
-}
 pub struct NormalPackageConfig {
     arch: String,
     package_name: String,
     version_number: String,
     tarball_url: String,
-    git_source: String,
     lang_env: LanguageEnv,
     debcrafter_version: String,
+    spec_file: String,
 }
 pub struct GitPackageConfig {
     arch: String,
@@ -44,6 +38,7 @@ pub struct GitPackageConfig {
     git_source: String,
     lang_env: LanguageEnv,
     debcrafter_version: String,
+    spec_file: String,
 }
 
 pub struct VirtualPackageConfig {
@@ -52,6 +47,7 @@ pub struct VirtualPackageConfig {
     version_number: String,
     lang_env: LanguageEnv,
     debcrafter_version: String,
+    spec_file: String
 }
 
 pub enum BookwormPackagerConfig {
@@ -73,6 +69,7 @@ pub struct BookwormPackagerConfigBuilder {
     is_git: bool,
     lang_env: Option<LanguageEnv>,
     debcrafter_version: Option<String>,
+    spec_file: Option<String>,
 }
 
 impl BookwormPackagerConfigBuilder {
@@ -87,6 +84,7 @@ impl BookwormPackagerConfigBuilder {
             is_git: false,
             lang_env: None,
             debcrafter_version: None,
+            spec_file: None,
         }
     }
 
@@ -135,7 +133,15 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
+    pub fn spec_file(mut self, spec_file: Option<String>) -> Self {
+        self.spec_file = spec_file;
+        self
+    }
+
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
+        if self.is_virtual_package && self.is_git {
+            return Ok(BookwormPackagerConfig::InvalidCombination);
+        }
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
         let package_name = self
             .package_name
@@ -149,16 +155,17 @@ impl BookwormPackagerConfigBuilder {
         let debcrafter_version = self
             .debcrafter_version
             .ok_or_else(|| "Missing debcrafter_version field".to_string())?;
-
-        if self.is_virtual_package && self.is_git {
-            return Ok(BookwormPackagerConfig::InvalidCombination);
-        } else if self.is_virtual_package {
+        let spec_file = self
+            .spec_file
+            .ok_or_else(|| "Missing spec_file field".to_string())?;
+        if self.is_virtual_package {
             let config = VirtualPackageConfig {
                 arch,
                 package_name,
                 version_number,
                 lang_env,
                 debcrafter_version,
+                spec_file
             };
             return Ok(BookwormPackagerConfig::VirtualPackage(config));
         } else if self.is_git {
@@ -172,23 +179,21 @@ impl BookwormPackagerConfigBuilder {
                 lang_env,
                 debcrafter_version,
                 git_source: git_source,
+                spec_file
             };
             return Ok(BookwormPackagerConfig::GitPackage(config));
         } else {
             let tarball_url = self
                 .tarball_url
                 .ok_or_else(|| "Missing tarball_url field".to_string())?;
-            let git_source = self
-                .git_source
-                .ok_or_else(|| "Missing git_source field".to_string())?;
             let config = NormalPackageConfig {
                 arch,
                 package_name,
                 version_number,
                 tarball_url,
-                git_source,
                 lang_env,
                 debcrafter_version,
+                spec_file
             };
             Ok(BookwormPackagerConfig::NormalPackage(config))
         }
@@ -257,6 +262,7 @@ fn build_normal_package(
         &config.debcrafter_version,
         &config.package_name,
         &config.version_number,
+        &config.spec_file
     )?;
     patch_source(&packaging_dir)?;
 
@@ -279,6 +285,7 @@ fn build_git_package(
         &config.debcrafter_version,
         &config.package_name,
         &config.version_number,
+        &config.spec_file
     )?;
     patch_source(&packaging_dir)?;
     let build_config = BuildConfig::new("bookworm", &config.arch, config.lang_env);
@@ -301,6 +308,7 @@ fn build_virtual_package(
         &config.debcrafter_version,
         &config.package_name,
         &config.version_number,
+        &config.spec_file
     )?;
     patch_source(&packaging_dir)?;
     patch_source(&packaging_dir)?;
@@ -328,6 +336,7 @@ fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), String> 
     }
     Ok(())
 }
+#[allow(unused_variables)]
 fn download_git(packaging_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), String> {
     todo!()
 }
@@ -370,10 +379,15 @@ fn create_debian_dir(
     debcrafter_version: &String,
     package_name: &String,
     version_number: &String,
+    spec_file: &String,
 ) -> Result<(), String> {
-    debcrafter_helper::check_if_installed()?;
-    debcrafter_helper::check_version_compatibility(debcrafter_version)?;
-    let tmp_debian_dir = debcrafter_helper::create_debian_dir(package_name)?;
+    debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
+    if !debcrafter_helper::check_if_installed() {
+        debcrafter_helper::install()?;
+    }
+    warn!("Debcrafter version number is not checked! Expecting version number of: {}", debcrafter_version);
+    // debcrafter_helper::check_version_compatibility(debcrafter_version)?;
+    let tmp_debian_dir = debcrafter_helper::create_debian_dir(&spec_file)?;
     let target_dir = format!(
         "{}/{}-{}/debian",
         packaging_dir, package_name, version_number

@@ -37,16 +37,15 @@ pub struct DistributionPackagerConfig {
     is_git: bool,
     lang_env: Option<String>,
     debcrafter_version: Option<String>,
+    spec_file: Option<String>
 }
 
-#[allow(dead_code)]
 pub struct BuildConfig {
     codename: String,
     arch: String,
     lang_env: LanguageEnv,
 }
 
-#[allow(dead_code)]
 impl BuildConfig {
     pub fn new(codename: &str, arch: &str, lang_env: LanguageEnv) -> Self {
         return BuildConfig {
@@ -135,6 +134,7 @@ impl DistributionPackager {
                 .is_git(self.config.is_git)
                 .lang_env(self.config.lang_env.clone())
                 .debcrafter_version(self.config.debcrafter_version.clone())
+                .spec_file(self.config.spec_file.clone())
                 .config()
                 .map(|config| Distribution::Bookworm(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
