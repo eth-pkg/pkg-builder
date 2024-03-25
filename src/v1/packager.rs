@@ -43,11 +43,11 @@ pub struct DistributionPackagerConfig {
 pub struct BuildConfig {
     codename: String,
     arch: String,
-    lang_env: LanguageEnv,
+    lang_env: Option<LanguageEnv>,
 }
 
 impl BuildConfig {
-    pub fn new(codename: &str, arch: &str, lang_env: LanguageEnv) -> Self {
+    pub fn new(codename: &str, arch: &str, lang_env: Option<LanguageEnv>) -> Self {
         return BuildConfig {
             codename: codename.to_string(),
             arch: arch.to_string(),
@@ -60,7 +60,7 @@ impl BuildConfig {
     pub fn arch(&self) -> &String {
         &self.arch
     }
-    pub fn lang_env(&self) -> &LanguageEnv {
+    pub fn lang_env(&self) -> &Option<LanguageEnv> {
         &self.lang_env
     }
 }

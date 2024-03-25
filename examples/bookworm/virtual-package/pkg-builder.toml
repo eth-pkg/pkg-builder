@@ -1,0 +1,11 @@
+[config]
+arch = "amd64"
+package_name = "test-virtual-package"
+version_number = "1.0.0"
+tarball_url = ""
+git_source = ""
+is_virtual_package = true
+lang_env = "rust"
+debcrafter_version = "latest"
+spec_file = "test-virtual-package.sss"
+codename="bookworm"

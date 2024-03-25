@@ -1,4 +1,7 @@
 use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv};
+use log::info;
+use std::fs;
+use std::path::Path;
 use std::process::Command;
 
 pub enum Sbuild {
@@ -9,18 +12,22 @@ pub enum Sbuild {
     CSharp(BuildConfig),
     TypeScript(BuildConfig),
     Zig(BuildConfig),
+
+    // No dependency
+    EmptyEnv(BuildConfig),
 }
 
 impl Sbuild {
     pub fn new(build_config: BuildConfig) -> Sbuild {
         match build_config.lang_env() {
-            LanguageEnv::Rust => Sbuild::Rust(build_config),
-            LanguageEnv::Go => Sbuild::Go(build_config),
-            LanguageEnv::JavaScript => Sbuild::JavaScript(build_config),
-            LanguageEnv::Java => Sbuild::Java(build_config),
-            LanguageEnv::CSharp => Sbuild::CSharp(build_config),
-            LanguageEnv::TypeScript => Sbuild::TypeScript(build_config),
-            LanguageEnv::Zig => Sbuild::Zig(build_config),
+            Some(LanguageEnv::Rust) => Sbuild::Rust(build_config),
+            Some(LanguageEnv::Go) => Sbuild::Go(build_config),
+            Some(LanguageEnv::JavaScript) => Sbuild::JavaScript(build_config),
+            Some(LanguageEnv::Java) => Sbuild::Java(build_config),
+            Some(LanguageEnv::CSharp) => Sbuild::CSharp(build_config),
+            Some(LanguageEnv::TypeScript) => Sbuild::TypeScript(build_config),
+            Some(LanguageEnv::Zig) => Sbuild::Zig(build_config),
+            None => Sbuild::EmptyEnv(build_config),
         }
     }
     pub fn config(&self) -> &BuildConfig {
@@ -32,6 +39,7 @@ impl Sbuild {
             Sbuild::CSharp(build_config) => build_config,
             Sbuild::TypeScript(build_config) => build_config,
             Sbuild::Zig(build_config) => build_config,
+            Sbuild::EmptyEnv(build_config) => build_config,
         }
     }
     fn get_build_name(&self) -> String {
@@ -39,7 +47,9 @@ impl Sbuild {
             "{}-{}-{}",
             self.config().codename(),
             self.config().arch(),
-            self.config().lang_env()
+            self.config()
+                .lang_env()
+                .map_or("empty-env".to_string(), |v| v.to_string())
         );
     }
 }
@@ -47,53 +57,75 @@ impl Sbuild {
 impl BackendBuildEnv for Sbuild {
     fn clean(&self) -> Result<(), String> {
         let chroot_prefix = self.get_build_name();
+        info!(
+            "Cleaning up sbuild directories with prefix: {}",
+            chroot_prefix
+        );
 
-        // Clean up previous chroots
-        let cleanup_result = Command::new("sudo")
-            .arg("rm")
-            .args(&["-rf", &format!("/etc/sbuild/chroot/{}", chroot_prefix)])
-            .args(&["-rf", &format!("/etc/schroot/chroot.d/{}*", chroot_prefix)])
-            .args(&["-rf", &format!("/srv/chroot/{}", chroot_prefix)])
-            .status();
+        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", chroot_prefix))
+            .map_err(|err| err.to_string())?;
+        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", chroot_prefix))
+            .map_err(|err| err.to_string())?;
+        remove_dir_recursive(&format!("/srv/chroot/{}", chroot_prefix))
+            .map_err(|err| err.to_string())?;
 
-        if let Err(err) = cleanup_result {
-            return Err(format!("Failed to clean up previous chroots: {}", err));
-        }
         Ok(())
     }
 
     fn create(&self) -> Result<(), String> {
         let chroot_prefix = self.get_build_name();
+        info!("Creating new sbuild env: {}", chroot_prefix);
 
+        let command_name = "sbuild_createchroot";
+        let output = Command::new("which")
+            .arg(command_name)
+            .output()
+            .expect(&format!("{} is not installed", command_name));
+
+        if !output.status.success() {
+            return Err(format!(
+                "{} is not installed. Please install it",
+                command_name
+            ));
+        }
         // Create new chroot
-        let create_result = Command::new("sudo")
-            .arg("sbuild-createchroot")
+        let output = Command::new(command_name)
             .arg("--merged-usr")
             .arg("--chroot-prefix")
             .arg(&chroot_prefix)
             .arg(&self.config().codename())
             .arg(&format!("/srv/chroot/{}", chroot_prefix))
             .arg("http://deb.debian.org/debian")
-            .status();
+            .output()
+            .map_err(|err| err.to_string())?;
 
-        if let Err(err) = create_result {
-            return Err(format!("Failed to create new chroot: {}", err));
+        if !output.status.success() {
+            return Err(format!("Failed to create new sbuild {:?}", output));
         }
 
         Ok(())
     }
     fn build(&self) -> Result<(), String> {
         // Run in chroot
-        let create_result = Command::new("sbuild")
+        let output = Command::new("sbuild")
             .arg("-c")
             .arg(self.get_build_name())
             .arg(self.config().codename())
-            .status();
+            .output()
+            .map_err(|err| err.to_string())?;
 
-        if let Err(err) = create_result {
-            return Err(format!("Failed to build package: {}", err));
+        if !output.status.success() {
+            return Err(format!("Failed to build package {:?}", output));
         }
 
         Ok(())
     }
+}
+
+fn remove_dir_recursive(dir_path: &str) -> Result<(), std::io::Error> {
+    if Path::new(dir_path).exists() {
+        fs::remove_dir_all(dir_path)?;
+        info!("Removed directory: {}", dir_path);
+    }
+    Ok(())
 }
