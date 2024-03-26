@@ -5,7 +5,23 @@ version_number = "1.0.0"
 tarball_url = ""
 git_source = ""
 is_virtual_package = true
-lang_env = "rust"
+lang_env = ""
 debcrafter_version = "latest"
 spec_file = "test-virtual-package.sss"
 codename="bookworm"
+pkg_builder_version="0.1"
+
+[sbuild]
+run_lintian=false
+run_piuparts=false
+run_autopkgtest=false 
+
+[options]
+workdir=".pkg-builder/packages"
+is_ci=false
+log="info"
+reuse_previous_build=false
+
+[hashes]
+package_hash=""
+bin_bash=""

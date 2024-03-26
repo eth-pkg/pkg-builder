@@ -121,8 +121,8 @@ setup_sbuild_env() {
     fi
     # Check if the virtual machine already exists
     if virsh dominfo "$sbuild_host" > /dev/null 2>&1; then
-        echo_info "Virtual machine '$sbuild_host' already exists."
-        return 
+        echo "Virtual machine '$sbuild_host' already exists."
+        return
     fi
     
     script_dir=$(dirname "$(readlink -f "$0")")
@@ -150,17 +150,22 @@ setup_sbuild_env() {
 
 print_login_instructions() {
     cat <<EOF
+
+Printing this before vm creation, due to bug with debian12 reboot with preseed.cfg
+
 After installation, log in to the machine:
   - Start the virtual machine: virsh start "$sbuild_host"
   - Access the console: virsh console "$sbuild_host"
   - Log in using the following credentials:
     - Username: debian
     - Password: debian
+
+
 EOF
 }
 
 mkdir -p "$pkgbuilder_dir"
 qemu_setup
 download_debian_image
-setup_sbuild_env
 print_login_instructions
+setup_sbuild_env
