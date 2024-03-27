@@ -181,7 +181,7 @@ impl BookwormPackagerConfigBuilder {
                 version_number,
                 lang_env,
                 debcrafter_version,
-                git_source: git_source,
+                git_source,
                 spec_file,
             };
             return Ok(BookwormPackagerConfig::GitPackage(config));
@@ -226,7 +226,7 @@ impl Packager for BookwormPackager {
             BookwormPackagerConfig::NormalPackage(config) => {
                 let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
                 let tarball_path =
-                    format!("{}/{}.orig.tar.gz", &packaging_dir, config.package_name);
+                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
                 let package_source = format!(
                     "{}/{}-{}",
                     packaging_dir, config.package_name, config.version_number
@@ -238,7 +238,7 @@ impl Packager for BookwormPackager {
             BookwormPackagerConfig::GitPackage(config) => {
                 let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
                 let tarball_path =
-                    format!("{}/{}.orig.tar.gz", &packaging_dir, config.package_name);
+                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
                 let package_source = format!(
                     "{}/{}-{}",
                     packaging_dir, config.package_name, config.version_number
@@ -250,7 +250,7 @@ impl Packager for BookwormPackager {
             BookwormPackagerConfig::VirtualPackage(config) => {
                 let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
                 let tarball_path =
-                    format!("{}/{}.orig.tar.gz", &packaging_dir, config.package_name);
+                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
                 let package_source = format!(
                     "{}/{}-{}",
                     packaging_dir, config.package_name, config.version_number
@@ -262,6 +262,7 @@ impl Packager for BookwormPackager {
         }
     }
 }
+
 
 fn build_normal_package(
     config: &NormalPackageConfig,
@@ -279,7 +280,7 @@ fn build_normal_package(
     )?;
     patch_source(&package_source)?;
 
-    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env));
+    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env), package_source.clone());
     let backend_build_env = Sbuild::new(build_config);
     backend_build_env.build()?;
     return Ok(());
@@ -300,7 +301,7 @@ fn build_git_package(
         &config.spec_file,
     )?;
     patch_source(&package_source)?;
-    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env));
+    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env), package_source.clone());
     let backend_build_env = Sbuild::new(build_config);
     backend_build_env.build()?;
 
@@ -323,7 +324,7 @@ fn build_virtual_package(
         &config.spec_file,
     )?;
     patch_source(&package_source)?;
-    let build_config = BuildConfig::new("bookworm", &config.arch, None);
+    let build_config = BuildConfig::new("bookworm", &config.arch, None, package_source.clone());
     let backend_build_env = Sbuild::new(build_config);
     backend_build_env.clean()?;
     backend_build_env.create()?;
@@ -464,7 +465,6 @@ fn patch_source(package_source: &String) -> Result<(), String> {
     let reader = BufReader::new(input_file);
 
     let original_content: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
-
     let has_standards_version = original_content
         .iter()
         .any(|line| line.starts_with("Standards-Version"));

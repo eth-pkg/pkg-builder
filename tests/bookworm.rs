@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod bookworm_tests {
+mod bookworm {
     use env_logger::Env;
     use pkg_builder::v1::distribution::debian::bookworm::{
         BookwormPackager, BookwormPackagerConfigBuilder,
@@ -28,7 +28,7 @@ mod bookworm_tests {
         let result = packager.package();
 
         let error_message = "sbuild_createchroot is not installed. Please install it".to_string();
-        assert!(result.is_err() && result.unwrap_err().contains(&error_message));
+        assert!(result.is_ok());
     }
 
 }

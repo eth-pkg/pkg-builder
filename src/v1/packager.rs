@@ -44,14 +44,16 @@ pub struct BuildConfig {
     codename: String,
     arch: String,
     lang_env: Option<LanguageEnv>,
+    package_dir: String
 }
 
 impl BuildConfig {
-    pub fn new(codename: &str, arch: &str, lang_env: Option<LanguageEnv>) -> Self {
+    pub fn new(codename: &str, arch: &str, lang_env: Option<LanguageEnv>, package_dir: String) -> Self {
         return BuildConfig {
             codename: codename.to_string(),
             arch: arch.to_string(),
             lang_env,
+            package_dir
         };
     }
     pub fn codename(&self) -> &String {
@@ -63,6 +65,10 @@ impl BuildConfig {
     pub fn lang_env(&self) -> &Option<LanguageEnv> {
         &self.lang_env
     }
+    pub fn package_dir(&self) -> &String {
+        &self.package_dir
+    }
+
 }
 
 pub trait BackendBuildEnv {

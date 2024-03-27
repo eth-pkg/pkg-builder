@@ -4,10 +4,15 @@ Pkg-builder simplifies the process of creating packages for Linux distributions.
 
 ## Prerequisites
 
-If you are using Debian, install sbuild:
+If you are using Debian, install sbuild, and various dependencies:
 
 ```bash
-sudo apt install sbuild
+sudo apt install sbuild libssl-dev pkg-config quilt debhelper
+sudo sbuild-adduser `whoami`
+
+# if chroot not exists create it, TODO other cases 
+sudo mkdir /srv/chroot 
+sudo chown :sbuild /srv/chroot 
 ```
 
 For non-Debian derived distributions, you'll need to either install VirtualBox or a similar tool to package for Debian-based distros. Alternatively, set up a QEMU virtual environment to build for Bookworm. Please note that sbuild is only available on Debian.
@@ -27,6 +32,7 @@ cargo build
 cargo install . 
 pkg-builder package --config=examples/bookworm/virtual-package/pkg-builder.toml
 ```
+
 
 This will build the package using the provided configuration file.
 

@@ -1,7 +1,7 @@
 use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv};
 use log::info;
 use std::fs;
-use std::path::Path;
+use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 
 pub enum Sbuild {
@@ -56,76 +56,84 @@ impl Sbuild {
 
 impl BackendBuildEnv for Sbuild {
     fn clean(&self) -> Result<(), String> {
-        let chroot_prefix = self.get_build_name();
-        info!(
-            "Cleaning up sbuild directories with prefix: {}",
-            chroot_prefix
+        let build_prefix = self.get_build_name();
+        println!(
+            "To clean up sbuild directories with prefix: {}, execute the following commands:",
+            build_prefix
         );
 
-        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", chroot_prefix))
-            .map_err(|err| err.to_string())?;
-        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", chroot_prefix))
-            .map_err(|err| err.to_string())?;
-        remove_dir_recursive(&format!("/srv/chroot/{}", chroot_prefix))
-            .map_err(|err| err.to_string())?;
+        // Construct the directory paths
+        let etc_sbuild_dir = format!("/etc/sbuild/chroot/{}", build_prefix);
+        let etc_schroot_dir = format!("/etc/schroot/chroot.d/{}", build_prefix);
+        let srv_chroot_dir = format!("/srv/chroot/{}", build_prefix);
+
+        // Print out the commands to remove directories
+        println!("sudo rm -rf {}", etc_sbuild_dir);
+        println!("sudo rm -rf {}", etc_schroot_dir);
+        println!("sudo rm -rf {}", srv_chroot_dir);
 
         Ok(())
     }
 
     fn create(&self) -> Result<(), String> {
-        let chroot_prefix = self.get_build_name();
-        info!("Creating new sbuild env: {}", chroot_prefix);
+        let build_prefix = self.get_build_name();
+        println!("To build the package please create a build environment manually first, by running the following, and rerunning the current command.");
+        // Construct the command string
+        let command = format!(
+            "sudo {} --merged-usr --chroot-prefix {} {} {} {}",
+            "sbuild-createchroot",
+            &build_prefix,
+            &self.config().codename(),
+            &format!("/srv/chroot/{}", build_prefix),
+            "http://deb.debian.org/debian"
+        );
 
-        let command_name = "sbuild_createchroot";
-        let output = Command::new("which")
-            .arg(command_name)
-            .output()
-            .expect(&format!("{} is not installed", command_name));
-
-        if !output.status.success() {
-            return Err(format!(
-                "{} is not installed. Please install it",
-                command_name
-            ));
-        }
-        // Create new chroot
-        let output = Command::new(command_name)
-            .arg("--merged-usr")
-            .arg("--chroot-prefix")
-            .arg(&chroot_prefix)
-            .arg(&self.config().codename())
-            .arg(&format!("/srv/chroot/{}", chroot_prefix))
-            .arg("http://deb.debian.org/debian")
-            .output()
-            .map_err(|err| err.to_string())?;
-
-        if !output.status.success() {
-            return Err(format!("Failed to create new sbuild {:?}", output));
-        }
+        // Print out the command for the user to execute
+        println!("Run the following command to create the sbuild environment:");
+        println!("{}", command);
 
         Ok(())
     }
     fn build(&self) -> Result<(), String> {
-        // Run in chroot
+        let sbuild_command = format!(
+            "sbuild -c {} -d {}",
+            self.get_build_name(),
+            self.config().codename(),
+        );
+
+        // Get the current permissions of the file
+        info!(
+            "Adding executable permission for {}/debian/rules",
+            self.config().package_dir()
+        );
+
+        let debian_rules = format!("{}/debian/rules", self.config().package_dir());
+        let mut permissions = fs::metadata(debian_rules.clone())
+            .map_err(|err| err.to_string())?
+            .permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        fs::set_permissions(debian_rules, permissions).map_err(|err| err.to_string())?;
+
+        info!("Building package by invoking: {}", sbuild_command);
+
         let output = Command::new("sbuild")
+            .current_dir(self.config().package_dir())
             .arg("-c")
-            .arg(self.get_build_name())
+            .arg(format!(
+                "{}-{}-sbuild",
+                self.get_build_name(),
+                self.config().arch()
+            ))
+            .arg("-d")
             .arg(self.config().codename())
             .output()
             .map_err(|err| err.to_string())?;
 
+        println!("Command Output: {:?}", output);
         if !output.status.success() {
             return Err(format!("Failed to build package {:?}", output));
         }
 
         Ok(())
     }
-}
-
-fn remove_dir_recursive(dir_path: &str) -> Result<(), std::io::Error> {
-    if Path::new(dir_path).exists() {
-        fs::remove_dir_all(dir_path)?;
-        info!("Removed directory: {}", dir_path);
-    }
-    Ok(())
 }
