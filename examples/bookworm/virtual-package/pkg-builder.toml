@@ -4,12 +4,13 @@ package_name = "test-virtual-package"
 version_number = "1.0.0"
 tarball_url = ""
 git_source = ""
-is_virtual_package = true
+package_is_virtual = true
 lang_env = ""
 debcrafter_version = "latest"
 spec_file = "test-virtual-package.sss"
 codename="bookworm"
 pkg_builder_version="0.1"
+homepage="https://github.com/eth-pkg/pkg-builder#examples"
 
 [sbuild]
 run_lintian=false

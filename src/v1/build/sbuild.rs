@@ -1,45 +1,73 @@
 use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv};
 use log::info;
-use std::fs;
+use std::io::{BufRead, BufReader, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::{fs, io};
+
+pub struct SbuildBuildOptions {
+    run_lintian: bool,
+    run_piuparts: bool,
+    run_autopkgtest: bool,
+}
+impl SbuildBuildOptions{
+    pub fn default() -> Self {
+        SbuildBuildOptions {
+            run_autopkgtest: false,
+            run_piuparts: false,
+            run_lintian: false
+        }
+    }
+}
 
 pub enum Sbuild {
-    Rust(BuildConfig),
-    Go(BuildConfig),
-    JavaScript(BuildConfig),
-    Java(BuildConfig),
-    CSharp(BuildConfig),
-    TypeScript(BuildConfig),
-    Zig(BuildConfig),
+    Rust(BuildConfig, SbuildBuildOptions),
+    Go(BuildConfig, SbuildBuildOptions),
+    JavaScript(BuildConfig, SbuildBuildOptions),
+    Java(BuildConfig, SbuildBuildOptions),
+    CSharp(BuildConfig, SbuildBuildOptions),
+    TypeScript(BuildConfig, SbuildBuildOptions),
+    Zig(BuildConfig, SbuildBuildOptions),
 
     // No dependency
-    EmptyEnv(BuildConfig),
+    EmptyEnv(BuildConfig, SbuildBuildOptions),
 }
 
 impl Sbuild {
-    pub fn new(build_config: BuildConfig) -> Sbuild {
+    pub fn new(build_config: BuildConfig, build_options: SbuildBuildOptions) -> Sbuild {
         match build_config.lang_env() {
-            Some(LanguageEnv::Rust) => Sbuild::Rust(build_config),
-            Some(LanguageEnv::Go) => Sbuild::Go(build_config),
-            Some(LanguageEnv::JavaScript) => Sbuild::JavaScript(build_config),
-            Some(LanguageEnv::Java) => Sbuild::Java(build_config),
-            Some(LanguageEnv::CSharp) => Sbuild::CSharp(build_config),
-            Some(LanguageEnv::TypeScript) => Sbuild::TypeScript(build_config),
-            Some(LanguageEnv::Zig) => Sbuild::Zig(build_config),
-            None => Sbuild::EmptyEnv(build_config),
+            Some(LanguageEnv::Rust) => Sbuild::Rust(build_config, build_options),
+            Some(LanguageEnv::Go) => Sbuild::Go(build_config, build_options),
+            Some(LanguageEnv::JavaScript) => Sbuild::JavaScript(build_config, build_options),
+            Some(LanguageEnv::Java) => Sbuild::Java(build_config, build_options),
+            Some(LanguageEnv::CSharp) => Sbuild::CSharp(build_config, build_options),
+            Some(LanguageEnv::TypeScript) => Sbuild::TypeScript(build_config, build_options),
+            Some(LanguageEnv::Zig) => Sbuild::Zig(build_config, build_options),
+            None => Sbuild::EmptyEnv(build_config, build_options),
         }
     }
     pub fn config(&self) -> &BuildConfig {
         match self {
-            Sbuild::Rust(build_config) => build_config,
-            Sbuild::Go(build_config) => build_config,
-            Sbuild::JavaScript(build_config) => build_config,
-            Sbuild::Java(build_config) => build_config,
-            Sbuild::CSharp(build_config) => build_config,
-            Sbuild::TypeScript(build_config) => build_config,
-            Sbuild::Zig(build_config) => build_config,
-            Sbuild::EmptyEnv(build_config) => build_config,
+            Sbuild::Rust(build_config, _) => build_config,
+            Sbuild::Go(build_config, _) => build_config,
+            Sbuild::JavaScript(build_config, _) => build_config,
+            Sbuild::Java(build_config, _) => build_config,
+            Sbuild::CSharp(build_config, _) => build_config,
+            Sbuild::TypeScript(build_config, _) => build_config,
+            Sbuild::Zig(build_config, _) => build_config,
+            Sbuild::EmptyEnv(build_config, _) => build_config,
+        }
+    }
+    pub fn build_options(&self) -> &SbuildBuildOptions {
+        match self {
+            Sbuild::Rust(_, build_options) => build_options,
+            Sbuild::Go(_, build_options) => build_options,
+            Sbuild::JavaScript(_, build_options) => build_options,
+            Sbuild::Java(_, build_options) => build_options,
+            Sbuild::CSharp(_, build_options) => build_options,
+            Sbuild::TypeScript(_, build_options) => build_options,
+            Sbuild::Zig(_, build_options) => build_options,
+            Sbuild::EmptyEnv(_, build_options) => build_options,
         }
     }
     fn get_build_name(&self) -> String {
@@ -115,24 +143,50 @@ impl BackendBuildEnv for Sbuild {
         fs::set_permissions(debian_rules, permissions).map_err(|err| err.to_string())?;
 
         info!("Building package by invoking: {}", sbuild_command);
+        let mut cmd_args = vec![
+            "-c".to_string(),
+            format!("{}-{}-sbuild", self.get_build_name(), self.config().arch()),
+            "-d".to_string(),
+            self.config().codename().to_string(),
+        ];
 
-        let output = Command::new("sbuild")
-            .current_dir(self.config().package_dir())
-            .arg("-c")
-            .arg(format!(
-                "{}-{}-sbuild",
-                self.get_build_name(),
-                self.config().arch()
-            ))
-            .arg("-d")
-            .arg(self.config().codename())
-            .output()
-            .map_err(|err| err.to_string())?;
-
-        println!("Command Output: {:?}", output);
-        if !output.status.success() {
-            return Err(format!("Failed to build package {:?}", output));
+        let build_options = self.build_options();
+        if !build_options.run_lintian {
+            cmd_args.push("--no-run-lintian".to_string());
         }
+        if !build_options.run_autopkgtest {
+            cmd_args.push("--no-run-autopkgtest".to_string());
+        }
+        if !build_options.run_piuparts {
+            cmd_args.push("--no-run-piuparts".to_string());
+        }
+
+        let mut child = Command::new("sbuild")
+            .current_dir(self.config().package_dir())
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .map_err(|err| format!("Failed to start sbuild: {}", err.to_string()))?;
+
+        if let Some(stdout) = child.stdout.take() {
+            let reader = BufReader::new(stdout);
+
+            for line in reader.lines() {
+                println!(
+                    "{}",
+                    line.map_err(|err| format!("Failed to log: {}", err.to_string()))?
+                );
+            }
+        }
+        io::stdout()
+            .flush()
+            .map_err(|_| "Failed to flush output of sbuild".to_string())?;
+
+        let status = child
+            .wait()
+            .map_err(|err| format!("Failed to build package: {}", err.to_string()))?;
+        println!("Command exited with: {}", status);
 
         Ok(())
     }

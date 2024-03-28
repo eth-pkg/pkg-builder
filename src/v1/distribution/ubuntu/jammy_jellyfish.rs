@@ -12,8 +12,8 @@ pub struct JammyJellyfishPackagerConfig {
     version_number: String,
     tarball_url: String,
     git_source: String,
-    is_virtual_package: bool,
-    is_git: bool,
+    package_is_virtual: bool,
+    package_is_git: bool,
     lang_env: LanguageEnv,
 }
 
@@ -24,8 +24,8 @@ pub struct JammJellyfishPackagerConfigBuilder {
     version_number: Option<String>,
     tarball_url: Option<String>,
     git_source: Option<String>,
-    is_virtual_package: bool,
-    is_git: bool,
+    package_is_virtual: bool,
+    package_is_git: bool,
     lang_env: Option<LanguageEnv>,
 }
 impl JammJellyfishPackagerConfigBuilder {
@@ -36,8 +36,8 @@ impl JammJellyfishPackagerConfigBuilder {
             version_number: None,
             tarball_url: None,
             git_source: None,
-            is_virtual_package: false,
-            is_git: false,
+            package_is_virtual: false,
+            package_is_git: false,
             lang_env: None,
         }
     }
@@ -67,13 +67,13 @@ impl JammJellyfishPackagerConfigBuilder {
         self
     }
 
-    pub fn is_virtual_package(mut self, is_virtual_package: bool) -> Self {
-        self.is_virtual_package = is_virtual_package;
+    pub fn package_is_virtual(mut self, package_is_virtual: bool) -> Self {
+        self.package_is_virtual = package_is_virtual;
         self
     }
 
-    pub fn is_git(mut self, is_git: bool) -> Self {
-        self.is_git = is_git;
+    pub fn package_is_git(mut self, package_is_git: bool) -> Self {
+        self.package_is_git = package_is_git;
         self
     }
 
@@ -106,8 +106,8 @@ impl JammJellyfishPackagerConfigBuilder {
             version_number,
             tarball_url,
             git_source,
-            is_virtual_package: self.is_virtual_package,
-            is_git: self.is_git,
+            package_is_virtual: self.package_is_virtual,
+            package_is_git: self.package_is_git,
             lang_env,
         })
     }

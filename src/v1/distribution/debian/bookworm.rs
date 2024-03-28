@@ -33,6 +33,7 @@ pub struct NormalPackageConfig {
     lang_env: LanguageEnv,
     debcrafter_version: String,
     spec_file: String,
+    homepage: String,
 }
 pub struct GitPackageConfig {
     arch: String,
@@ -42,6 +43,7 @@ pub struct GitPackageConfig {
     lang_env: LanguageEnv,
     debcrafter_version: String,
     spec_file: String,
+    homepage: String,
 }
 
 pub struct VirtualPackageConfig {
@@ -50,6 +52,7 @@ pub struct VirtualPackageConfig {
     version_number: String,
     debcrafter_version: String,
     spec_file: String,
+    homepage: String,
 }
 
 pub enum BookwormPackagerConfig {
@@ -67,11 +70,12 @@ pub struct BookwormPackagerConfigBuilder {
     version_number: Option<String>,
     tarball_url: Option<String>,
     git_source: Option<String>,
-    is_virtual_package: bool,
-    is_git: bool,
+    package_is_virtual: bool,
+    package_is_git: bool,
     lang_env: Option<LanguageEnv>,
     debcrafter_version: Option<String>,
     spec_file: Option<String>,
+    homepage: Option<String>,
 }
 
 impl BookwormPackagerConfigBuilder {
@@ -82,11 +86,12 @@ impl BookwormPackagerConfigBuilder {
             version_number: None,
             tarball_url: None,
             git_source: None,
-            is_virtual_package: false,
-            is_git: false,
+            package_is_virtual: false,
+            package_is_git: false,
             lang_env: None,
             debcrafter_version: None,
             spec_file: None,
+            homepage: None,
         }
     }
 
@@ -115,13 +120,13 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
-    pub fn is_virtual_package(mut self, is_virtual_package: bool) -> Self {
-        self.is_virtual_package = is_virtual_package;
+    pub fn package_is_virtual(mut self, package_is_virtual: bool) -> Self {
+        self.package_is_virtual = package_is_virtual;
         self
     }
 
-    pub fn is_git(mut self, is_git: bool) -> Self {
-        self.is_git = is_git;
+    pub fn package_is_git(mut self, package_is_git: bool) -> Self {
+        self.package_is_git = package_is_git;
         self
     }
 
@@ -140,8 +145,13 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
+    pub fn homepage(mut self, homepage: Option<String>) -> Self {
+        self.homepage = homepage;
+        self
+    }
+
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
-        if self.is_virtual_package && self.is_git {
+        if self.package_is_virtual && self.package_is_git {
             return Ok(BookwormPackagerConfig::InvalidCombination);
         }
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
@@ -158,20 +168,24 @@ impl BookwormPackagerConfigBuilder {
         let spec_file = self
             .spec_file
             .ok_or_else(|| "Missing spec_file field".to_string())?;
-        if self.is_virtual_package {
+        let homepage = self
+            .homepage
+            .ok_or_else(|| "Missing homepage field".to_string())?;
+        if self.package_is_virtual {
             let config = VirtualPackageConfig {
                 arch,
                 package_name,
                 version_number,
                 debcrafter_version,
                 spec_file,
+                homepage,
             };
             return Ok(BookwormPackagerConfig::VirtualPackage(config));
         }
         let lang_env = self
             .lang_env
             .ok_or_else(|| "Missing lang_env field".to_string())?;
-        if self.is_git {
+        if self.package_is_git {
             let git_source = self
                 .git_source
                 .ok_or_else(|| "Missing git_source field".to_string())?;
@@ -183,6 +197,7 @@ impl BookwormPackagerConfigBuilder {
                 debcrafter_version,
                 git_source,
                 spec_file,
+                homepage,
             };
             return Ok(BookwormPackagerConfig::GitPackage(config));
         } else {
@@ -197,6 +212,7 @@ impl BookwormPackagerConfigBuilder {
                 lang_env,
                 debcrafter_version,
                 spec_file,
+                homepage,
             };
             Ok(BookwormPackagerConfig::NormalPackage(config))
         }
@@ -219,90 +235,116 @@ impl Packager for BookwormPackager {
         match &self.config {
             BookwormPackagerConfig::InvalidCombination => {
                 return Err(
-                    "Invalid combination is_git and is_virtual_package is not supported"
+                    "Invalid combination package_is_git and package_is_virtual is not supported"
                         .to_string(),
                 )
             }
             BookwormPackagerConfig::NormalPackage(config) => {
-                let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
-                let tarball_path =
-                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
-                let package_source = format!(
-                    "{}/{}-{}",
-                    packaging_dir, config.package_name, config.version_number
+                let build_variables = get_build_options(
+                    self.options.work_dir.clone(),
+                    config.package_name.clone(),
+                    config.version_number.clone(),
                 );
-                let result =
-                    build_normal_package(config, &packaging_dir, &tarball_path, &package_source);
+
+                let result = build_normal_package(config, &build_variables);
                 result
             }
             BookwormPackagerConfig::GitPackage(config) => {
-                let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
-                let tarball_path =
-                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
-                let package_source = format!(
-                    "{}/{}-{}",
-                    packaging_dir, config.package_name, config.version_number
+                let build_variables = get_build_options(
+                    self.options.work_dir.clone(),
+                    config.package_name.clone(),
+                    config.version_number.clone(),
                 );
-                let result: Result<(), String> =
-                    build_git_package(config, &packaging_dir, &tarball_path, &package_source);
+
+                let result: Result<(), String> = build_git_package(config, &build_variables);
                 result
             }
             BookwormPackagerConfig::VirtualPackage(config) => {
-                let packaging_dir = format!("{}/{}", self.options.work_dir, config.package_name);
-                let tarball_path =
-                    format!("{}/{}_{}.orig.tar.gz", &packaging_dir, config.package_name, config.version_number);
-                let package_source = format!(
-                    "{}/{}-{}",
-                    packaging_dir, config.package_name, config.version_number
+                let build_variables = get_build_options(
+                    self.options.work_dir.clone(),
+                    config.package_name.clone(),
+                    config.version_number.clone(),
                 );
-                let result: Result<(), String> =
-                    build_virtual_package(config, &packaging_dir, &tarball_path, &package_source);
+
+                let result: Result<(), String> = build_virtual_package(config, &build_variables);
                 result
             }
         }
     }
 }
-
-
+#[derive(Clone)]
+struct BookwormBuildVariables {
+    packaging_dir: String,
+    tarball_path: String,
+    package_source: String,
+}
+fn get_build_options(
+    work_dir: String,
+    package_name: String,
+    version_number: String,
+) -> BookwormBuildVariables {
+    let packaging_dir = format!("{}/{}", work_dir, package_name);
+    let tarball_path = format!(
+        "{}/{}_{}.orig.tar.gz",
+        &packaging_dir, package_name, version_number
+    );
+    let package_source = format!("{}/{}-{}", packaging_dir, package_name, version_number);
+    return BookwormBuildVariables {
+        package_source: package_source.into(),
+        packaging_dir: packaging_dir.into(),
+        tarball_path: tarball_path.into(),
+    };
+}
 fn build_normal_package(
     config: &NormalPackageConfig,
-    packaging_dir: &String,
-    tarball_path: &String,
-    package_source: &String,
+    build_variables: &BookwormBuildVariables,
 ) -> Result<(), String> {
-    create_package_dir(&packaging_dir)?;
-    download_source(&tarball_path, &config.tarball_url)?;
-    extract_source(&packaging_dir, &tarball_path, &package_source)?;
+    create_package_dir(&build_variables.packaging_dir.clone())?;
+    download_source(&build_variables.tarball_path, &config.tarball_url)?;
+    extract_source(build_variables)?;
     create_debian_dir(
-        package_source,
+        &build_variables.package_source.clone(),
         &config.debcrafter_version,
         &config.spec_file,
     )?;
-    patch_source(&package_source)?;
+    patch_source(&build_variables.package_source.clone(), &config.homepage)?;
 
-    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env), package_source.clone());
-    let backend_build_env = Sbuild::new(build_config);
+    let build_config = BuildConfig::new(
+        "bookworm",
+        &config.arch,
+        Some(config.lang_env),
+        build_variables.package_source.clone(),
+
+    );
+    let backend_build_env = Sbuild::new(build_config, SbuildBuildOptions::default());
     backend_build_env.build()?;
     return Ok(());
 }
 
 fn build_git_package(
     config: &GitPackageConfig,
-    packaging_dir: &String,
-    tarball_path: &String,
-    package_source: &String,
+    build_variables: &BookwormBuildVariables,
 ) -> Result<(), String> {
-    create_package_dir(&packaging_dir)?;
-    download_git(&packaging_dir, &tarball_path, &config.git_source)?;
-    extract_source(&packaging_dir, &tarball_path, &package_source)?;
+    create_package_dir(&build_variables.packaging_dir.clone())?;
+    download_git(
+        &build_variables.packaging_dir,
+        &build_variables.tarball_path,
+        &config.git_source,
+    )?;
+    extract_source(build_variables)?;
     create_debian_dir(
-        package_source,
+        &build_variables.package_source.clone(),
         &config.debcrafter_version,
         &config.spec_file,
     )?;
-    patch_source(&package_source)?;
-    let build_config = BuildConfig::new("bookworm", &config.arch, Some(config.lang_env), package_source.clone());
-    let backend_build_env = Sbuild::new(build_config);
+    patch_source(&build_variables.package_source.clone(), &config.homepage)?;
+    let build_config = BuildConfig::new(
+        "bookworm",
+        &config.arch,
+        Some(config.lang_env),
+        build_variables.package_source.clone(),
+    );
+    let backend_build_env = Sbuild::new(build_config, SbuildBuildOptions::default());
     backend_build_env.build()?;
 
     return Ok(());
@@ -310,22 +352,29 @@ fn build_git_package(
 
 fn build_virtual_package(
     config: &VirtualPackageConfig,
-    packaging_dir: &String,
-    tarball_path: &String,
-    package_source: &String,
+    build_variables: &BookwormBuildVariables,
 ) -> Result<(), String> {
     info!("creating virtual package");
-    create_package_dir(&packaging_dir)?;
-    create_empty_tar(&packaging_dir, &tarball_path)?;
-    extract_source(&packaging_dir, &tarball_path, &package_source)?;
+    create_package_dir(&build_variables.packaging_dir.clone())?;
+    create_empty_tar(
+        &build_variables.packaging_dir,
+        &build_variables.tarball_path,
+    )?;
+    extract_source(build_variables)?;
     create_debian_dir(
-        package_source,
+        &build_variables.package_source.clone(),
         &config.debcrafter_version,
         &config.spec_file,
     )?;
-    patch_source(&package_source)?;
-    let build_config = BuildConfig::new("bookworm", &config.arch, None, package_source.clone());
-    let backend_build_env = Sbuild::new(build_config);
+    patch_source(&build_variables.package_source.clone(), &config.homepage)?;
+    let build_config = BuildConfig::new(
+        "bookworm",
+        &config.arch,
+        None,
+        build_variables.package_source.clone(),
+    );
+
+    let backend_build_env = Sbuild::new(build_config, SbuildBuildOptions::default());
     backend_build_env.clean()?;
     backend_build_env.create()?;
     backend_build_env.build()?;
@@ -368,18 +417,14 @@ fn create_empty_tar(packaging_dir: &str, tarball_path: &str) -> Result<(), Strin
     Ok(())
 }
 
-fn extract_source(
-    packaging_dir: &String,
-    tarball_path: &String,
-    package_source: &String,
-) -> Result<(), String> {
-    info!("Extracting source {}", &packaging_dir);
+fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), String> {
+    info!("Extracting source {}", &build_variables.packaging_dir);
     let output = Command::new("tar")
         .args(&[
             "zxvf",
-            &tarball_path,
+            &build_variables.tarball_path,
             "-C",
-            &packaging_dir,
+            &build_variables.packaging_dir,
             "--strip-components=1",
         ])
         .output()
@@ -390,7 +435,10 @@ fn extract_source(
         return Err(format!("Extraction failed: {}", error_message));
     }
     println!("{:?}", output.status);
-    info!("Extracted source to package_source: {:?}", package_source);
+    info!(
+        "Extracted source to package_source: {:?}",
+        build_variables.package_source
+    );
 
     Ok(())
 }
@@ -416,7 +464,7 @@ fn create_debian_dir(
     );
     Ok(())
 }
-fn patch_source(package_source: &String) -> Result<(), String> {
+fn patch_source(package_source: &String, homepage: &String) -> Result<(), String> {
     // Patch quilt
     let debian_source_format_path = format!("{}/debian/source/format", package_source);
     info!(
@@ -469,10 +517,11 @@ fn patch_source(package_source: &String) -> Result<(), String> {
         .iter()
         .any(|line| line.starts_with("Standards-Version"));
     let standards_version_line = "Standards-Version: 4.5.1";
+    let homepage_line = format!("Homepage: {}", homepage);
     if !has_standards_version {
         let mut insert_index = 0;
         for (i, line) in original_content.iter().enumerate() {
-            if line.starts_with("Package:") {
+            if line.starts_with("Priority:") {
                 insert_index = i + 1;
                 break;
             }
@@ -480,6 +529,7 @@ fn patch_source(package_source: &String) -> Result<(), String> {
 
         let mut updated_content = original_content.clone();
         updated_content.insert(insert_index, standards_version_line.to_string());
+        updated_content.insert(insert_index + 1, homepage_line.to_string());
 
         let mut output_file =
             fs::File::create(&debian_control_path).map_err(|err| err.to_string())?;
@@ -598,16 +648,16 @@ mod tests {
             .to_string();
 
         assert!(tarball_path.exists());
-
-        let result = extract_source(
-            &packaging_dir,
-            &tarball_path.to_string_lossy().to_string(),
-            &packaging_source,
-        );
+        let build_variables = BookwormBuildVariables {
+            packaging_dir: packaging_dir.into(),
+            package_source: packaging_source.into(),
+            tarball_path: tarball_path.to_string_lossy().to_string(),
+        };
+        let result = extract_source(&build_variables);
 
         assert!(result.is_ok(), "{:?}", result);
 
-        let empty_file_path = PathBuf::from(packaging_dir)
+        let empty_file_path = PathBuf::from(build_variables.packaging_dir)
             .join(package_name)
             .join("empty_file.txt");
 

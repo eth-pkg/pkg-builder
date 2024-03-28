@@ -33,8 +33,8 @@ pub struct DistributionPackagerConfig {
     version_number: Option<String>,
     tarball_url: Option<String>,
     git_source: Option<String>,
-    is_virtual_package: bool,
-    is_git: bool,
+    package_is_virtual: bool,
+    package_is_git: bool,
     lang_env: Option<String>,
     debcrafter_version: Option<String>,
     spec_file: Option<String>
@@ -44,7 +44,7 @@ pub struct BuildConfig {
     codename: String,
     arch: String,
     lang_env: Option<LanguageEnv>,
-    package_dir: String
+    package_dir: String,
 }
 
 impl BuildConfig {
@@ -53,7 +53,7 @@ impl BuildConfig {
             codename: codename.to_string(),
             arch: arch.to_string(),
             lang_env,
-            package_dir
+            package_dir,
         };
     }
     pub fn codename(&self) -> &String {
@@ -136,8 +136,8 @@ impl DistributionPackager {
                 .version_number(self.config.version_number.clone())
                 .tarball_url(self.config.tarball_url.clone())
                 .git_source(self.config.git_source.clone())
-                .is_virtual_package(self.config.is_virtual_package)
-                .is_git(self.config.is_git)
+                .package_is_virtual(self.config.package_is_virtual)
+                .package_is_git(self.config.package_is_git)
                 .lang_env(self.config.lang_env.clone())
                 .debcrafter_version(self.config.debcrafter_version.clone())
                 .spec_file(self.config.spec_file.clone())
@@ -150,8 +150,8 @@ impl DistributionPackager {
                 .version_number(self.config.version_number.clone())
                 .tarball_url(self.config.tarball_url.clone())
                 .git_source(self.config.git_source.clone())
-                .is_virtual_package(self.config.is_virtual_package)
-                .is_git(self.config.is_git)
+                .package_is_virtual(self.config.package_is_virtual)
+                .package_is_git(self.config.package_is_git)
                 .lang_env(self.config.lang_env.clone())
                 .config()
                 .map(|config| Distribution::JammyJellyfish(config))

@@ -15,11 +15,12 @@ mod bookworm {
             .version_number(Some("1.0.0".to_string()))
             .tarball_url(None)
             .git_source(None)
-            .is_virtual_package(true)
+            .package_is_virtual(true)
             .debcrafter_version(Some("latest".to_string()))
             .spec_file(Some(
                 "examples/bookworm/virtual-package/test-virtual-package.sss".to_string(),
             ))
+            .homepage(Some("https://github.com/eth-pkg/pkg-builder#examples".to_string()))
             .config()
             .map_err(|err| PackagerError::MissingConfigFields(err.to_string()))
             .unwrap();
