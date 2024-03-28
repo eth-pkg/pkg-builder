@@ -2,8 +2,9 @@
 mod bookworm {
     use env_logger::Env;
     use pkg_builder::v1::distribution::debian::bookworm::{
-        BookwormPackager, BookwormPackagerConfigBuilder,
+        BookwormPackager,
     };
+    use pkg_builder::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfigBuilder;
     use pkg_builder::v1::packager::{Packager, PackagerError};
     
     #[test]

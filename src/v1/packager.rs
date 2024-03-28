@@ -1,9 +1,10 @@
 use core::fmt;
 
 use serde::Deserialize;
+use crate::v1::distribution::debian::bookworm_config_builder::{BookwormPackagerConfig, BookwormPackagerConfigBuilder};
 
 use super::distribution::{
-    debian::bookworm::{BookwormPackager, BookwormPackagerConfig, BookwormPackagerConfigBuilder},
+    debian::bookworm::{BookwormPackager},
     ubuntu::jammy_jellyfish::{
         JammJellyfishPackagerConfigBuilder, JammyJellyfishPackager, JammyJellyfishPackagerConfig,
     },
@@ -15,6 +16,8 @@ pub trait Packager {
     type Config: PackagerConfig;
     fn new(config: Self::Config) -> Self;
     fn package(&self) -> Result<(), String>;
+
+    fn get_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>;
 }
 pub enum Distribution {
     Bookworm(BookwormPackagerConfig),
@@ -48,12 +51,12 @@ pub struct BuildConfig {
 }
 
 impl BuildConfig {
-    pub fn new(codename: &str, arch: &str, lang_env: Option<LanguageEnv>, package_dir: String) -> Self {
+    pub fn new(codename: &str, arch: &str, lang_env: Option<LanguageEnv>, package_dir: &String) -> Self {
         return BuildConfig {
             codename: codename.to_string(),
             arch: arch.to_string(),
             lang_env,
-            package_dir,
+            package_dir: package_dir.to_string()
         };
     }
     pub fn codename(&self) -> &String {
@@ -168,18 +171,18 @@ impl DistributionPackager {
     pub fn package(&self) -> Result<(), PackagerError> {
         let distribution = self.map_config()?;
 
-        match distribution {
+        return match distribution {
             Distribution::Bookworm(config) => {
                 let packager = BookwormPackager::new(config);
-                return packager
+                packager
                     .package()
-                    .map_err(|err| PackagerError::PackagingError(err.to_string()));
+                    .map_err(|err| PackagerError::PackagingError(err.to_string()))
             }
             Distribution::JammyJellyfish(config) => {
                 let packager = JammyJellyfishPackager::new(config);
-                return packager
+                packager
                     .package()
-                    .map_err(|err| PackagerError::PackagingError(err.to_string()));
+                    .map_err(|err| PackagerError::PackagingError(err.to_string()))
             }
         };
     }
