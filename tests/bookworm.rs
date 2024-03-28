@@ -4,12 +4,19 @@ mod bookworm {
     use pkg_builder::v1::distribution::debian::bookworm::{
         BookwormPackager,
     };
-    use pkg_builder::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfigBuilder;
+    use pkg_builder::v1::distribution::debian::bookworm_config_builder::{BookwormPackagerConfig, BookwormPackagerConfigBuilder};
     use pkg_builder::v1::packager::{Packager, PackagerError};
-    
-    #[test]
-    fn test_create_virtual_package() {
-        env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    use std::sync::Once;
+
+    static INIT: Once = Once::new();
+
+    // Set up logging for tests
+    fn setup() {
+        INIT.call_once(|| {
+            env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        });
+    }
+    fn get_virtual_package_config() -> BookwormPackagerConfig {
         let config = BookwormPackagerConfigBuilder::new()
             .arch(Some("amd64".to_string()))
             .package_name(Some("test-virtual-package".to_string()))
@@ -25,12 +32,52 @@ mod bookworm {
             .config()
             .map_err(|err| PackagerError::MissingConfigFields(err.to_string()))
             .unwrap();
+        config
+    }
 
+
+    #[test]
+    fn test_virtual_package_build() {
+        setup();
+        let config = get_virtual_package_config();
         let packager = BookwormPackager::new(config);
         let result = packager.package();
 
-        let error_message = "sbuild_createchroot is not installed. Please install it".to_string();
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_virtual_package_clean_build_env() {
+        setup();
+        let config = get_virtual_package_config();
+        let packager = BookwormPackager::new(config);
+        let build_env = packager.get_build_env();
+
+        assert!(build_env.is_ok());
+
+        let result = build_env.unwrap().clean();
+
+        assert!(result.is_err(), "Command must be invoked with root privileges");
+        let err = result.err().unwrap();
+        assert_eq!(err, "This program was not invoked with sudo.");
+    }
+
+    #[test]
+    fn test_virtual_package_create_build_env() {
+        setup();
+
+        let config = get_virtual_package_config();
+
+        let packager = BookwormPackager::new(config);
+        let build_env = packager.get_build_env();
+
+        assert!(build_env.is_ok());
+
+        let result = build_env.unwrap().create();
+
+        assert!(result.is_err(), "Command must be invoked with root privileges");
+        let err = result.err().unwrap();
+        assert_eq!(err, "This program was not invoked with sudo.");
     }
 
 }

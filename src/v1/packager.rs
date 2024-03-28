@@ -40,7 +40,8 @@ pub struct DistributionPackagerConfig {
     package_is_git: bool,
     lang_env: Option<String>,
     debcrafter_version: Option<String>,
-    spec_file: Option<String>
+    spec_file: Option<String>,
+    homepage: Option<String>
 }
 
 pub struct BuildConfig {
@@ -144,6 +145,7 @@ impl DistributionPackager {
                 .lang_env(self.config.lang_env.clone())
                 .debcrafter_version(self.config.debcrafter_version.clone())
                 .spec_file(self.config.spec_file.clone())
+                .homepage(self.config.homepage.clone())
                 .config()
                 .map(|config| Distribution::Bookworm(config))
                 .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),

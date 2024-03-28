@@ -449,6 +449,10 @@ mod tests {
         assert!(result.is_ok());
         assert!(packaging_dir.exists());
     }
+    #[test]
+    fn test_create_package_dir_if_already_exists() {
+        assert!(false, "Test case not implemented yet");
+    }
 
     #[test]
     fn test_download_source_virtual_package() {
@@ -484,6 +488,24 @@ mod tests {
     #[test]
     fn test_download_source_with_git_package() {
         // TODO: Write test case for downloading source for a Git package
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_patch_src_dir() {
+        // src patching is not implemented yet
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_patch_standards_version() {
+        // src patching is not implemented yet
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_patch_homepage() {
+        // src patching is not implemented yet
         assert!(false, "Test case not implemented yet");
     }
 

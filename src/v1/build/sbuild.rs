@@ -2,6 +2,7 @@ use crate::v1::packager::{BackendBuildEnv, BuildConfig, LanguageEnv};
 use log::info;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{fs, io};
 
@@ -10,12 +11,12 @@ pub struct SbuildBuildOptions {
     run_piuparts: bool,
     run_autopkgtest: bool,
 }
-impl SbuildBuildOptions{
+impl SbuildBuildOptions {
     pub fn default() -> Self {
         SbuildBuildOptions {
             run_autopkgtest: false,
             run_piuparts: false,
-            run_lintian: false
+            run_lintian: false,
         }
     }
 }
@@ -84,41 +85,41 @@ impl Sbuild {
 
 impl BackendBuildEnv for Sbuild {
     fn clean(&self) -> Result<(), String> {
+        check_if_root()?;
+
         let build_prefix = self.get_build_name();
-        println!(
-            "To clean up sbuild directories with prefix: {}, execute the following commands:",
+        info!(
+            "Cleaning up sbuild directories with prefix: {}",
             build_prefix
         );
 
-        // Construct the directory paths
-        let etc_sbuild_dir = format!("/etc/sbuild/chroot/{}", build_prefix);
-        let etc_schroot_dir = format!("/etc/schroot/chroot.d/{}", build_prefix);
-        let srv_chroot_dir = format!("/srv/chroot/{}", build_prefix);
-
-        // Print out the commands to remove directories
-        println!("sudo rm -rf {}", etc_sbuild_dir);
-        println!("sudo rm -rf {}", etc_schroot_dir);
-        println!("sudo rm -rf {}", srv_chroot_dir);
+        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", build_prefix))
+            .map_err(|err| err.to_string())?;
+        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", build_prefix))
+            .map_err(|err| err.to_string())?;
+        remove_dir_recursive(&format!("/srv/chroot/{}", build_prefix))
+            .map_err(|err| err.to_string())?;
 
         Ok(())
     }
 
     fn create(&self) -> Result<(), String> {
         let build_prefix = self.get_build_name();
-        println!("To build the package please create a build environment manually first, by running the following, and rerunning the current command.");
-        // Construct the command string
-        let command = format!(
-            "sudo {} --merged-usr --chroot-prefix {} {} {} {}",
-            "sbuild-createchroot",
-            &build_prefix,
-            &self.config().codename(),
-            &format!("/srv/chroot/{}", build_prefix),
-            "http://deb.debian.org/debian"
-        );
 
-        // Print out the command for the user to execute
-        println!("Run the following command to create the sbuild environment:");
-        println!("{}", command);
+        check_if_root()?;
+
+        let create_result = Command::new("sbuild-createchroot")
+            .arg("--merged-usr")
+            .arg("--chroot-prefix")
+            .arg(&build_prefix)
+            .arg(&self.config().codename())
+            .arg(&format!("/srv/chroot/{}", &build_prefix))
+            .arg("http://deb.debian.org/debian")
+            .status();
+
+        if let Err(err) = create_result {
+            return Err(format!("Failed to create new chroot: {}", err));
+        }
 
         Ok(())
     }
@@ -189,5 +190,107 @@ impl BackendBuildEnv for Sbuild {
         println!("Command exited with: {}", status);
 
         Ok(())
+    }
+}
+
+fn check_if_root() -> Result<(), String> {
+    return if let Some(user) = std::env::var("USER").ok() {
+        if user == "root" {
+            Ok(())
+        } else {
+            Err("This program was not invoked with sudo.".to_string())
+        }
+    } else {
+        Err("The USER environment variable is not set.".to_string())
+    };
+}
+
+fn remove_dir_recursive(dir_path: &str) -> Result<(), std::io::Error> {
+    if Path::new(dir_path).exists() {
+        fs::remove_dir_all(dir_path)?;
+        info!("Removed directory: {}", dir_path);
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use env_logger::Env;
+    use std::sync::Once;
+    static INIT: Once = Once::new();
+
+    // Set up logging for tests
+    fn setup() {
+        INIT.call_once(|| {
+            env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        });
+    }
+    #[test]
+    fn test_clean_sbuild_env() {
+        setup();
+        // let build_env = Sbuild::new(
+        //     BuildConfig::new("bookworm", "", None, &"".to_string()),
+        //     SbuildBuildOptions::default(),
+        // );
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_create_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_virtualpackage_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+    #[test]
+    fn test_build_rust_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+    #[test]
+    fn test_build_go_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_javascript_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_java_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_csharp_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_typescript_package_in_sbuild_env() {
+        setup();
+
+        assert!(false, "Test case not implemented yet");
+    }
+
+    #[test]
+    fn test_build_zig_package_in_sbuild_env() {
+        setup();
+        assert!(false, "Test case not implemented yet");
     }
 }
