@@ -1,4 +1,4 @@
-[package]
+[package_fields]
 spec_file = "test-virtual-package.sss"
 package_name = "test-virtual-package"
 version_number = "1.0.0"
@@ -9,7 +9,7 @@ git_source = ""
 package_type="virtual"
 homepage="https://github.com/eth-pkg/pkg-builder#examples"
 
-[build]
+[build_env]
 codename="bookworm"
 arch = "amd64"
 lang_env = ""

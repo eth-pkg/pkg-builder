@@ -1,10 +1,11 @@
+use std::thread::panicking;
 use crate::v1::packager::{LanguageEnv, PackagerConfig};
 
 #[derive(Clone)]
 pub struct BookwormPackagerConfig {
     package_fields: PackageFields,
     build_env: BookwormBuildEnv,
-    package_type: PackageType
+    package_type: PackageType,
 }
 
 impl PackagerConfig for BookwormPackagerConfig {}
@@ -48,8 +49,7 @@ pub struct BookwormPackagerConfigBuilder {
     version_number: Option<String>,
     tarball_url: Option<String>,
     git_source: Option<String>,
-    package_is_virtual: bool,
-    package_is_git: bool,
+    package_type: Option<String>,
     lang_env: Option<LanguageEnv>,
     debcrafter_version: Option<String>,
     spec_file: Option<String>,
@@ -57,7 +57,6 @@ pub struct BookwormPackagerConfigBuilder {
 }
 
 impl BookwormPackagerConfigBuilder {
-
     pub fn arch(mut self, arch: Option<String>) -> Self {
         self.arch = arch;
         self
@@ -83,13 +82,8 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
-    pub fn package_is_virtual(mut self, package_is_virtual: bool) -> Self {
-        self.package_is_virtual = package_is_virtual;
-        self
-    }
-
-    pub fn package_is_git(mut self, package_is_git: bool) -> Self {
-        self.package_is_git = package_is_git;
+    pub fn package_type(mut self, package_type: Option<String>) -> Self {
+        self.package_type = package_type;
         self
     }
 
@@ -114,12 +108,17 @@ impl BookwormPackagerConfigBuilder {
     }
 
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
-        if self.package_is_virtual && self.package_is_git {
+        let package_type = self.package_type.ok_or_else(|| "Missing package_type field".to_string())?;
+
+        if package_type != "virtual"
+            && package_type != "default"
+            && package_type != "from_git"
+        {
             return Err("Invalid combination package_is_virtual package_is_git!".to_string());
         }
-        let package_type = if self.package_is_virtual {
+        let package_type = if package_type == "virtual" {
             PackageType::Virtual
-        } else if self.package_is_git {
+        } else if package_type == "from_git" {
             let lang_env = self
                 .lang_env
                 .ok_or_else(|| "Missing lang_env field".to_string())?;
@@ -180,7 +179,7 @@ impl BookwormPackagerConfigBuilder {
         let config = BookwormPackagerConfig {
             package_fields,
             build_env,
-            package_type
+            package_type,
         };
         Ok(config)
     }
@@ -244,7 +243,6 @@ impl PackageFields {
     pub fn homepage(&self) -> &String {
         &self.homepage
     }
-
 }
 impl BookwormBuildEnv {
     pub fn codename(&self) -> &String {

@@ -179,9 +179,9 @@ fn create_debian_dir(
     debcrafter_version: &String,
     spec_file: &str,
 ) -> Result<(), String> {
-    debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
+    debcrafter_helper::check_if_dpkg_parsechangelog_installed().map_err(|err| err.to_string())?;
     if !debcrafter_helper::check_if_installed() {
-        debcrafter_helper::install()?;
+        debcrafter_helper::install().map_err(|err| err.to_string())?;
     }
     warn!(
         "Debcrafter version number is not checked! Expecting version number of: {}",
@@ -189,7 +189,8 @@ fn create_debian_dir(
     );
     // debcrafter_helper::check_version_compatibility(debcrafter_version)?;
 
-    debcrafter_helper::create_debian_dir(spec_file, package_source)?;
+    debcrafter_helper::create_debian_dir(spec_file, package_source)
+        .map_err(|err| err.to_string())?;
     info!(
         "Created /debian dir under package_source folder: {:?}",
         package_source

@@ -3,7 +3,7 @@ use core::fmt;
 use crate::v1::distribution::debian::bookworm_config_builder::{
     BookwormPackagerConfig, BookwormPackagerConfigBuilder,
 };
-use serde::Deserialize;
+use crate::v1::cli_config::{CliConfig};
 
 use super::distribution::{
     debian::bookworm::BookwormPackager,
@@ -27,24 +27,9 @@ pub enum Distribution {
 }
 
 pub struct DistributionPackager {
-    config: DistributionPackagerConfig,
+    config: CliConfig,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct DistributionPackagerConfig {
-    codename: Option<String>,
-    arch: Option<String>,
-    package_name: Option<String>,
-    version_number: Option<String>,
-    tarball_url: Option<String>,
-    git_source: Option<String>,
-    package_is_virtual: bool,
-    package_is_git: bool,
-    lang_env: Option<String>,
-    debcrafter_version: Option<String>,
-    spec_file: Option<String>,
-    homepage: Option<String>,
-}
 
 
 pub trait BackendBuildEnv {
@@ -94,47 +79,68 @@ impl LanguageEnv {
 }
 
 #[derive(Debug)]
-pub enum PackagerError {
+pub enum Error {
     InvalidCodename(String),
     MissingConfigFields(String),
     PackagingError(String),
 }
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InvalidCodename(inner) => {
+                // You can customize how you want to display this error variant
+                write!(f, "Invalid codename: {}", inner)
+            }
+            Error::MissingConfigFields(inner) => {
+                // You can customize how you want to display this error variant
+                write!(f, "Missing fields: {}", inner)
+            }
+            Error::PackagingError(inner) => {
+                // You can customize how you want to display this error variant
+                write!(f, "Failed to package: {}", inner)
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 
 impl DistributionPackager {
-    pub fn new(config: DistributionPackagerConfig) -> Self {
+    pub fn new(config: CliConfig) -> Self {
          DistributionPackager { config }
     }
-    fn map_config(&self) -> Result<Distribution, PackagerError> {
-        let config = match self.config.codename.clone().unwrap_or_default().as_str() {
+    fn map_config(&self) -> Result<Distribution, Error> {
+        let build_env = self.config.build_env();
+        let package_fields = self.config.package_fields();
+        let config = match build_env.codename().clone().unwrap_or_default().as_str() {
             "bookworm" | "debian 12" => BookwormPackagerConfigBuilder::default()
-                .arch(self.config.arch.clone())
-                .package_name(self.config.package_name.clone())
-                .version_number(self.config.version_number.clone())
-                .tarball_url(self.config.tarball_url.clone())
-                .git_source(self.config.git_source.clone())
-                .package_is_virtual(self.config.package_is_virtual)
-                .package_is_git(self.config.package_is_git)
-                .lang_env(self.config.lang_env.clone())
-                .debcrafter_version(self.config.debcrafter_version.clone())
-                .spec_file(self.config.spec_file.clone())
-                .homepage(self.config.homepage.clone())
+                .arch(build_env.arch().clone())
+                .package_name(package_fields.package_name().clone())
+                .version_number(package_fields.version_number().clone())
+                .tarball_url(package_fields.tarball_url().clone())
+                .git_source(package_fields.git_source().clone())
+                .package_type(package_fields.package_type().clone())
+                .lang_env(package_fields.lang_env().clone())
+                .debcrafter_version(build_env.debcrafter_version().clone())
+                .spec_file(package_fields.spec_file().clone())
+                .homepage(package_fields.homepage().clone())
                 .config()
                 .map(Distribution::Bookworm)
-                .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
+                .map_err(|err| Error::MissingConfigFields(err.to_string())),
             "jammy jellyfish" | "ubuntu 22.04" => JammJellyfishPackagerConfigBuilder::new()
-                .arch(self.config.arch.clone())
-                .package_name(self.config.package_name.clone())
-                .version_number(self.config.version_number.clone())
-                .tarball_url(self.config.tarball_url.clone())
-                .git_source(self.config.git_source.clone())
-                .package_is_virtual(self.config.package_is_virtual)
-                .package_is_git(self.config.package_is_git)
-                .lang_env(self.config.lang_env.clone())
+                .arch(build_env.arch().clone())
+                .package_name(package_fields.package_name().clone())
+                .version_number(package_fields.version_number().clone())
+                .tarball_url(package_fields.tarball_url().clone())
+                .git_source(package_fields.git_source().clone())
+               // .package_type(package_fields.package_type().clone())
+                .lang_env(package_fields.lang_env().clone())
                 .config()
                 .map(Distribution::JammyJellyfish)
-                .map_err(|err| PackagerError::MissingConfigFields(err.to_string())),
+                .map_err(|err| Error::MissingConfigFields(err.to_string())),
             invalid_codename => {
-                return Err(PackagerError::InvalidCodename(format!(
+                return Err(Error::InvalidCodename(format!(
                     "Invalid codename '{}' specified",
                     invalid_codename
                 )));
@@ -142,7 +148,7 @@ impl DistributionPackager {
         };
         config
     }
-    pub fn package(&self) -> Result<(), PackagerError> {
+    pub fn package(&self) -> Result<(), Error> {
         let distribution = self.map_config()?;
 
         match distribution {
@@ -150,13 +156,13 @@ impl DistributionPackager {
                 let packager = BookwormPackager::new(config);
                 packager
                     .package()
-                    .map_err(|err| PackagerError::PackagingError(err.to_string()))?;
+                    .map_err(|err| Error::PackagingError(err.to_string()))?;
             }
             Distribution::JammyJellyfish(config) => {
                 let packager = JammyJellyfishPackager::new(config);
                 packager
                     .package()
-                    .map_err(|err| PackagerError::PackagingError(err.to_string()))?;
+                    .map_err(|err| Error::PackagingError(err.to_string()))?;
             }
         };
         Ok(())

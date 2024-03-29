@@ -1,24 +1,60 @@
+use crate::v1::packager;
 use git2::Repository;
 use log::info;
-use std::fs;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use std::{fmt, fs};
 use tempfile::tempdir;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Command not found: {0}")]
+    CommandNotFound(#[from] io::Error),
+
+    #[error("Failed to execute command: {0}")]
+    CommandFailed(CommandError),
+
+    #[error("Failed to clone: {0}")]
+    Git(#[from] git2::Error),
+
+    #[error("Failed to package: {0}")]
+    Runtime(#[from] packager::Error),
+}
+
+#[derive(Debug)]
+pub enum CommandError {
+    StringError(String),
+    IOError(io::Error),
+}
+impl fmt::Display for CommandError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CommandError::StringError(s) => write!(f, "{}", s),
+            CommandError::IOError(err) => write!(f, "{}", err),
+        }
+    }
+}
+impl From<String> for CommandError {
+    fn from(err: String) -> Self {
+        CommandError::StringError(err)
+    }
+}
+
+impl From<io::Error> for CommandError {
+    fn from(err: io::Error) -> Self {
+        CommandError::IOError(err)
+    }
+}
 
 // TODO use from crates.io
-pub fn check_if_dpkg_parsechangelog_installed() -> Result<(), String> {
-    let output = Command::new("which")
-        .arg("dpkg-parsechangelog")
-        .output()
-        .expect("dpkg-parsechangelog is not installed");
+pub fn check_if_dpkg_parsechangelog_installed() -> Result<(), Error> {
+    let mut cmd = Command::new("which");
+    cmd.arg("dpkg-parsechangelog");
 
-    if !output.status.success() {
-        return Err(format!(
-            "dpkg-parsechangelog is not installed. Please install it"
-        ));
-    }
+    handle_failure(&mut cmd)?;
     Ok(())
 }
 
@@ -29,7 +65,7 @@ pub fn check_if_installed() -> bool {
     }
 }
 
-pub fn install() -> Result<(), String> {
+pub fn install() -> Result<(), Error> {
     let repo_dir = tempdir().expect("Failed to create temporary directory");
 
     // Path to the temporary directory
@@ -37,30 +73,19 @@ pub fn install() -> Result<(), String> {
 
     // Clone the Git repository into the temporary directory
     let repo_url = "https://github.com/Kixunil/debcrafter.git";
-    Repository::clone(repo_url, repo_dir_path).map_err(|op| op.to_string())?;
+    Repository::clone(repo_url, repo_dir_path)?;
 
     // Build the project
-    let output = Command::new("cargo")
-        .arg("build")
-        .current_dir(repo_dir_path)
-        .output()
-        .expect("Failed to execute 'cargo build'");
+    let mut cmd = Command::new("cargo");
+    cmd.arg("build").current_dir(repo_dir_path);
 
-    if !output.status.success() {
-        return Err(format!("Cargo build failed: {:?}", output));
-    }
+    handle_failure(&mut cmd)?;
 
     // Install the binary
-    let output = Command::new("cargo")
-        .arg("install")
-        .arg("--path")
-        .arg(repo_dir_path)
-        .output()
-        .expect("Failed to execute 'cargo install'");
+    let mut cmd = Command::new("cargo");
+    cmd.arg("install").arg("--path").arg(repo_dir_path);
 
-    if !output.status.success() {
-        return Err(format!("Cargo install failed: {:?}", output));
-    }
+    handle_failure(&mut cmd)?;
     Ok(())
 }
 
@@ -78,36 +103,36 @@ pub fn install() -> Result<(), String> {
 //     Ok(())
 // }
 
-pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), String> {
+pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), Error> {
     let debcrafter_dir = tempdir().expect("Failed to create temporary directory");
 
     let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).unwrap();
     let spec_dir = spec_file_path.parent().unwrap();
     if !spec_file_path.exists() {
-        return Err(format!("{} spec_file doesn't exist", specification_file));
+        return Err(Error::CommandFailed(
+            format!("{} spec_file doesn't exist", specification_file).into(),
+        ));
     }
     let spec_file_name = spec_file_path.file_name().unwrap();
     info!("Spec directory: {:?}", spec_dir.to_str().unwrap());
     info!("Spec file: {:?}", spec_file_name);
     info!("Debcrafter directory: {:?}", debcrafter_dir);
-    let output = Command::new("debcrafter")
-        .arg(spec_file_name)
+    let mut cmd = Command::new("debcrafter");
+    cmd.arg(spec_file_name)
         .current_dir(spec_dir)
-        .arg(debcrafter_dir.path())
-        .output()
-        .map_err(|err| format!("Error invoking debcrafter command: {:?}", err))?;
+        .arg(debcrafter_dir.path());
 
-    if !output.status.success() {
-        let error_message = String::from_utf8_lossy(&output.stderr);
-        return Err(error_message.to_string());
-    }
+    handle_failure(&mut cmd)?;
+
     if let Some(first_directory) = get_first_directory(debcrafter_dir.path()) {
         let tmp_debian_dir = first_directory.join("debian");
         let dest_dir = Path::new(target_dir).join("debian");
         copy_dir_contents_recursive(&tmp_debian_dir, &dest_dir)
-            .map_err(|err| err.to_string())?;
+            .map_err(|err| Error::CommandFailed(err.into()))?;
     } else {
-        return Err("Unable to create debian dir.".to_string());
+        return Err(Error::CommandFailed(
+            "Unable to create debian dir.".to_string().into(),
+        ));
     }
     Ok(())
 }
@@ -139,15 +164,24 @@ fn copy_dir_contents_recursive(src_dir: &Path, dest_dir: &Path) -> io::Result<()
 
     Ok(())
 }
+fn handle_failure(cmd: &mut Command) -> Result<(), Error> {
+    let output = cmd
+        .output()
+        .map_err(|err| Error::CommandFailed(err.into()))?;
 
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(Error::CommandFailed(stderr.into()));
+    }
+    Ok(())
+}
 fn get_first_directory(dir: &Path) -> Option<PathBuf> {
     if dir.is_dir() {
         for entry in fs::read_dir(dir).ok()? {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_dir() {
-                    return Some(path);
-                }
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.is_dir() {
+                return Some(path);
             }
         }
     }
@@ -166,7 +200,7 @@ mod tests {
     // }
 
     // #[test]
-    // fn test_debcrafter_version_incombability() {
+    // fn test_debcrafter_version_incompatibility() {
     //     let result = check_version_compatibility("1.0.0");
     //     assert!(result.is_err());
     //     assert_eq!(

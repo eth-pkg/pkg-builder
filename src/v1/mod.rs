@@ -4,3 +4,4 @@ pub mod distribution;
 pub mod build;
 pub mod packager;
 pub mod debcrafter_helper;
+mod cli_config;
