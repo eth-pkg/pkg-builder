@@ -17,7 +17,7 @@ mod bookworm {
         });
     }
     fn get_virtual_package_config() -> BookwormPackagerConfig {
-        let config = BookwormPackagerConfigBuilder::new()
+        let config = BookwormPackagerConfigBuilder::default()
             .arch(Some("amd64".to_string()))
             .package_name(Some("test-virtual-package".to_string()))
             .version_number(Some("1.0.0".to_string()))

@@ -1,43 +1,47 @@
-use crate::v1::packager::LanguageEnv;
+use crate::v1::packager::{LanguageEnv, PackagerConfig};
 
-pub struct NormalPackageConfig {
-    pub arch: String,
-    pub package_name: String,
-    pub version_number: String,
-    pub tarball_url: String,
-    pub lang_env: LanguageEnv,
-    pub debcrafter_version: String,
-    pub spec_file: String,
-    pub homepage: String,
+#[derive(Clone)]
+pub struct BookwormPackagerConfig {
+    package_fields: PackageFields,
+    build_env: BookwormBuildEnv,
+    package_type: PackageType
 }
 
-pub struct GitPackageConfig {
-    pub arch: String,
-    pub package_name: String,
-    pub version_number: String,
-    pub git_source: String,
-    pub lang_env: LanguageEnv,
-    pub debcrafter_version: String,
-    pub spec_file: String,
-    pub homepage: String,
+impl PackagerConfig for BookwormPackagerConfig {}
+
+#[derive(Clone)]
+pub struct PackageFields {
+    package_name: String,
+    version_number: String,
+    revision_number: String,
+    spec_file: String,
+    homepage: String,
+}
+#[derive(Clone)]
+pub enum PackageType {
+    Default {
+        tarball_url: String,
+        lang_env: LanguageEnv,
+    },
+    Git {
+        git_source: String,
+        lang_env: LanguageEnv,
+    },
+    Virtual,
 }
 
-pub struct VirtualPackageConfig {
-    pub arch: String,
-    pub package_name: String,
-    pub version_number: String,
-    pub debcrafter_version: String,
-    pub spec_file: String,
-    pub homepage: String,
+#[derive(Clone)]
+pub struct BookwormBuildEnv {
+    codename: String,
+    arch: String,
+    pkg_builder_version: String,
+    debcrafter_version: String,
+    run_lintian: bool,
+    run_piuparts: bool,
+    run_autopkgtest: bool,
+    workdir: String,
 }
-
-pub enum BookwormPackagerConfig {
-    InvalidCombination,
-    NormalPackage(NormalPackageConfig),
-    GitPackage(GitPackageConfig),
-    VirtualPackage(VirtualPackageConfig),
-}
-
+#[derive(Default)]
 pub struct BookwormPackagerConfigBuilder {
     arch: Option<String>,
     package_name: Option<String>,
@@ -53,21 +57,6 @@ pub struct BookwormPackagerConfigBuilder {
 }
 
 impl BookwormPackagerConfigBuilder {
-    pub fn new() -> Self {
-        BookwormPackagerConfigBuilder {
-            arch: None,
-            package_name: None,
-            version_number: None,
-            tarball_url: None,
-            git_source: None,
-            package_is_virtual: false,
-            package_is_git: false,
-            lang_env: None,
-            debcrafter_version: None,
-            spec_file: None,
-            homepage: None,
-        }
-    }
 
     pub fn arch(mut self, arch: Option<String>) -> Self {
         self.arch = arch;
@@ -126,8 +115,33 @@ impl BookwormPackagerConfigBuilder {
 
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
         if self.package_is_virtual && self.package_is_git {
-            return Ok(BookwormPackagerConfig::InvalidCombination);
+            return Err("Invalid combination package_is_virtual package_is_git!".to_string());
         }
+        let package_type = if self.package_is_virtual {
+            PackageType::Virtual
+        } else if self.package_is_git {
+            let lang_env = self
+                .lang_env
+                .ok_or_else(|| "Missing lang_env field".to_string())?;
+            let git_source = self
+                .git_source
+                .ok_or_else(|| "Missing git_source field".to_string())?;
+            PackageType::Git {
+                lang_env,
+                git_source,
+            }
+        } else {
+            let lang_env = self
+                .lang_env
+                .ok_or_else(|| "Missing lang_env field".to_string())?;
+            let tarball_url = self
+                .tarball_url
+                .ok_or_else(|| "Missing tarball_url field".to_string())?;
+            PackageType::Default {
+                lang_env,
+                tarball_url,
+            }
+        };
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
         let package_name = self
             .package_name
@@ -145,50 +159,118 @@ impl BookwormPackagerConfigBuilder {
         let homepage = self
             .homepage
             .ok_or_else(|| "Missing homepage field".to_string())?;
-        if self.package_is_virtual {
-            let config = VirtualPackageConfig {
-                arch,
-                package_name,
-                version_number,
-                debcrafter_version,
-                spec_file,
-                homepage,
-            };
-            return Ok(BookwormPackagerConfig::VirtualPackage(config));
-        }
-        let lang_env = self
-            .lang_env
-            .ok_or_else(|| "Missing lang_env field".to_string())?;
-        if self.package_is_git {
-            let git_source = self
-                .git_source
-                .ok_or_else(|| "Missing git_source field".to_string())?;
-            let config = GitPackageConfig {
-                arch,
-                package_name,
-                version_number,
-                lang_env,
-                debcrafter_version,
-                git_source,
-                spec_file,
-                homepage,
-            };
-            return Ok(BookwormPackagerConfig::GitPackage(config));
-        } else {
-            let tarball_url = self
-                .tarball_url
-                .ok_or_else(|| "Missing tarball_url field".to_string())?;
-            let config = NormalPackageConfig {
-                arch,
-                package_name,
-                version_number,
-                tarball_url,
-                lang_env,
-                debcrafter_version,
-                spec_file,
-                homepage,
-            };
-            Ok(BookwormPackagerConfig::NormalPackage(config))
-        }
+
+        let package_fields = PackageFields {
+            package_name,
+            version_number,
+            revision_number: "".to_string(),
+            spec_file,
+            homepage,
+        };
+        let build_env = BookwormBuildEnv {
+            codename: "bookworm".to_string(),
+            arch,
+            pkg_builder_version: "".to_string(),
+            debcrafter_version,
+            run_lintian: false,
+            run_piuparts: false,
+            run_autopkgtest: false,
+            workdir: "/tmp/pkg-builder".to_string(),
+        };
+        let config = BookwormPackagerConfig {
+            package_fields,
+            build_env,
+            package_type
+        };
+        Ok(config)
+    }
+}
+impl BookwormPackagerConfig {
+    pub fn package_fields(&self) -> &PackageFields {
+        &self.package_fields
+    }
+    pub fn build_env(&self) -> &BookwormBuildEnv {
+        &self.build_env
+    }
+    pub fn package_type(&self) -> &PackageType {
+        &self.package_type
+    }
+    pub fn lang_env(&self) -> Option<LanguageEnv> {
+        let lang_env = match self.package_type {
+            PackageType::Default { lang_env, .. } => Some(lang_env),
+            PackageType::Git { lang_env, .. } => Some(lang_env),
+            PackageType::Virtual => None,
+        };
+        lang_env
+    }
+    pub fn packaging_dir(&self) -> String {
+        let package_name = self.package_fields().package_name();
+        let packaging_dir = format!("{}/{}", self.build_env().workdir(), &package_name);
+        packaging_dir
+    }
+    pub fn tarball_path(&self) -> String {
+        let package_name = self.package_fields().package_name();
+        let version_number = self.package_fields().version_number();
+        let packaging_dir = self.packaging_dir();
+        let tarball_path = format!(
+            "{}/{}_{}.orig.tar.gz",
+            &packaging_dir, &package_name, &version_number
+        );
+        tarball_path
+    }
+    pub fn package_source(&self) -> String {
+        let package_name = self.package_fields().package_name();
+        let version_number = self.package_fields().version_number();
+        let packaging_dir = self.packaging_dir();
+        let package_source = format!("{}/{}-{}", packaging_dir, &package_name, &version_number);
+        package_source
+    }
+}
+
+impl PackageFields {
+    pub fn package_name(&self) -> &String {
+        &self.package_name
+    }
+    pub fn version_number(&self) -> &String {
+        &self.version_number
+    }
+
+    pub fn revision_number(&self) -> &String {
+        &self.revision_number
+    }
+    pub fn spec_file(&self) -> &String {
+        &self.spec_file
+    }
+    pub fn homepage(&self) -> &String {
+        &self.homepage
+    }
+
+}
+impl BookwormBuildEnv {
+    pub fn codename(&self) -> &String {
+        &self.codename
+    }
+    pub fn arch(&self) -> &String {
+        &self.arch
+    }
+
+    pub fn pkg_builder_version(&self) -> &String {
+        &self.pkg_builder_version
+    }
+    pub fn debcrafter_version(&self) -> &String {
+        &self.debcrafter_version
+    }
+    pub fn run_lintian(&self) -> bool {
+        self.run_lintian
+    }
+    pub fn run_piuparts(&self) -> bool {
+        self.run_piuparts
+    }
+    pub fn run_autopkgtest(&self) -> bool {
+        self.run_autopkgtest
+    }
+
+    pub fn workdir(&self) -> &String {
+        &self.workdir
     }
 }

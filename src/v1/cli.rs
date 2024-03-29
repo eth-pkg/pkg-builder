@@ -26,7 +26,7 @@ fn read_config(path: &Path) -> Result<DistributionPackagerConfig, CliConfigError
 pub fn run_cli() -> Result<(), CliConfigError> {
     let path = Path::new("config.toml");
 
-    let config = read_config(&path)?;
+    let config = read_config(path)?;
 
     let distribution = DistributionPackager::new(config);
 
