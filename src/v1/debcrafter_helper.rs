@@ -6,6 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{fmt, fs};
+use std::fmt::{Display, Formatter};
 use tempfile::tempdir;
 use thiserror::Error;
 
@@ -18,11 +19,9 @@ pub enum Error {
     CommandFailed(CommandError),
 
     #[error("Failed to clone: {0}")]
-    Git(#[from] git2::Error),
-
-    #[error("Failed to package: {0}")]
-    Runtime(#[from] packager::Error),
+    GitClone(#[from] git2::Error)
 }
+
 
 #[derive(Debug)]
 pub enum CommandError {

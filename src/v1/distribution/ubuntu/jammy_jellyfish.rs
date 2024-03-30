@@ -1,6 +1,8 @@
 // ubuntu 22.04 LTS
 
-use crate::v1::packager::{BackendBuildEnv, LanguageEnv, Packager, PackagerConfig};
+use thiserror::Error;
+use crate::v1::build::sbuild::Sbuild;
+use crate::v1::packager::{LanguageEnv, Packager, PackagerConfig};
 #[allow(dead_code)]
 pub struct JammyJellyfishPackager {
     config: JammyJellyfishPackagerConfig,
@@ -18,6 +20,8 @@ pub struct JammyJellyfishPackagerConfig {
 }
 
 impl PackagerConfig for JammyJellyfishPackagerConfig {}
+
+#[derive(Default)]
 pub struct JammJellyfishPackagerConfigBuilder {
     arch: Option<String>,
     package_name: Option<String>,
@@ -29,18 +33,6 @@ pub struct JammJellyfishPackagerConfigBuilder {
     lang_env: Option<LanguageEnv>,
 }
 impl JammJellyfishPackagerConfigBuilder {
-    pub fn new() -> Self {
-        JammJellyfishPackagerConfigBuilder {
-            arch: None,
-            package_name: None,
-            version_number: None,
-            tarball_url: None,
-            git_source: None,
-            package_is_virtual: false,
-            package_is_git: false,
-            lang_env: None,
-        }
-    }
 
     pub fn arch(mut self, arch: Option<String>) -> Self {
         self.arch = arch;
@@ -112,17 +104,22 @@ impl JammJellyfishPackagerConfigBuilder {
         })
     }
 }
+#[derive(Debug, Error)]
+pub enum Error {}
+
 impl Packager for JammyJellyfishPackager {
+    type Error = Error;
     type Config = JammyJellyfishPackagerConfig;
+    type BuildEnv = Sbuild;
 
     fn new(config: Self::Config) -> Self {
-        return JammyJellyfishPackager { config };
+         JammyJellyfishPackager { config }
     }
-    fn package(&self) -> Result<(), String> {
+    fn package(&self) -> Result<(), self::Error> {
         todo!()
     }
 
-    fn get_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String> {
+    fn get_build_env(&self) -> Result<Self::BuildEnv, Self::Error> {
         todo!()
     }
 }

@@ -2,19 +2,22 @@ use std::fs;
 use std::io::BufRead;
 use std::io::BufReader;
 
-use crate::v1::build::*;
+use crate::v1::build::sbuild::Sbuild;
 use crate::v1::debcrafter_helper;
 use crate::v1::packager::{BackendBuildEnv, Packager};
 
+use crate::v1::build::sbuild;
 use crate::v1::distribution::debian::bookworm_config_builder::{
     BookwormPackagerConfig, PackageType,
 };
 use log::info;
 use log::warn;
 use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use thiserror::Error;
 
 pub struct BookwormPackager {
     config: BookwormPackagerConfig,
@@ -26,21 +29,45 @@ pub struct BookwormBuildVariables {
     tarball_path: String,
     package_source: String,
 }
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Patching failed: {0}")]
+    Patch(String),
 
+    #[error("Create package_dir failed: {0}")]
+    CreatePackageDir(String),
+
+    #[error("Extract failed: {0}")]
+    Extract(String),
+
+    #[error("Source download failed: {0}")]
+    SourceDownload(String),
+
+    #[error("Creation of empty tar failed: {0}")]
+    CreateEmptyTar(String),
+
+    #[error("Debcrafter failed: {0}")]
+    Debcrafter(#[from] debcrafter_helper::Error),
+
+    #[error("Failed with sbuild error: {0}")]
+    Sbuild(#[from] sbuild::Error),
+}
 impl Packager for BookwormPackager {
+    type Error = Error;
     type Config = BookwormPackagerConfig;
+    type BuildEnv = Sbuild;
 
     fn new(config: Self::Config) -> Self {
         BookwormPackager { config }
     }
 
-    fn package(&self) -> Result<(), String> {
+    fn package(&self) -> Result<(), Error> {
         let build_variables = BookwormBuildVariables {
             package_source: self.config.package_source(),
             tarball_path: self.config.tarball_path(),
             packaging_dir: self.config.packaging_dir(),
         };
-        let pre_build: Result<(), String> = match &self.config.package_type() {
+        let pre_build: Result<(), Error> = match &self.config.package_type() {
             PackageType::Default { tarball_url, .. } => {
                 create_package_dir(&build_variables.packaging_dir.clone())?;
                 download_source(&build_variables.tarball_path, tarball_url)?;
@@ -103,52 +130,54 @@ impl Packager for BookwormPackager {
         Ok(())
     }
 
-    fn get_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String> {
-        let backend_build_env = Box::new(Sbuild::new(self.config.clone()));
+    fn get_build_env(&self) -> Result<Self::BuildEnv, Self::Error> {
+        let backend_build_env = Sbuild::new(self.config.clone());
         Ok(backend_build_env)
     }
 }
 
-fn create_package_dir(packaging_dir: &String) -> Result<(), String> {
+fn create_package_dir(packaging_dir: &String) -> Result<(), Error> {
     info!("Creating package folder {}", &packaging_dir);
-    fs::create_dir_all(packaging_dir).map_err(|err| err.to_string())?;
+    fs::create_dir_all(packaging_dir).map_err(|err| Error::CreatePackageDir(err.to_string()))?;
     Ok(())
 }
 
-fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), String> {
+fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), Error> {
     info!("Downloading source {}", tarball_path);
     let status = Command::new("wget")
         .arg("-O")
         .arg(tarball_path)
         .arg(tarball_url)
         .status()
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| Error::SourceDownload(err.to_string()))?;
     if !status.success() {
-        return Err("Download failed".to_string());
+        return Err(Error::SourceDownload("Download failed".to_string()));
     }
     Ok(())
 }
 
 #[allow(unused_variables)]
-fn download_git(packaging_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), String> {
+fn download_git(packaging_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), Error> {
     todo!()
 }
 
-fn create_empty_tar(packaging_dir: &str, tarball_path: &str) -> Result<(), String> {
+fn create_empty_tar(packaging_dir: &str, tarball_path: &str) -> Result<(), Error> {
     info!("Creating empty .tar.gz for virtual package");
     let output = Command::new("tar")
         .args(["czvf", tarball_path, "--files-from", "/dev/null"])
         .current_dir(packaging_dir)
         .output()
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| Error::CreateEmptyTar(err.to_string()))?;
     if !output.status.success() {
-        return Err("Virtual package .tar.gz creation failed".to_string());
+        return Err(Error::CreateEmptyTar(
+            "Virtual package .tar.gz creation failed".to_string(),
+        ));
     }
 
     Ok(())
 }
 
-fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), String> {
+fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error> {
     info!("Extracting source {}", &build_variables.packaging_dir);
     let output = Command::new("tar")
         .args([
@@ -159,13 +188,12 @@ fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), String
             "--strip-components=1",
         ])
         .output()
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| Error::Extract(err.to_string()))?;
     if !output.status.success() {
         let error_message = String::from_utf8(output.stderr)
             .unwrap_or_else(|_| "Unknown error occurred during extraction".to_string());
-        return Err(format!("Extraction failed: {}", error_message));
+        return Err(Error::Extract(error_message));
     }
-    println!("{:?}", output.status);
     info!(
         "Extracted source to package_source: {:?}",
         build_variables.package_source
@@ -178,10 +206,10 @@ fn create_debian_dir(
     package_source: &String,
     debcrafter_version: &String,
     spec_file: &str,
-) -> Result<(), String> {
-    debcrafter_helper::check_if_dpkg_parsechangelog_installed().map_err(|err| err.to_string())?;
+) -> Result<(), Error> {
+    debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
     if !debcrafter_helper::check_if_installed() {
-        debcrafter_helper::install().map_err(|err| err.to_string())?;
+        debcrafter_helper::install()?;
     }
     warn!(
         "Debcrafter version number is not checked! Expecting version number of: {}",
@@ -189,8 +217,7 @@ fn create_debian_dir(
     );
     // debcrafter_helper::check_version_compatibility(debcrafter_version)?;
 
-    debcrafter_helper::create_debian_dir(spec_file, package_source)
-        .map_err(|err| err.to_string())?;
+    debcrafter_helper::create_debian_dir(spec_file, package_source)?;
     info!(
         "Created /debian dir under package_source folder: {:?}",
         package_source
@@ -198,7 +225,7 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_source(package_source: &String, homepage: &String) -> Result<(), String> {
+fn patch_source(package_source: &String, homepage: &String) -> Result<(), Error> {
     // Patch quilt
     let debian_source_format_path = format!("{}/debian/source/format", package_source);
     info!(
@@ -208,7 +235,7 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
     let debian_source_dir = PathBuf::from(&package_source).join("debian/source");
     if !debian_source_dir.exists() {
         fs::create_dir_all(&debian_source_dir)
-            .map_err(|_| "Failed to create debian/source dir".to_string())?;
+            .map_err(|_| Error::Patch("Failed to create debian/source dir".to_string()))?;
         info!(
             "Created debian/source directory at: {:?}",
             debian_source_dir
@@ -217,7 +244,7 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
 
     if !Path::new(&debian_source_format_path).exists() {
         fs::write(&debian_source_format_path, "3.0 (quilt)\n")
-            .map_err(|err| format!("Error writing file: {}", err))?;
+            .map_err(|err| Error::Patch(format!("Error writing file: {}", err)))?;
         info!(
             "Quilt format file created at: {}",
             debian_source_format_path
@@ -233,9 +260,10 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
     let pc_version_path = format!("{}/.pc/.version", &package_source);
     info!("Creating necessary directories for patching");
     fs::create_dir_all(format!("{}/.pc", &package_source))
-        .map_err(|_| "Could not create .pc dir".to_string())?;
-    let mut pc_version_file = fs::File::create(pc_version_path).map_err(|err| err.to_string())?;
-    writeln!(pc_version_file, "2").map_err(|err| err.to_string())?;
+        .map_err(|_| Error::Patch("Could not create .pc dir".to_string()))?;
+    let mut pc_version_file =
+        fs::File::create(pc_version_path).map_err(|err| Error::Patch(err.to_string()))?;
+    writeln!(pc_version_file, "2").map_err(|err| Error::Patch(err.to_string()))?;
 
     // Patch .pc patch version number
     let debian_control_path = format!("{}/debian/control", package_source);
@@ -243,7 +271,8 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
         "Adding Standards-Version to the control file. Debian control path: {}",
         debian_control_path
     );
-    let input_file = fs::File::open(&debian_control_path).map_err(|err| err.to_string())?;
+    let input_file =
+        fs::File::open(&debian_control_path).map_err(|err| Error::Patch(err.to_string()))?;
     let reader = BufReader::new(input_file);
 
     let original_content: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
@@ -266,9 +295,9 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
         updated_content.insert(insert_index + 1, homepage_line.to_string());
 
         let mut output_file =
-            fs::File::create(&debian_control_path).map_err(|err| err.to_string())?;
+            fs::File::create(&debian_control_path).map_err(|err| Error::Patch(err.to_string()))?;
         for line in updated_content {
-            writeln!(output_file, "{}", line).map_err(|err| err.to_string())?;
+            writeln!(output_file, "{}", line).map_err(|err| Error::Patch(err.to_string()))?;
         }
 
         info!("Standards-Version added to the control file.");
@@ -293,6 +322,20 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), String
     //             .map_err(|err| err.to_string())?
     //     }
     // }
+
+    // Get the current permissions of the file
+    info!(
+        "Adding executable permission for {}/debian/rules",
+        package_source
+    );
+
+    let debian_rules = format!("{}/debian/rules", package_source);
+    let mut permissions = fs::metadata(debian_rules.clone())
+        .map_err(|err| Error::Patch(err.to_string()))?
+        .permissions();
+    permissions.set_mode(permissions.mode() | 0o111);
+    fs::set_permissions(debian_rules, permissions).map_err(|err| Error::Patch(err.to_string()))?;
+
     info!("Patching finished successfully!");
     Ok(())
 }

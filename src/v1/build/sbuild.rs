@@ -1,22 +1,35 @@
-use crate::v1::packager::{BackendBuildEnv};
+use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
+use crate::v1::packager::BackendBuildEnv;
 use log::info;
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{fs, io};
-use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
+use thiserror::Error;
 
-
-pub struct Sbuild{
-    config: BookwormPackagerConfig
+pub struct Sbuild {
+    config: BookwormPackagerConfig,
 }
-
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("Clean failed: {0}")]
+    Clean(#[from] io::Error),
+    #[error("Cannot run this command as non-root: {0}")]
+    PriviligeNotRoot(String),
+    #[error("Unknown error: {0}")]
+    Unknown(String),
+    #[error("Failed to create build env: {0}")]
+    CreateBuildEnvFailure(String),
+    #[error("Failed to create build env: {0}")]
+    FailedToExecute(String),
+    #[error("Failed to create build env: {0}")]
+    FailedToBuildPackage(String),
+    #[error("Failed to create build env: {0}")]
+    FailedToLogOutput(String),
+}
 impl Sbuild {
     pub fn new(config: BookwormPackagerConfig) -> Sbuild {
-        Sbuild {
-            config
-        }
+        Sbuild { config }
     }
 
     fn get_build_name(&self) -> String {
@@ -32,7 +45,8 @@ impl Sbuild {
 }
 
 impl BackendBuildEnv for Sbuild {
-    fn clean(&self) -> Result<(), String> {
+    type Error = Error;
+    fn clean(&self) -> Result<(), Error> {
         check_if_root()?;
 
         let build_prefix = self.get_build_name();
@@ -41,17 +55,14 @@ impl BackendBuildEnv for Sbuild {
             build_prefix
         );
 
-        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", build_prefix))
-            .map_err(|err| err.to_string())?;
-        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", build_prefix))
-            .map_err(|err| err.to_string())?;
-        remove_dir_recursive(&format!("/srv/chroot/{}", build_prefix))
-            .map_err(|err| err.to_string())?;
+        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", build_prefix))?;
+        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", build_prefix))?;
+        remove_dir_recursive(&format!("/srv/chroot/{}", build_prefix))?;
 
         Ok(())
     }
 
-    fn create(&self) -> Result<(), String> {
+    fn create(&self) -> Result<(), Error> {
         let build_prefix = self.get_build_name();
 
         check_if_root()?;
@@ -66,35 +77,25 @@ impl BackendBuildEnv for Sbuild {
             .status();
 
         if let Err(err) = create_result {
-            return Err(format!("Failed to create new chroot: {}", err));
+            return Err(Error::CreateBuildEnvFailure(format!("Failed to create new chroot: {}", err)));
         }
 
         Ok(())
     }
-    fn build(&self) -> Result<(), String> {
+    fn build(&self) -> Result<(), Error> {
         let sbuild_command = format!(
             "sbuild -c {} -d {}",
             self.get_build_name(),
             self.config.build_env().codename(),
         );
-
-        // Get the current permissions of the file
-        info!(
-            "Adding executable permission for {}/debian/rules",
-            self.config.package_source()
-        );
-
-        let debian_rules = format!("{}/debian/rules", self.config.package_source());
-        let mut permissions = fs::metadata(debian_rules.clone())
-            .map_err(|err| err.to_string())?
-            .permissions();
-        permissions.set_mode(permissions.mode() | 0o111);
-        fs::set_permissions(debian_rules, permissions).map_err(|err| err.to_string())?;
-
         info!("Building package by invoking: {}", sbuild_command);
         let mut cmd_args = vec![
             "-c".to_string(),
-            format!("{}-{}-sbuild", self.get_build_name(), self.config.build_env().arch()),
+            format!(
+                "{}-{}-sbuild",
+                self.get_build_name(),
+                self.config.build_env().arch()
+            ),
             "-d".to_string(),
             self.config.build_env().codename().to_string(),
         ];
@@ -115,44 +116,45 @@ impl BackendBuildEnv for Sbuild {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()
-            .map_err(|err| format!("Failed to start sbuild: {}", err))?;
+            .map_err(|err| Error::FailedToExecute(err.to_string()))?;
 
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
 
             for line in reader.lines() {
-                println!(
-                    "{}",
-                    line.map_err(|err| format!("Failed to log: {}", err))?
-                );
+                let line = line.map_err(|err| Error::FailedToLogOutput(err.to_string()))?;
+                println!("{}", line);
             }
         }
         io::stdout()
             .flush()
-            .map_err(|_| "Failed to flush output of sbuild".to_string())?;
+            .map_err(|err| Error::FailedToLogOutput(err.to_string()))?;
 
-        let status = child
+        child
             .wait()
-            .map_err(|err| format!("Failed to build package: {}", err))?;
-        println!("Command exited with: {}", status);
+            .map_err(|err| Error::FailedToBuildPackage(err.to_string()))?;
 
         Ok(())
     }
 }
 
-fn check_if_root() -> Result<(), String> {
+fn check_if_root() -> Result<(), Error> {
     if let Ok(user) = std::env::var("USER") {
         if user == "root" {
             Ok(())
         } else {
-            Err("This program was not invoked with sudo.".to_string())
+            Err(Error::PriviligeNotRoot(
+                "This program was not invoked with sudo.".to_string(),
+            ))
         }
     } else {
-        Err("The USER environment variable is not set.".to_string())
+        Err(Error::Unknown(
+            "The USER environment variable is not set.".to_string(),
+        ))
     }
 }
 
-fn remove_dir_recursive(dir_path: &str) -> Result<(), std::io::Error> {
+fn remove_dir_recursive(dir_path: &str) -> Result<(), io::Error> {
     if Path::new(dir_path).exists() {
         fs::remove_dir_all(dir_path)?;
         info!("Removed directory: {}", dir_path);
@@ -189,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_virtualpackage_in_sbuild_env() {
+    fn test_build_virtual_package_in_sbuild_env() {
         setup();
 
         unreachable!("Test case not implemented yet");

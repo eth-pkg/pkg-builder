@@ -15,11 +15,13 @@ use super::distribution::{
 pub trait PackagerConfig {}
 
 pub trait Packager {
+    type Error;
     type Config: PackagerConfig;
+    type BuildEnv: BackendBuildEnv;
     fn new(config: Self::Config) -> Self;
-    fn package(&self) -> Result<(), String>;
+    fn package(&self) -> Result<(), Self::Error>;
 
-    fn get_build_env(&self) -> Result<Box<dyn BackendBuildEnv>, String>;
+    fn get_build_env(&self) -> Result<Self::BuildEnv,Self::Error>;
 }
 pub enum Distribution {
     Bookworm(BookwormPackagerConfig),
@@ -33,9 +35,10 @@ pub struct DistributionPackager {
 
 
 pub trait BackendBuildEnv {
-    fn clean(&self) -> Result<(), String>;
-    fn create(&self) -> Result<(), String>;
-    fn build(&self) -> Result<(), String>;
+    type Error;
+    fn clean(&self) -> Result<(), Self::Error>;
+    fn create(&self) -> Result<(), Self::Error>;
+    fn build(&self) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -78,32 +81,16 @@ impl LanguageEnv {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Invalid codename: {0}")]
     InvalidCodename(String),
+    #[error("Missing fields: {0}")]
     MissingConfigFields(String),
-    PackagingError(String),
-}
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::InvalidCodename(inner) => {
-                // You can customize how you want to display this error variant
-                write!(f, "Invalid codename: {}", inner)
-            }
-            Error::MissingConfigFields(inner) => {
-                // You can customize how you want to display this error variant
-                write!(f, "Missing fields: {}", inner)
-            }
-            Error::PackagingError(inner) => {
-                // You can customize how you want to display this error variant
-                write!(f, "Failed to package: {}", inner)
-            }
-        }
-    }
+    #[error("Failed to package: {0}")]
+    Packaging(String),
 }
 
-impl std::error::Error for Error {}
 
 
 impl DistributionPackager {
@@ -128,7 +115,7 @@ impl DistributionPackager {
                 .config()
                 .map(Distribution::Bookworm)
                 .map_err(|err| Error::MissingConfigFields(err.to_string())),
-            "jammy jellyfish" | "ubuntu 22.04" => JammJellyfishPackagerConfigBuilder::new()
+            "jammy jellyfish" | "ubuntu 22.04" => JammJellyfishPackagerConfigBuilder::default()
                 .arch(build_env.arch().clone())
                 .package_name(package_fields.package_name().clone())
                 .version_number(package_fields.version_number().clone())
@@ -156,13 +143,13 @@ impl DistributionPackager {
                 let packager = BookwormPackager::new(config);
                 packager
                     .package()
-                    .map_err(|err| Error::PackagingError(err.to_string()))?;
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
             }
             Distribution::JammyJellyfish(config) => {
                 let packager = JammyJellyfishPackager::new(config);
                 packager
                     .package()
-                    .map_err(|err| Error::PackagingError(err.to_string()))?;
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
             }
         };
         Ok(())
