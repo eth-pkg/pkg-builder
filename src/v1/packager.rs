@@ -1,5 +1,4 @@
 use core::fmt;
-use std::path::Path;
 
 use crate::v1::distribution::debian::bookworm_config_builder::{
     BookwormPackagerConfig, BookwormPackagerConfigBuilder,

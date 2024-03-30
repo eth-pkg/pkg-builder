@@ -1,0 +1,39 @@
+[package_fields]
+spec_file = "hello-world.sss"
+package_name = "hello-world"
+version_number = "1.0.0"
+revision_number = "1"
+tarball_url = ""
+git_source = ""
+# virtual | git | default
+package_type="default"
+homepage="https://github.com/eth-pkg/pkg-builder#examples"
+
+[build_env]
+codename="bookworm"
+arch = "amd64"
+lang_env = "rust"
+# TODO not used yet
+pkg_builder_version="0.1"
+# TODO not used yet
+debcrafter_version = "latest"
+run_lintian=false
+run_piuparts=false
+run_autopkgtest=false
+# package directory
+workdir=".pkg-builder/packages"
+
+[cli_options]
+# not used
+is_ci=false
+log="info"
+log_to="file"
+reuse_previous_build=false
+
+[verify]
+# if tarball_url is specified
+tarball_hash=""
+# if git_source is specified and package_is_git
+git_commit=""
+# output hash
+bin_bash=""

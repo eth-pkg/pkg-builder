@@ -1,12 +1,10 @@
-use crate::v1::packager;
 use git2::Repository;
 use log::info;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{fmt, fs};
-use std::fmt::{Display, Formatter};
+use std::{fs};
 use tempfile::tempdir;
 use thiserror::Error;
 

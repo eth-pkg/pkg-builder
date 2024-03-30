@@ -216,7 +216,6 @@ impl BookwormPackagerConfig {
     pub fn build_artifacts_dir(&self) -> String {
         let package_name = self.package_fields().package_name();
         let build_artifacts_dir = format!("{}/{}", self.build_env().workdir(), &package_name);
-        println!("build_artifacts_dir {}", build_artifacts_dir);
         build_artifacts_dir
     }
     pub fn tarball_path(&self) -> String {
@@ -237,7 +236,6 @@ impl BookwormPackagerConfig {
             "{}/{}-{}",
             build_artifacts_dir, &package_name, &version_number
         );
-        println!("build_files_dir {}", build_files_dir);
         build_files_dir
     }
 }

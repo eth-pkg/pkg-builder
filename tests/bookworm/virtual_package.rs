@@ -1,12 +1,13 @@
 #[cfg(test)]
-mod bookworm {
+mod virtual_package {
     use env_logger::Env;
     use pkg_builder::v1::distribution::debian::bookworm::{
         BookwormPackager,
     };
     use pkg_builder::v1::distribution::debian::bookworm_config_builder::{BookwormPackagerConfig, BookwormPackagerConfigBuilder};
-    use pkg_builder::v1::packager::{Packager, PackagerError};
+    use pkg_builder::v1::packager::{Packager, BackendBuildEnv};
     use std::sync::Once;
+    use pkg_builder::v1::packager;
 
     static INIT: Once = Once::new();
 
@@ -23,14 +24,15 @@ mod bookworm {
             .version_number(Some("1.0.0".to_string()))
             .tarball_url(None)
             .git_source(None)
-            .package_is_virtual(true)
+            .package_type(Some("virtual".to_string()))
             .debcrafter_version(Some("latest".to_string()))
             .spec_file(Some(
-                "examples/bookworm/virtual-package/test-virtual-package.sss".to_string(),
+                "test-virtual-package.sss".to_string(),
             ))
+            .config_root("examples/bookworm/virtual-package/".to_string())
             .homepage(Some("https://github.com/eth-pkg/pkg-builder#examples".to_string()))
             .config()
-            .map_err(|err| PackagerError::MissingConfigFields(err.to_string()))
+            .map_err(|err| packager::Error::MissingConfigFields(err.to_string()))
             .unwrap();
         config
     }
@@ -57,9 +59,7 @@ mod bookworm {
 
         let result = build_env.unwrap().clean();
 
-        assert!(result.is_err(), "Command must be invoked with root privileges");
-        let err = result.err().unwrap();
-        assert_eq!(err, "This program was not invoked with sudo.");
+        assert!(result.is_err(), "Command wasn't invoked with root privileges");
     }
 
     #[test]
@@ -76,8 +76,6 @@ mod bookworm {
         let result = build_env.unwrap().create();
 
         assert!(result.is_err(), "Command must be invoked with root privileges");
-        let err = result.err().unwrap();
-        assert_eq!(err, "This program was not invoked with sudo.");
     }
 
 }

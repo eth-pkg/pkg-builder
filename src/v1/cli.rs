@@ -1,10 +1,8 @@
 use super::cli_config::CliConfig;
 use super::packager::{DistributionPackager};
 use std::{fs, path::Path};
-use std::path::PathBuf;
 use thiserror::Error;
 use toml;
-use crate::v1::debcrafter_helper::Error;
 use crate::v1::packager;
 
 #[derive(Debug, Error)]
