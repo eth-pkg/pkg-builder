@@ -111,7 +111,7 @@ impl BackendBuildEnv for Sbuild {
         }
 
         let mut child = Command::new("sbuild")
-            .current_dir(self.config.package_source())
+            .current_dir(self.config.build_files_dir())
             .args(&cmd_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())

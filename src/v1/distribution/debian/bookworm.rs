@@ -25,9 +25,9 @@ pub struct BookwormPackager {
 
 #[derive(Clone)]
 pub struct BookwormBuildVariables {
-    packaging_dir: String,
+    build_artifacts_dir: String,
     tarball_path: String,
-    package_source: String,
+    build_files_dir: String,
 }
 #[derive(Debug, Error)]
 pub enum Error {
@@ -63,42 +63,42 @@ impl Packager for BookwormPackager {
 
     fn package(&self) -> Result<(), Error> {
         let build_variables = BookwormBuildVariables {
-            package_source: self.config.package_source(),
+            build_files_dir: self.config.build_files_dir(),
             tarball_path: self.config.tarball_path(),
-            packaging_dir: self.config.packaging_dir(),
+            build_artifacts_dir: self.config.build_artifacts_dir(),
         };
         let pre_build: Result<(), Error> = match &self.config.package_type() {
             PackageType::Default { tarball_url, .. } => {
-                create_package_dir(&build_variables.packaging_dir.clone())?;
+                create_package_dir(&build_variables.build_artifacts_dir.clone())?;
                 download_source(&build_variables.tarball_path, tarball_url)?;
                 extract_source(&build_variables)?;
                 create_debian_dir(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.build_env().debcrafter_version(),
                     self.config.package_fields().spec_file(),
                 )?;
                 patch_source(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
                 )?;
 
                 Ok(())
             }
             PackageType::Git { git_source, .. } => {
-                create_package_dir(&build_variables.packaging_dir.clone())?;
+                create_package_dir(&build_variables.build_artifacts_dir.clone())?;
                 download_git(
-                    &build_variables.packaging_dir,
+                    &build_variables.build_artifacts_dir,
                     &build_variables.tarball_path,
                     git_source,
                 )?;
                 extract_source(&build_variables)?;
                 create_debian_dir(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.build_env().debcrafter_version(),
                     self.config.package_fields().spec_file(),
                 )?;
                 patch_source(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
                 )?;
 
@@ -106,19 +106,19 @@ impl Packager for BookwormPackager {
             }
             PackageType::Virtual => {
                 info!("creating virtual package");
-                create_package_dir(&build_variables.packaging_dir.clone())?;
+                create_package_dir(&build_variables.build_artifacts_dir.clone())?;
                 create_empty_tar(
-                    &build_variables.packaging_dir,
+                    &build_variables.build_artifacts_dir,
                     &build_variables.tarball_path,
                 )?;
                 extract_source(&build_variables)?;
                 create_debian_dir(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.build_env().debcrafter_version(),
                     self.config.package_fields().spec_file(),
                 )?;
                 patch_source(
-                    &build_variables.package_source.clone(),
+                    &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
                 )?;
                 Ok(())
@@ -136,9 +136,9 @@ impl Packager for BookwormPackager {
     }
 }
 
-fn create_package_dir(packaging_dir: &String) -> Result<(), Error> {
-    info!("Creating package folder {}", &packaging_dir);
-    fs::create_dir_all(packaging_dir).map_err(|err| Error::CreatePackageDir(err.to_string()))?;
+fn create_package_dir(build_artifacts_dir: &String) -> Result<(), Error> {
+    info!("Creating package folder {}", &build_artifacts_dir);
+    fs::create_dir_all(build_artifacts_dir).map_err(|err| Error::CreatePackageDir(err.to_string()))?;
     Ok(())
 }
 
@@ -157,15 +157,15 @@ fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), Error> {
 }
 
 #[allow(unused_variables)]
-fn download_git(packaging_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), Error> {
+fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), Error> {
     todo!()
 }
 
-fn create_empty_tar(packaging_dir: &str, tarball_path: &str) -> Result<(), Error> {
+fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<(), Error> {
     info!("Creating empty .tar.gz for virtual package");
     let output = Command::new("tar")
         .args(["czvf", tarball_path, "--files-from", "/dev/null"])
-        .current_dir(packaging_dir)
+        .current_dir(build_artifacts_dir)
         .output()
         .map_err(|err| Error::CreateEmptyTar(err.to_string()))?;
     if !output.status.success() {
@@ -178,13 +178,13 @@ fn create_empty_tar(packaging_dir: &str, tarball_path: &str) -> Result<(), Error
 }
 
 fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error> {
-    info!("Extracting source {}", &build_variables.packaging_dir);
+    info!("Extracting source {}", &build_variables.build_artifacts_dir);
     let output = Command::new("tar")
         .args([
             "zxvf",
             &build_variables.tarball_path,
             "-C",
-            &build_variables.packaging_dir,
+            &build_variables.build_artifacts_dir,
             "--strip-components=1",
         ])
         .output()
@@ -195,15 +195,15 @@ fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error>
         return Err(Error::Extract(error_message));
     }
     info!(
-        "Extracted source to package_source: {:?}",
-        build_variables.package_source
+        "Extracted source to build_files_dir: {:?}",
+        build_variables.build_files_dir
     );
 
     Ok(())
 }
 
 fn create_debian_dir(
-    package_source: &String,
+    build_files_dir: &String,
     debcrafter_version: &String,
     spec_file: &str,
 ) -> Result<(), Error> {
@@ -217,22 +217,22 @@ fn create_debian_dir(
     );
     // debcrafter_helper::check_version_compatibility(debcrafter_version)?;
 
-    debcrafter_helper::create_debian_dir(spec_file, package_source)?;
+    debcrafter_helper::create_debian_dir(spec_file, build_files_dir)?;
     info!(
-        "Created /debian dir under package_source folder: {:?}",
-        package_source
+        "Created /debian dir under build_files_dir folder: {:?}",
+        build_files_dir
     );
     Ok(())
 }
 
-fn patch_source(package_source: &String, homepage: &String) -> Result<(), Error> {
+fn patch_source(build_files_dir: &String, homepage: &String) -> Result<(), Error> {
     // Patch quilt
-    let debian_source_format_path = format!("{}/debian/source/format", package_source);
+    let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
         "Setting up quilt format for patching. Debian source format path: {}",
         debian_source_format_path
     );
-    let debian_source_dir = PathBuf::from(&package_source).join("debian/source");
+    let debian_source_dir = PathBuf::from(&build_files_dir).join("debian/source");
     if !debian_source_dir.exists() {
         fs::create_dir_all(&debian_source_dir)
             .map_err(|_| Error::Patch("Failed to create debian/source dir".to_string()))?;
@@ -257,16 +257,16 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), Error>
     }
 
     // Patch .pc dir setup
-    let pc_version_path = format!("{}/.pc/.version", &package_source);
+    let pc_version_path = format!("{}/.pc/.version", &build_files_dir);
     info!("Creating necessary directories for patching");
-    fs::create_dir_all(format!("{}/.pc", &package_source))
+    fs::create_dir_all(format!("{}/.pc", &build_files_dir))
         .map_err(|_| Error::Patch("Could not create .pc dir".to_string()))?;
     let mut pc_version_file =
         fs::File::create(pc_version_path).map_err(|err| Error::Patch(err.to_string()))?;
     writeln!(pc_version_file, "2").map_err(|err| Error::Patch(err.to_string()))?;
 
     // Patch .pc patch version number
-    let debian_control_path = format!("{}/debian/control", package_source);
+    let debian_control_path = format!("{}/debian/control", build_files_dir);
     info!(
         "Adding Standards-Version to the control file. Debian control path: {}",
         debian_control_path
@@ -311,12 +311,12 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), Error>
     // } else {
     //     info!(
     //         "Copying source directory {} to {}",
-    //         src_dir, &package_source
+    //         src_dir, &build_files_dir
     //     );
     //     for entry in fs::read_dir(src_dir).map_err(|err| err.to_string())? {
     //         let entry = entry.map_err(|err| err.to_string())?;
     //         let src_path = entry.path();
-    //         let dst_path = Path::new(&package_source).join(entry.file_name());
+    //         let dst_path = Path::new(&build_files_dir).join(entry.file_name());
     //         fs::copy(&src_path, &dst_path)
     //             .map(|_| ())
     //             .map_err(|err| err.to_string())?
@@ -326,10 +326,10 @@ fn patch_source(package_source: &String, homepage: &String) -> Result<(), Error>
     // Get the current permissions of the file
     info!(
         "Adding executable permission for {}/debian/rules",
-        package_source
+        build_files_dir
     );
 
-    let debian_rules = format!("{}/debian/rules", package_source);
+    let debian_rules = format!("{}/debian/rules", build_files_dir);
     let mut permissions = fs::metadata(debian_rules.clone())
         .map_err(|err| Error::Patch(err.to_string()))?
         .permissions();
@@ -366,12 +366,12 @@ mod tests {
     fn test_create_package_dir() {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        let packaging_dir = temp_dir.path().join("test_package");
+        let build_artifacts_dir = temp_dir.path().join("test_package");
 
-        let result = create_package_dir(&String::from(packaging_dir.to_str().unwrap()));
+        let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
 
         assert!(result.is_ok());
-        assert!(packaging_dir.exists());
+        assert!(build_artifacts_dir.exists());
     }
     #[test]
     fn test_create_package_dir_if_already_exists() {
@@ -382,12 +382,12 @@ mod tests {
     fn test_download_source_virtual_package() {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        let packaging_dir = String::from(temp_dir.path().to_str().unwrap());
+        let build_artifacts_dir = String::from(temp_dir.path().to_str().unwrap());
         let tarball_name = "test_package.tar.gz";
         let tarball_path = temp_dir.path().join(tarball_name);
         let tarball_path_str = String::from(temp_dir.path().join(tarball_name).to_str().unwrap());
 
-        let result = create_empty_tar(&packaging_dir, &tarball_path_str);
+        let result = create_empty_tar(&build_artifacts_dir, &tarball_path_str);
 
         assert!(result.is_ok());
         assert!(tarball_path.exists());
@@ -439,7 +439,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
         let tarball_path: PathBuf = PathBuf::from("tests/test_package.tar.gz");
 
-        let packaging_dir = temp_dir.path().to_string_lossy().to_string();
+        let build_artifacts_dir = temp_dir.path().to_string_lossy().to_string();
         let packaging_source = temp_dir
             .path()
             .join("test_package")
@@ -448,15 +448,15 @@ mod tests {
 
         assert!(tarball_path.exists());
         let build_variables = BookwormBuildVariables {
-            packaging_dir,
-            package_source: packaging_source,
+            build_artifacts_dir,
+            build_files_dir: packaging_source,
             tarball_path: tarball_path.to_string_lossy().to_string(),
         };
         let result = extract_source(&build_variables);
 
         assert!(result.is_ok(), "{:?}", result);
 
-        let empty_file_path = PathBuf::from(build_variables.packaging_dir)
+        let empty_file_path = PathBuf::from(build_variables.build_artifacts_dir)
             .join(package_name)
             .join("empty_file.txt");
 

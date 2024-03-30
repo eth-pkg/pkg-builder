@@ -1,4 +1,4 @@
-use std::thread::panicking;
+use std::path::PathBuf;
 use crate::v1::packager::{LanguageEnv, PackagerConfig};
 
 #[derive(Clone)]
@@ -16,7 +16,7 @@ pub struct PackageFields {
     version_number: String,
     revision_number: String,
     spec_file: String,
-    homepage: String,
+    homepage: String
 }
 #[derive(Clone)]
 pub enum PackageType {
@@ -54,6 +54,7 @@ pub struct BookwormPackagerConfigBuilder {
     debcrafter_version: Option<String>,
     spec_file: Option<String>,
     homepage: Option<String>,
+    config_root: String,
 }
 
 impl BookwormPackagerConfigBuilder {
@@ -107,13 +108,17 @@ impl BookwormPackagerConfigBuilder {
         self
     }
 
-    pub fn config(self) -> Result<BookwormPackagerConfig, String> {
-        let package_type = self.package_type.ok_or_else(|| "Missing package_type field".to_string())?;
+    pub fn config_root(mut self, config_root: String) -> Self {
+        self.config_root = config_root;
+        self
+    }
 
-        if package_type != "virtual"
-            && package_type != "default"
-            && package_type != "from_git"
-        {
+    pub fn config(self) -> Result<BookwormPackagerConfig, String> {
+        let package_type = self
+            .package_type
+            .ok_or_else(|| "Missing package_type field".to_string())?;
+
+        if package_type != "virtual" && package_type != "default" && package_type != "from_git" {
             return Err("Invalid combination package_is_virtual package_is_git!".to_string());
         }
         let package_type = if package_type == "virtual" {
@@ -159,6 +164,10 @@ impl BookwormPackagerConfigBuilder {
             .homepage
             .ok_or_else(|| "Missing homepage field".to_string())?;
 
+        let config_root_path = PathBuf::from(&self.config_root);
+        let spec_file_canonical = config_root_path.join(spec_file);
+        let spec_file = spec_file_canonical.to_str().unwrap().to_string();
+
         let package_fields = PackageFields {
             package_name,
             version_number,
@@ -194,35 +203,42 @@ impl BookwormPackagerConfig {
     pub fn package_type(&self) -> &PackageType {
         &self.package_type
     }
+    pub fn config_root(&self) -> &PackageType {
+        &self.package_type
+    }
     pub fn lang_env(&self) -> Option<LanguageEnv> {
-        let lang_env = match self.package_type {
+        match self.package_type {
             PackageType::Default { lang_env, .. } => Some(lang_env),
             PackageType::Git { lang_env, .. } => Some(lang_env),
             PackageType::Virtual => None,
-        };
-        lang_env
+        }
     }
-    pub fn packaging_dir(&self) -> String {
+    pub fn build_artifacts_dir(&self) -> String {
         let package_name = self.package_fields().package_name();
-        let packaging_dir = format!("{}/{}", self.build_env().workdir(), &package_name);
-        packaging_dir
+        let build_artifacts_dir = format!("{}/{}", self.build_env().workdir(), &package_name);
+        println!("build_artifacts_dir {}", build_artifacts_dir);
+        build_artifacts_dir
     }
     pub fn tarball_path(&self) -> String {
         let package_name = self.package_fields().package_name();
         let version_number = self.package_fields().version_number();
-        let packaging_dir = self.packaging_dir();
+        let build_artifacts_dir = self.build_artifacts_dir();
         let tarball_path = format!(
             "{}/{}_{}.orig.tar.gz",
-            &packaging_dir, &package_name, &version_number
+            &build_artifacts_dir, &package_name, &version_number
         );
         tarball_path
     }
-    pub fn package_source(&self) -> String {
+    pub fn build_files_dir(&self) -> String {
         let package_name = self.package_fields().package_name();
         let version_number = self.package_fields().version_number();
-        let packaging_dir = self.packaging_dir();
-        let package_source = format!("{}/{}-{}", packaging_dir, &package_name, &version_number);
-        package_source
+        let build_artifacts_dir = self.build_artifacts_dir();
+        let build_files_dir = format!(
+            "{}/{}-{}",
+            build_artifacts_dir, &package_name, &version_number
+        );
+        println!("build_files_dir {}", build_files_dir);
+        build_files_dir
     }
 }
 

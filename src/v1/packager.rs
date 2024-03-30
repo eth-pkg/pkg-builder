@@ -1,4 +1,5 @@
 use core::fmt;
+use std::path::Path;
 
 use crate::v1::distribution::debian::bookworm_config_builder::{
     BookwormPackagerConfig, BookwormPackagerConfigBuilder,
@@ -28,8 +29,10 @@ pub enum Distribution {
     JammyJellyfish(JammyJellyfishPackagerConfig),
 }
 
+
 pub struct DistributionPackager {
     config: CliConfig,
+    config_root: String,
 }
 
 
@@ -94,8 +97,8 @@ pub enum Error {
 
 
 impl DistributionPackager {
-    pub fn new(config: CliConfig) -> Self {
-         DistributionPackager { config }
+    pub fn new(config: CliConfig, config_root: String) -> Self {
+         DistributionPackager { config, config_root }
     }
     fn map_config(&self) -> Result<Distribution, Error> {
         let build_env = self.config.build_env();
@@ -112,6 +115,7 @@ impl DistributionPackager {
                 .debcrafter_version(build_env.debcrafter_version().clone())
                 .spec_file(package_fields.spec_file().clone())
                 .homepage(package_fields.homepage().clone())
+                .config_root(self.config_root.clone())
                 .config()
                 .map(Distribution::Bookworm)
                 .map_err(|err| Error::MissingConfigFields(err.to_string())),

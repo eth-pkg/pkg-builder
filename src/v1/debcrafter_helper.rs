@@ -23,19 +23,14 @@ pub enum Error {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum CommandError {
+    #[error("{0}")]
     StringError(String),
+    #[error("{0}")]
     IOError(io::Error),
 }
-impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CommandError::StringError(s) => write!(f, "{}", s),
-            CommandError::IOError(err) => write!(f, "{}", err),
-        }
-    }
-}
+
 impl From<String> for CommandError {
     fn from(err: String) -> Self {
         CommandError::StringError(err)
@@ -105,13 +100,15 @@ pub fn install() -> Result<(), Error> {
 pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), Error> {
     let debcrafter_dir = tempdir().expect("Failed to create temporary directory");
 
-    let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).unwrap();
-    let spec_dir = spec_file_path.parent().unwrap();
+    let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| Error::CommandFailed(
+        format!("{} spec_file doesn't exist", specification_file).into(),
+    ))?;
     if !spec_file_path.exists() {
         return Err(Error::CommandFailed(
             format!("{} spec_file doesn't exist", specification_file).into(),
         ));
     }
+    let spec_dir = spec_file_path.parent().unwrap();
     let spec_file_name = spec_file_path.file_name().unwrap();
     info!("Spec directory: {:?}", spec_dir.to_str().unwrap());
     info!("Spec file: {:?}", spec_file_name);
