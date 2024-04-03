@@ -1,6 +1,6 @@
-use std::fs;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::{fs, io};
 
 use crate::v1::build::sbuild::Sbuild;
 use crate::v1::debcrafter_helper;
@@ -51,6 +51,9 @@ pub enum Error {
 
     #[error("Failed with sbuild error: {0}")]
     Sbuild(#[from] sbuild::Error),
+
+    #[error("File doesn't exist: {0}")]
+    FileDoesnotExist(String),
 }
 impl Packager for BookwormPackager {
     type Error = Error;
@@ -80,6 +83,7 @@ impl Packager for BookwormPackager {
                 patch_source(
                     &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
+                    self.config.package_fields().src_dir(),
                 )?;
 
                 Ok(())
@@ -100,6 +104,7 @@ impl Packager for BookwormPackager {
                 patch_source(
                     &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
+                    self.config.package_fields().src_dir(),
                 )?;
 
                 Ok(())
@@ -120,6 +125,7 @@ impl Packager for BookwormPackager {
                 patch_source(
                     &build_variables.build_files_dir.clone(),
                     self.config.package_fields().homepage(),
+                    self.config.package_fields().src_dir(),
                 )?;
                 Ok(())
             }
@@ -138,26 +144,39 @@ impl Packager for BookwormPackager {
 
 fn create_package_dir(build_artifacts_dir: &String) -> Result<(), Error> {
     info!("Creating package folder {}", &build_artifacts_dir);
-    fs::create_dir_all(build_artifacts_dir).map_err(|err| Error::CreatePackageDir(err.to_string()))?;
+    fs::create_dir_all(build_artifacts_dir)
+        .map_err(|err| Error::CreatePackageDir(err.to_string()))?;
     Ok(())
 }
 
 fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), Error> {
     info!("Downloading source {}", tarball_path);
-    let status = Command::new("wget")
-        .arg("-O")
-        .arg(tarball_path)
-        .arg(tarball_url)
-        .status()
-        .map_err(|err| Error::SourceDownload(err.to_string()))?;
-    if !status.success() {
-        return Err(Error::SourceDownload("Download failed".to_string()));
+    let is_web = tarball_url.starts_with("http");
+    println!("{}", tarball_url);
+    println!("{}", tarball_path);
+    if is_web {
+        let status = Command::new("wget")
+            .arg("-O")
+            .arg(tarball_path)
+            .arg(tarball_url)
+            .status()
+            .map_err(|err| Error::SourceDownload(err.to_string()))?;
+        if !status.success() {
+            return Err(Error::SourceDownload("Download failed".to_string()));
+        }
+    } else {
+        fs::copy(tarball_url, tarball_path)
+            .map_err(|err| Error::SourceDownload(err.to_string()))?;
     }
     Ok(())
 }
 
 #[allow(unused_variables)]
-fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_source: &str) -> Result<(), Error> {
+fn download_git(
+    build_artifacts_dir: &str,
+    tarball_path: &str,
+    git_source: &str,
+) -> Result<(), Error> {
     todo!()
 }
 
@@ -225,7 +244,7 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_source(build_files_dir: &String, homepage: &String) -> Result<(), Error> {
+fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<(), Error> {
     // Patch quilt
     let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
@@ -305,24 +324,8 @@ fn patch_source(build_files_dir: &String, homepage: &String) -> Result<(), Error
         info!("Standards-Version already exists in the control file. No changes made.");
     }
 
-    // let src_dir = "src";
-    // if fs::metadata(src_dir).is_err() {
-    //     info!("Source directory 'src' not found. Skipping copy.");
-    // } else {
-    //     info!(
-    //         "Copying source directory {} to {}",
-    //         src_dir, &build_files_dir
-    //     );
-    //     for entry in fs::read_dir(src_dir).map_err(|err| err.to_string())? {
-    //         let entry = entry.map_err(|err| err.to_string())?;
-    //         let src_path = entry.path();
-    //         let dst_path = Path::new(&build_files_dir).join(entry.file_name());
-    //         fs::copy(&src_path, &dst_path)
-    //             .map(|_| ())
-    //             .map_err(|err| err.to_string())?
-    //     }
-    // }
-
+    copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
+        .map_err(|err| Error::Patch(err.to_string()))?;
     // Get the current permissions of the file
     info!(
         "Adding executable permission for {}/debian/rules",
@@ -339,7 +342,23 @@ fn patch_source(build_files_dir: &String, homepage: &String) -> Result<(), Error
     info!("Patching finished successfully!");
     Ok(())
 }
+fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
+    for entry in fs::read_dir(src_dir)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let file_name = entry.file_name();
 
+        let dest_path = dest_dir.join(&file_name);
+
+        if entry_path.is_dir() {
+            copy_directory_recursive(&entry_path, &dest_path)?;
+        } else {
+            fs::copy(&entry_path, &dest_path)?;
+        }
+    }
+
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -16,7 +16,8 @@ pub struct PackageFields {
     version_number: String,
     revision_number: String,
     spec_file: String,
-    homepage: String
+    homepage: String,
+    src_dir: String
 }
 #[derive(Clone)]
 pub enum PackageType {
@@ -141,6 +142,15 @@ impl BookwormPackagerConfigBuilder {
             let tarball_url = self
                 .tarball_url
                 .ok_or_else(|| "Missing tarball_url field".to_string())?;
+            let is_web = tarball_url.starts_with("http");
+            let tarball_url = match is_web {
+                true => tarball_url,
+                false => {
+                    let config_root_path = PathBuf::from(&self.config_root);
+                    let tarball_url = config_root_path.join(tarball_url);
+                    tarball_url.to_str().unwrap().to_string()
+                }
+            };
             PackageType::Default {
                 lang_env,
                 tarball_url,
@@ -167,6 +177,7 @@ impl BookwormPackagerConfigBuilder {
         let config_root_path = PathBuf::from(&self.config_root);
         let spec_file_canonical = config_root_path.join(spec_file);
         let spec_file = spec_file_canonical.to_str().unwrap().to_string();
+        let src_dir = config_root_path.join("src").to_str().unwrap().to_string();
 
         let package_fields = PackageFields {
             package_name,
@@ -174,6 +185,7 @@ impl BookwormPackagerConfigBuilder {
             revision_number: "".to_string(),
             spec_file,
             homepage,
+            src_dir
         };
         let build_env = BookwormBuildEnv {
             codename: "bookworm".to_string(),
@@ -253,6 +265,9 @@ impl PackageFields {
     }
     pub fn homepage(&self) -> &String {
         &self.homepage
+    }
+    pub fn src_dir(&self) -> &String {
+        &self.src_dir
     }
 }
 impl BookwormBuildEnv {

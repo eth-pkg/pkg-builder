@@ -30,7 +30,6 @@ pub struct CliPackageFields {
     tarball_url: Option<String>,
     git_source: Option<String>,
     package_type: Option<String>,
-    lang_env: Option<String>,
     spec_file: Option<String>,
     homepage: Option<String>,
 }
@@ -54,9 +53,6 @@ impl CliPackageFields {
     }
     pub fn package_type(&self) -> &Option<String> {
         &self.package_type
-    }
-    pub fn lang_env(&self) -> &Option<String> {
-        &self.lang_env
     }
     pub fn spec_file(&self) -> &Option<String> {
         &self.spec_file
@@ -92,7 +88,6 @@ impl<'de> Deserialize<'de> for CliPackageFields {
             tarball_url: Option<String>,
             git_source: Option<String>,
             package_type: Option<String>,
-            lang_env: Option<String>,
             spec_file: Option<String>,
             homepage: Option<String>,
         }
@@ -104,7 +99,6 @@ impl<'de> Deserialize<'de> for CliPackageFields {
             version_number: deserialize_option_string(raw_package.version_number),
             git_source: deserialize_option_string(raw_package.git_source),
             homepage: deserialize_option_string(raw_package.homepage),
-            lang_env: deserialize_option_string(raw_package.lang_env),
             package_type: deserialize_option_string(raw_package.package_type),
             revision_number: deserialize_option_string(raw_package.revision_number),
             spec_file: deserialize_option_string(raw_package.spec_file),
@@ -123,6 +117,8 @@ pub struct CliBuildEnv {
     run_piuparts: bool,
     run_autopkgtest: bool,
     workdir: Option<String>,
+    lang_env: Option<String>,
+
 }
 
 impl CliBuildEnv {
@@ -152,6 +148,10 @@ impl CliBuildEnv {
     pub fn workdir(&self) -> &Option<String> {
         &self.workdir
     }
+    pub fn lang_env(&self) -> &Option<String> {
+        &self.lang_env
+    }
+
 }
 
 impl<'de> Deserialize<'de> for CliBuildEnv {
@@ -169,6 +169,8 @@ impl<'de> Deserialize<'de> for CliBuildEnv {
             run_piuparts: Option<bool>,
             run_autopkgtest: Option<bool>,
             workdir: Option<String>,
+            lang_env: Option<String>,
+
         }
 
         let raw_package = RawBuildEnv::deserialize(deserializer)?;
@@ -182,6 +184,8 @@ impl<'de> Deserialize<'de> for CliBuildEnv {
             run_piuparts: deserialize_option_bool(raw_package.run_piuparts),
             run_autopkgtest: deserialize_option_bool(raw_package.run_autopkgtest),
             workdir: deserialize_option_string(raw_package.workdir),
+            lang_env: deserialize_option_string(raw_package.lang_env),
+
         })
     }
 }

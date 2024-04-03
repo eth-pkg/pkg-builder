@@ -110,7 +110,7 @@ impl DistributionPackager {
                 .tarball_url(package_fields.tarball_url().clone())
                 .git_source(package_fields.git_source().clone())
                 .package_type(package_fields.package_type().clone())
-                .lang_env(package_fields.lang_env().clone())
+                .lang_env(build_env.lang_env().clone())
                 .debcrafter_version(build_env.debcrafter_version().clone())
                 .spec_file(package_fields.spec_file().clone())
                 .homepage(package_fields.homepage().clone())
@@ -125,7 +125,7 @@ impl DistributionPackager {
                 .tarball_url(package_fields.tarball_url().clone())
                 .git_source(package_fields.git_source().clone())
                // .package_type(package_fields.package_type().clone())
-                .lang_env(package_fields.lang_env().clone())
+                .lang_env(build_env.lang_env().clone())
                 .config()
                 .map(Distribution::JammyJellyfish)
                 .map_err(|err| Error::MissingConfigFields(err.to_string())),

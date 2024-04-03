@@ -12,7 +12,7 @@ homepage="https://github.com/eth-pkg/pkg-builder#examples"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-lang_env = "rust"
+lang_env = "javascript"
 # TODO not used yet
 pkg_builder_version="0.1"
 # TODO not used yet
