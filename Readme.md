@@ -15,22 +15,15 @@ sudo mkdir /srv/chroot
 sudo chown :sbuild /srv/chroot 
 ```
 
-For non-Debian derived distributions, you'll need to either install VirtualBox or a similar tool to package for Debian-based distros. Alternatively, set up a QEMU virtual environment to build for Bookworm. Please note that sbuild is only available on Debian.
-
-To set up QEMU virtual environment:
-
-```bash
-bash scripts/qemu-setup.sh # Install only for the first time
-virsh start sbuild
-virsh console sbuild # username: debian, password: debian 
-```
 
 ## Getting Started
 
 ```bash
 cargo build 
 cargo install . 
-pkg-builder package --config=examples/bookworm/virtual-package/pkg-builder.toml
+sudo ~/.cargo/bin/pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+sudo  ~/.cargo/bin/pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
 

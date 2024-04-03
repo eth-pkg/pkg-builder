@@ -157,4 +157,50 @@ impl DistributionPackager {
         };
         Ok(())
     }
+    pub fn clean_build_env(&self) -> Result<(), Error> {
+        let distribution = self.map_config()?;
+
+        match distribution {
+            Distribution::Bookworm(config) => {
+                let packager = BookwormPackager::new(config);
+                let build_env = packager
+                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
+                build_env
+                    .clean()
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            }
+            Distribution::JammyJellyfish(config) => {
+                let packager = JammyJellyfishPackager::new(config);
+                let build_env = packager
+                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
+                build_env
+                    .clean()
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            }
+        };
+        Ok(())
+    }
+    pub fn create_build_env(&self) -> Result<(), Error> {
+        let distribution = self.map_config()?;
+
+        match distribution {
+            Distribution::Bookworm(config) => {
+                let packager = BookwormPackager::new(config);
+                let build_env = packager
+                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
+                build_env
+                    .create()
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            }
+            Distribution::JammyJellyfish(config) => {
+                let packager = JammyJellyfishPackager::new(config);
+                let build_env = packager
+                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
+                build_env
+                    .create()
+                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            }
+        };
+        Ok(())
+    }
 }

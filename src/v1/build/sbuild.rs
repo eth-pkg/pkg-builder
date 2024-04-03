@@ -2,10 +2,10 @@ use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerCo
 use crate::v1::packager::BackendBuildEnv;
 use log::info;
 use std::io::{BufRead, BufReader, Write};
-use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{fs, io};
 use thiserror::Error;
+use glob::glob;
 
 pub struct Sbuild {
     config: BookwormPackagerConfig,
@@ -26,6 +26,8 @@ pub enum Error {
     FailedToBuildPackage(String),
     #[error("Failed to create build env: {0}")]
     FailedToLogOutput(String),
+    #[error("Please create build_env first by running the following: sudo pkg-builder build-env <CONFIG_FILE>")]
+    BuildEnvMissing,
 }
 impl Sbuild {
     pub fn new(config: BookwormPackagerConfig) -> Sbuild {
@@ -42,6 +44,38 @@ impl Sbuild {
                 .map_or("empty-env".to_string(), |v| v.to_string())
         )
     }
+    fn get_build_directories(&self) -> Vec<(String, bool)> {
+        let build_prefix = self.get_build_name();
+        let schroot =  format!(
+            "/etc/schroot/chroot.d/{}-{}-sbuild-*",
+            build_prefix,
+            self.config.build_env().arch()
+        );
+        let schroot_pattern = match glob(&schroot) {
+            Ok(pattern) => Some(pattern),
+            Err(_) => None // keep wrong string
+        }.unwrap();
+        let mut directories = vec![
+            (
+                format!(
+                    "/etc/sbuild/chroot/{}-{}-sbuild",
+                    build_prefix,
+                    self.config.build_env().arch()
+                ),
+                false, // File
+            ),
+            (
+                format!("/srv/chroot/{}", build_prefix),
+                true, // Directory
+            ),
+        ];
+        for file_path in schroot_pattern.into_iter(){
+            let glob_pattern = file_path.unwrap();
+            let file_path = glob_pattern.to_str().unwrap();
+            directories.push((file_path.to_string(), false));
+        }
+        directories
+    }
 }
 
 impl BackendBuildEnv for Sbuild {
@@ -55,9 +89,10 @@ impl BackendBuildEnv for Sbuild {
             build_prefix
         );
 
-        remove_dir_recursive(&format!("/etc/sbuild/chroot/{}", build_prefix))?;
-        remove_dir_recursive(&format!("/etc/schroot/chroot.d/{}*", build_prefix))?;
-        remove_dir_recursive(&format!("/srv/chroot/{}", build_prefix))?;
+        let directories = self.get_build_directories();
+        for (path, is_directory) in directories.iter() {
+            let _ = remove_file_or_directory(path, *is_directory);
+        }
 
         Ok(())
     }
@@ -77,12 +112,24 @@ impl BackendBuildEnv for Sbuild {
             .status();
 
         if let Err(err) = create_result {
-            return Err(Error::CreateBuildEnvFailure(format!("Failed to create new chroot: {}", err)));
+            return Err(Error::CreateBuildEnvFailure(format!(
+                "Failed to create new chroot: {}",
+                err
+            )));
         }
 
         Ok(())
     }
     fn build(&self) -> Result<(), Error> {
+        check_if_not_root()?;
+
+        let directories = self.get_build_directories();
+        for (path, _) in directories.iter() {
+            if fs::metadata(path).is_err() {
+                return Err(Error::BuildEnvMissing);
+            }
+        }
+
         let sbuild_command = format!(
             "sbuild -c {} -d {}",
             self.get_build_name(),
@@ -153,11 +200,26 @@ fn check_if_root() -> Result<(), Error> {
         ))
     }
 }
-
-fn remove_dir_recursive(dir_path: &str) -> Result<(), io::Error> {
-    if Path::new(dir_path).exists() {
-        fs::remove_dir_all(dir_path)?;
-        info!("Removed directory: {}", dir_path);
+fn check_if_not_root() -> Result<(), Error> {
+    if let Ok(user) = std::env::var("USER") {
+        if user != "root" {
+            Ok(())
+        } else {
+            Err(Error::PriviligeNotRoot(
+                "This program was invoked with sudo.".to_string(),
+            ))
+        }
+    } else {
+        Err(Error::Unknown(
+            "The USER environment variable is not set.".to_string(),
+        ))
+    }
+}
+fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
+    if is_directory {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
     }
     Ok(())
 }

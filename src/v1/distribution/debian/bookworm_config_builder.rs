@@ -203,9 +203,6 @@ impl BookwormPackagerConfig {
     pub fn package_type(&self) -> &PackageType {
         &self.package_type
     }
-    pub fn config_root(&self) -> &PackageType {
-        &self.package_type
-    }
     pub fn lang_env(&self) -> Option<LanguageEnv> {
         match self.package_type {
             PackageType::Default { lang_env, .. } => Some(lang_env),
