@@ -1,11 +1,15 @@
 use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
 use crate::v1::packager::{BackendBuildEnv, LanguageEnv};
+use glob::glob;
 use log::info;
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
+use std::thread::sleep;
+use std::time::Duration;
 use std::{fs, io};
+use std::fmt::format;
 use thiserror::Error;
-use glob::glob;
 
 pub struct Sbuild {
     config: BookwormPackagerConfig,
@@ -46,15 +50,16 @@ impl Sbuild {
     }
     fn get_build_directories(&self) -> Vec<(String, bool)> {
         let build_prefix = self.get_build_name();
-        let schroot =  format!(
+        let schroot = format!(
             "/etc/schroot/chroot.d/{}-{}-sbuild-*",
             build_prefix,
             self.config.build_env().arch()
         );
         let schroot_pattern = match glob(&schroot) {
             Ok(pattern) => Some(pattern),
-            Err(_) => None // keep wrong string
-        }.unwrap();
+            Err(_) => None, // keep wrong string
+        }
+        .unwrap();
         let mut directories = vec![
             (
                 format!(
@@ -69,7 +74,7 @@ impl Sbuild {
                 true, // Directory
             ),
         ];
-        for file_path in schroot_pattern.into_iter(){
+        for file_path in schroot_pattern.into_iter() {
             let glob_pattern = file_path.unwrap();
             let file_path = glob_pattern.to_str().unwrap();
             directories.push((file_path.to_string(), false));
@@ -123,50 +128,51 @@ impl BackendBuildEnv for Sbuild {
             None => {
                 // add nothing
             }
-            Some(lang_env) => {
-                match lang_env {
-                    LanguageEnv::Rust => {
-                        let rust_version = "1.76.0";
-                        let install_rust = format!("mount -t proc proc /proc && cd /tmp && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain {}", rust_version);
-                        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, install_rust);
-                        let add_rust = Command::new(cmd)
+            Some(lang_env) => match lang_env {
+                LanguageEnv::Rust => {
+                    let rust_version = "1.76.0";
+                    let install_rust = vec![
+                        format!("cd /tmp && curl -o rust.tar.xz -L https://static.rust-lang.org/dist/rust-{}-x86_64-unknown-linux-gnu.tar.xz", rust_version),
+                        "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
+                        "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string()
+
+                    ];
+
+                    for action in install_rust.iter(){
+
+                        let cmd = Command::new("chroot")
+                            .arg("/srv/chroot/bookworm-amd64-rust")
+                            .arg("/bin/bash")
+                            .arg("-c")
+                            .arg(action)
                             .status();
 
-                        if let Err(err) = add_rust {
+                        if let Err(err) = cmd {
                             return Err(Error::CreateBuildEnvFailure(format!(
                                 "Failed to install rust in env: {}",
                                 err
                             )));
                         }
-
-                        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, "umount /proc");
-                        let add_rust = Command::new(cmd)
-                            .status();
-
-                        if let Err(err) = add_rust {
-                            return Err(Error::CreateBuildEnvFailure(format!(
-                                "Failed to unmount proc: {}",
-                                err
-                            )));
-                        }
-
-
-                    },
-                    LanguageEnv::Go => {}
-                    LanguageEnv::JavaScript => {}
-                    LanguageEnv::Java => {}
-                    LanguageEnv::CSharp => {}
-                    LanguageEnv::TypeScript => {}
-                    LanguageEnv::Nim => {}
+                    }
                 }
+                LanguageEnv::Go => {}
+                LanguageEnv::JavaScript => {}
+                LanguageEnv::Java => {}
+                LanguageEnv::CSharp => {}
+                LanguageEnv::TypeScript => {}
+                LanguageEnv::Nim => {}
             },
         }
 
-        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, "apt remove curl ca-certificates");
-        let add_rust = Command::new(cmd)
+        let cmd = Command::new("chroot")
+            .arg("/srv/chroot/bookworm-amd64-rust")
+            .arg("/bin/bash")
+            .arg("-c")
+            .arg("apt remove -y curl ca-certificates")
             .status();
 
-        if let Err(err) = add_rust {
+
+        if let Err(err) = cmd {
             return Err(Error::CreateBuildEnvFailure(format!(
                 "Failed to remove ca-certificates and curl: {}",
                 err
@@ -181,16 +187,12 @@ impl BackendBuildEnv for Sbuild {
         let directories = self.get_build_directories();
         for (path, _) in directories.iter() {
             if fs::metadata(path).is_err() {
+                println!("{}", path);
                 return Err(Error::BuildEnvMissing);
             }
         }
 
-        let sbuild_command = format!(
-            "sbuild -c {} -d {}",
-            self.get_build_name(),
-            self.config.build_env().codename(),
-        );
-        info!("Building package by invoking: {}", sbuild_command);
+
         let mut cmd_args = vec![
             "-c".to_string(),
             format!(
@@ -200,10 +202,10 @@ impl BackendBuildEnv for Sbuild {
             ),
             "-d".to_string(),
             self.config.build_env().codename().to_string(),
-            "-A".to_string(), // build_arch_all
-            "-s".to_string(), // build source
+            "-A".to_string(),                    // build_arch_all
+            "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
-            "-v".to_string(), // verbose
+            "-v".to_string(),                    // verbose
         ];
 
         if !self.config.build_env().run_lintian() {
@@ -215,6 +217,7 @@ impl BackendBuildEnv for Sbuild {
         if !self.config.build_env().run_piuparts() {
             cmd_args.push("--no-run-piuparts".to_string());
         }
+        println!("Building package by invoking: sbuild {}", cmd_args.join(" "));
 
         let mut child = Command::new("sbuild")
             .current_dir(self.config.build_files_dir())
@@ -282,6 +285,8 @@ fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
     }
     Ok(())
 }
+
+
 #[cfg(test)]
 mod tests {
     use env_logger::Env;

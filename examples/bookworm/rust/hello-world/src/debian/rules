@@ -3,7 +3,6 @@
 export CARGO_INSTALL_EXTRA_FLAGS:=--root build
 export PATH:="$(HOME)/.cargo/bin:$(PATH)"
 export PROFILE:=release
-export FEATURES:=jemalloc
 
 
 %:
@@ -11,13 +10,12 @@ export FEATURES:=jemalloc
 
 
 override_dh_auto_build:
-	$(HOME)/.cargo/bin/cargo install --path . --force --locked \
-		--features "$(FEATURES)" \
+	cargo install --path . --force --locked \
 		--profile "$(PROFILE)" \
 		$(CARGO_INSTALL_EXTRA_FLAGS)
 
 override_dh_auto_test:
-	$(HOME)/.cargo/bin/cargo test --release
+	cargo test --release
 
 
 override_dh_auto_install:
