@@ -202,14 +202,16 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<(),
 }
 
 fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error> {
-    info!("Extracting source {}", &build_variables.build_artifacts_dir);
+    println!("Extracting source {}", &build_variables.build_files_dir);
+    fs::create_dir_all(&build_variables.build_files_dir).map_err(|err| Error::Extract(err.to_string()))?;
+
     let output = Command::new("tar")
         .args([
             "zxvf",
             &build_variables.tarball_path,
             "-C",
-            &build_variables.build_artifacts_dir,
-            "--strip-components=1",
+            &build_variables.build_files_dir,
+         //   "--strip-components=1",
         ])
         .output()
         .map_err(|err| Error::Extract(err.to_string()))?;
