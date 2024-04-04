@@ -202,7 +202,7 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<(),
 }
 
 fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error> {
-    println!("Extracting source {}", &build_variables.build_files_dir);
+    info!("Extracting source {}", &build_variables.build_files_dir);
     fs::create_dir_all(&build_variables.build_files_dir).map_err(|err| Error::Extract(err.to_string()))?;
 
     let output = Command::new("tar")
