@@ -10,6 +10,7 @@ use crate::v1::build::sbuild;
 use crate::v1::distribution::debian::bookworm_config_builder::{
     BookwormPackagerConfig, PackageType,
 };
+use dirs::home_dir;
 use log::info;
 use log::warn;
 use std::io::Write;
@@ -54,6 +55,9 @@ pub enum Error {
 
     #[error("File doesn't exist: {0}")]
     FileDoesnotExist(String),
+
+    #[error("{0}")]
+    SbuildConfigError(String),
 }
 impl Packager for BookwormPackager {
     type Error = Error;
@@ -85,7 +89,7 @@ impl Packager for BookwormPackager {
                     self.config.package_fields().homepage(),
                     self.config.package_fields().src_dir(),
                 )?;
-
+                setup_sbuild().map_err(|err| Error::SbuildConfigError(err.to_string()))?;
                 Ok(())
             }
             PackageType::Git { git_source, .. } => {
@@ -106,7 +110,7 @@ impl Packager for BookwormPackager {
                     self.config.package_fields().homepage(),
                     self.config.package_fields().src_dir(),
                 )?;
-
+                setup_sbuild().map_err(|err| Error::SbuildConfigError(err.to_string()))?;
                 Ok(())
             }
             PackageType::Virtual => {
@@ -127,6 +131,7 @@ impl Packager for BookwormPackager {
                     self.config.package_fields().homepage(),
                     self.config.package_fields().src_dir(),
                 )?;
+                setup_sbuild().map_err(|err| Error::SbuildConfigError(err.to_string()))?;
                 Ok(())
             }
         };
@@ -244,7 +249,11 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<(), Error> {
+fn patch_source(
+    build_files_dir: &String,
+    homepage: &String,
+    src_dir: &String,
+) -> Result<(), Error> {
     // Patch quilt
     let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
@@ -340,6 +349,37 @@ fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -
     fs::set_permissions(debian_rules, permissions).map_err(|err| Error::Patch(err.to_string()))?;
 
     info!("Patching finished successfully!");
+    Ok(())
+}
+
+fn setup_sbuild() -> Result<(), io::Error> {
+    info!("Replacing .sbuildrc!");
+
+    let src_path = Path::new("overrides/.sbuildrc");
+
+    let home_dir = home_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Home directory not found"))?;
+
+    let dest_path = home_dir.join(".sbuildrc");
+
+    let contents = fs::read_to_string(&src_path)?;
+
+    let replaced_contents = contents.replace("<HOME>", &home_dir.to_str().unwrap());
+
+    if dest_path.exists() {
+        let existing_contents = fs::read_to_string(&dest_path)?;
+        if existing_contents != contents {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                "Existing .sbuildrc file differs from expected content. Please backup your ~/.sbuildrc file. And rerun this script!",
+            ));
+        } else {
+            return Ok(());
+        }
+    }
+    let mut file = fs::File::create(&dest_path)?;
+    file.write_all(replaced_contents.as_bytes())?;
+
     Ok(())
 }
 fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {

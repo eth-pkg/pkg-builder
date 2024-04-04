@@ -51,7 +51,7 @@ pub enum LanguageEnv {
     Java,
     CSharp,
     TypeScript,
-    Zig,
+    Nim,
 }
 
 impl fmt::Display for LanguageEnv {
@@ -63,7 +63,7 @@ impl fmt::Display for LanguageEnv {
             LanguageEnv::Java => write!(f, "java"),
             LanguageEnv::CSharp => write!(f, "csharp"),
             LanguageEnv::TypeScript => write!(f, "typescript"),
-            LanguageEnv::Zig => write!(f, "zig"),
+            LanguageEnv::Nim => write!(f, "nim"),
         }
     }
 }
@@ -77,7 +77,7 @@ impl LanguageEnv {
             "java" => Some(LanguageEnv::Java),
             "csharp" => Some(LanguageEnv::CSharp),
             "typescript" => Some(LanguageEnv::TypeScript),
-            "zig" => Some(LanguageEnv::Zig),
+            "nim" => Some(LanguageEnv::Nim),
             _ => None,
         }
     }

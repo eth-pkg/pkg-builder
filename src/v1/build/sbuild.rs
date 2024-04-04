@@ -1,5 +1,5 @@
 use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
-use crate::v1::packager::BackendBuildEnv;
+use crate::v1::packager::{BackendBuildEnv, LanguageEnv};
 use log::info;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
@@ -104,6 +104,7 @@ impl BackendBuildEnv for Sbuild {
 
         let create_result = Command::new("sbuild-createchroot")
             .arg("--merged-usr")
+            .arg("--include=ca-certificates curl")
             .arg("--chroot-prefix")
             .arg(&build_prefix)
             .arg(self.config.build_env().codename())
@@ -114,6 +115,60 @@ impl BackendBuildEnv for Sbuild {
         if let Err(err) = create_result {
             return Err(Error::CreateBuildEnvFailure(format!(
                 "Failed to create new chroot: {}",
+                err
+            )));
+        }
+
+        match self.config.lang_env() {
+            None => {
+                // add nothing
+            }
+            Some(lang_env) => {
+                match lang_env {
+                    LanguageEnv::Rust => {
+                        let rust_version = "1.76.0";
+                        let install_rust = format!("mount -t proc proc /proc && cd /tmp && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain {}", rust_version);
+                        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, install_rust);
+                        let add_rust = Command::new(cmd)
+                            .status();
+
+                        if let Err(err) = add_rust {
+                            return Err(Error::CreateBuildEnvFailure(format!(
+                                "Failed to install rust in env: {}",
+                                err
+                            )));
+                        }
+
+                        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, "umount /proc");
+                        let add_rust = Command::new(cmd)
+                            .status();
+
+                        if let Err(err) = add_rust {
+                            return Err(Error::CreateBuildEnvFailure(format!(
+                                "Failed to unmount proc: {}",
+                                err
+                            )));
+                        }
+
+
+                    },
+                    LanguageEnv::Go => {}
+                    LanguageEnv::JavaScript => {}
+                    LanguageEnv::Java => {}
+                    LanguageEnv::CSharp => {}
+                    LanguageEnv::TypeScript => {}
+                    LanguageEnv::Nim => {}
+                }
+            },
+        }
+
+        let cmd = format!("chroot /srv/chroot/{} /bin/bash -c \"{}\"", build_prefix, "apt remove curl ca-certificates");
+        let add_rust = Command::new(cmd)
+            .status();
+
+        if let Err(err) = add_rust {
+            return Err(Error::CreateBuildEnvFailure(format!(
+                "Failed to remove ca-certificates and curl: {}",
                 err
             )));
         }
@@ -145,6 +200,10 @@ impl BackendBuildEnv for Sbuild {
             ),
             "-d".to_string(),
             self.config.build_env().codename().to_string(),
+            "-A".to_string(), // build_arch_all
+            "-s".to_string(), // build source
+            "--source-only-changes".to_string(), // source_only_changes
+            "-v".to_string(), // verbose
         ];
 
         if !self.config.build_env().run_lintian() {
@@ -300,7 +359,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build_zig_package_in_sbuild_env() {
+    fn test_build_nim_package_in_sbuild_env() {
         setup();
         unreachable!("Test case not implemented yet");
     }
