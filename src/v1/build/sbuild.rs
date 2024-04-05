@@ -105,7 +105,6 @@ impl BackendBuildEnv for Sbuild {
 
         let create_result = Command::new("sbuild-createchroot")
             .arg("--merged-usr")
-            .arg("--include=ca-certificates curl")
             .arg("--chroot-prefix")
             .arg(&build_prefix)
             .arg(self.config.build_env().codename())
@@ -120,62 +119,151 @@ impl BackendBuildEnv for Sbuild {
             )));
         }
 
-        match self.config.lang_env() {
+        let result: Result<(), Error> = match self.config.lang_env() {
             None => {
                 // add nothing
+                Ok(())
             }
-            Some(lang_env) => match lang_env {
-                LanguageEnv::Rust => {
-                    let rust_version = "1.76.0";
-                    let install_rust = vec![
-                        format!("cd /tmp && curl -o rust.tar.xz -L https://static.rust-lang.org/dist/rust-{}-x86_64-unknown-linux-gnu.tar.xz", rust_version),
-                        "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
-                        "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string()
+            Some(lang_env) => {
+                setup_chroot("rm -rf /tmp/* && chmod 777 /tmp")?;
 
-                    ];
+                let additional_build_deps_for_langs =
+                    "curl ca-certificates wget apt-transport-https gnupg apt-utils mlocate";
+                setup_chroot(
+                    format!("apt install -y {}", additional_build_deps_for_langs).as_str(),
+                )?;
+                match lang_env {
+                    LanguageEnv::Rust => {
+                        let rust_version = "1.76.0";
+                        let install_rust = vec![
+                            format!("cd /tmp && curl -o rust.tar.xz -L https://static.rust-lang.org/dist/rust-{}-x86_64-unknown-linux-gnu.tar.xz", rust_version),
+                            "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
+                            "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string()
+                        ];
 
-                    for action in install_rust.iter(){
+                        for action in install_rust.iter() {
+                            setup_chroot(action)?;
+                        }
+                    }
+                    LanguageEnv::Go => {
+                        let go_version = "1.22.2";
+                        let install = vec![
+                            format!("cd /tmp && curl -o go.tar.gz -L https://go.dev/dl/go{}.linux-amd64.tar.gz", go_version),
+                            "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
+                            "rm /etc/profile.d/go.sh && touch /etc/profile.d/go.sh".to_string(),
+                            "echo 'export GOROOT=/usr/local/go' > /etc/profile.d/go.sh".to_string(),
+                            "echo 'export PATH=$PATH:$GOROOT/bin' >> /etc/profile.d/go.sh".to_string(),
+                            "source /etc/profile".to_string(),
+                            "source /etc/profile && go version".to_string(),
+                            "go version".to_string(),
+                        ];
 
-                        let cmd = Command::new("chroot")
-                            .arg("/srv/chroot/bookworm-amd64-rust")
-                            .arg("/bin/bash")
-                            .arg("-c")
-                            .arg(action)
-                            .status();
-
-                        if let Err(err) = cmd {
-                            return Err(Error::CreateBuildEnvFailure(format!(
-                                "Failed to install rust in env: {}",
-                                err
-                            )));
+                        for action in install.iter() {
+                            setup_chroot(action)?;
+                        }
+                    }
+                    LanguageEnv::JavaScript | LanguageEnv::TypeScript => {
+                        let is_yarn = true;
+                        let yarn_version = "1.22.10";
+                        // let node_version = "20.x";
+                        // from nodesource
+                        // TODO switch from nodesource to actual binary without repository
+                        let mut install = vec![
+                            "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && apt-get install -y nodejs".to_string(),
+                            "node --version".to_string(),
+                            "npm --version".to_string(),
+                        ];
+                        if is_yarn {
+                            install.push(format!("npm install --global yarn@{}", yarn_version));
+                            install.push("yarn --version".to_string());
+                        }
+                        for action in install.iter() {
+                            setup_chroot(action)?;
+                        }
+                    }
+                    LanguageEnv::Java => {
+                        let is_oracle = true;
+                        if is_oracle {
+                            // TODO proc mount is not nice
+                            let jdk_version = "17";
+                            let install = vec![
+                                format!("rm -rf /opt/lib/jvm/jdk-{version} && rm -rf /usr/lib/jvm/jdk-{version}", version=jdk_version),
+                                format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version=jdk_version),
+                                format!("cd /tmp && wget https://download.oracle.com/java/{version}/latest/jdk-{version}_linux-x64_bin.tar.gz", version=jdk_version),
+                                format!("cd /tmp && tar -zxf jdk-{version}_linux-x64_bin.tar.gz -C /opt/lib/jvm/jdk-{version}-oracle --strip-components=1", version=jdk_version),
+                                format!("ln -s /opt/lib/jvm/jdk-{version}-oracle  /usr/lib/jvm/jdk-{version}", version=jdk_version),
+                                "rm /etc/profile.d/jdk.sh".to_string(),
+                                format!("echo 'export JAVA_HOME=/usr/lib/jvm/jdk-{}' >> /etc/profile.d/jdk.sh", jdk_version),
+                                "echo 'export PATH=$PATH:$JAVA_HOME/bin' >> /etc/profile.d/jdk.sh".to_string(),
+                                "mount -t proc proc /proc".to_string(),
+                                "/usr/lib/jvm/jdk-17/bin/java -version".to_string(),
+                                "source /etc/profile.d/jdk.sh && java -version".to_string(),
+                                "umount /proc".to_string()
+                            ];
+                            for action in install.iter() {
+                                setup_chroot(action)?;
+                            }
+                        }
+                    }
+                    LanguageEnv::CSharp => {
+                        // TODO proc mount is not nice
+                        let dotnet_version = "7.0";
+                        let install = vec![
+                            "mount -t proc proc /proc".to_string(),
+                            "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                            "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                            "apt-get update -y".to_string(),
+                            format!("apt-get install -y dotnet-sdk-{}", dotnet_version),
+                            "dotnet --version".to_string(),
+                            "umount /proc".to_string()
+                        ];
+                        for action in install.iter() {
+                            setup_chroot(action)?;
+                        }
+                    }
+                    LanguageEnv::Nim => {
+                        let nim_version = "2.0.2";
+                        let install = vec![
+                            format!("rm -rf /tmp/nim-{version} && rm -rf /usr/lib/nim/nim-{version}&& rm -rf /opt/lib/nim/nim-{version} && mkdir /tmp/nim-{version}", version = nim_version),
+                            "mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim".to_string(),
+                            format!("cd /tmp && wget https://nim-lang.org/download/nim-{}-linux_x64.tar.xz", nim_version),
+                            format!("cd /tmp && tar xJf nim-{version}-linux_x64.tar.xz -C nim-{version} --strip-components=1", version=nim_version),
+                            format!("cd /tmp  && mv nim-{version} /opt/lib/nim", version=nim_version),
+                            format!("ln -s /opt/lib/nim/nim-{version}  /usr/lib/nim/nim-{version}", version=nim_version),
+                            "rm /etc/profile.d/nim.sh".to_string(),
+                            format!("echo 'export NIM_HOME=/usr/lib/nim/nim-{}' >> /etc/profile.d/nim.sh", nim_version),
+                            "echo 'export PATH=$PATH:$NIM_HOME/bin' >> /etc/profile.d/nim.sh".to_string(),
+                            "source /etc/profile.d/nim.sh && nim --version".to_string(),
+                        ];
+                        for action in install.iter() {
+                            setup_chroot(action)?;
                         }
                     }
                 }
-                LanguageEnv::Go => {}
-                LanguageEnv::JavaScript => {}
-                LanguageEnv::Java => {}
-                LanguageEnv::CSharp => {}
-                LanguageEnv::TypeScript => {}
-                LanguageEnv::Nim => {}
-            },
-        }
-
-        let cmd = Command::new("chroot")
-            .arg("/srv/chroot/bookworm-amd64-rust")
-            .arg("/bin/bash")
-            .arg("-c")
-            .arg("apt remove -y curl ca-certificates")
-            .status();
-
-
-        if let Err(err) = cmd {
-            return Err(Error::CreateBuildEnvFailure(format!(
-                "Failed to remove ca-certificates and curl: {}",
-                err
-            )));
-        }
-
-        Ok(())
+                // let is_docker_needed_for_tests = true;
+                // if is_docker_needed_for_tests {
+                //     // Note this doesn't install docker, please put into that into build_depends
+                //     let install = vec![
+                //         "apt install -y gnupg".to_string(),
+                //         "install -m 0755 -d /etc/apt/keyrings".to_string(),
+                //         "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
+                //         "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
+                //         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
+                //                 tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
+                //         "apt-get update".to_string(),
+                //         "apt-get remove gnupg".to_string()
+                //     ];
+                //     for action in install.iter() {
+                //         setup_chroot(action)?;
+                //     }
+                // }
+                setup_chroot(
+                    format!("apt remove -y {}", additional_build_deps_for_langs).as_str(),
+                )?;
+                Ok(())
+            }
+        };
+        result
     }
     fn build(&self) -> Result<(), Error> {
         check_if_not_root()?;
@@ -187,7 +275,6 @@ impl BackendBuildEnv for Sbuild {
                 return Err(Error::BuildEnvMissing);
             }
         }
-
 
         let mut cmd_args = vec![
             "-c".to_string(),
@@ -213,7 +300,10 @@ impl BackendBuildEnv for Sbuild {
         if !self.config.build_env().run_piuparts() {
             cmd_args.push("--no-run-piuparts".to_string());
         }
-        println!("Building package by invoking: sbuild {}", cmd_args.join(" "));
+        println!(
+            "Building package by invoking: sbuild {}",
+            cmd_args.join(" ")
+        );
 
         let mut child = Command::new("sbuild")
             .current_dir(self.config.build_files_dir())
@@ -243,6 +333,22 @@ impl BackendBuildEnv for Sbuild {
     }
 }
 
+fn setup_chroot(action: &str) -> Result<(), Error> {
+    let cmd = Command::new("chroot")
+        .arg("/srv/chroot/bookworm-amd64-rust")
+        .arg("/bin/bash")
+        .arg("-c")
+        .arg(action)
+        .status();
+
+    if let Err(err) = cmd {
+        return Err(Error::CreateBuildEnvFailure(format!(
+            "Failed to install rust in env: {}",
+            err
+        )));
+    }
+    Ok(())
+}
 fn check_if_root() -> Result<(), Error> {
     if let Ok(user) = std::env::var("USER") {
         if user == "root" {
@@ -281,7 +387,6 @@ fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
