@@ -3,7 +3,7 @@ spec_file = "hello-world.sss"
 package_name = "hello-world"
 version_number = "1.0.0"
 revision_number = "1"
-tarball_url = "hello_world-0.1.0.tar.gz"
+tarball_url = "hello-world-1.0.0.tar.gz"
 git_source = ""
 # virtual | git | default
 package_type="default"

@@ -148,6 +148,11 @@ impl Packager for BookwormPackager {
 }
 
 fn create_package_dir(build_artifacts_dir: &String) -> Result<(), Error> {
+    if fs::metadata(build_artifacts_dir).is_ok() {
+        info!("Remove previous package folder {}", &build_artifacts_dir);
+        fs::remove_dir_all(build_artifacts_dir)
+            .map_err(|err| Error::CreatePackageDir(err.to_string()))?;
+    }
     info!("Creating package folder {}", &build_artifacts_dir);
     fs::create_dir_all(build_artifacts_dir)
         .map_err(|err| Error::CreatePackageDir(err.to_string()))?;
@@ -157,8 +162,10 @@ fn create_package_dir(build_artifacts_dir: &String) -> Result<(), Error> {
 fn download_source(tarball_path: &str, tarball_url: &str) -> Result<(), Error> {
     info!("Downloading source {}", tarball_path);
     let is_web = tarball_url.starts_with("http");
-    println!("{}", tarball_url);
-    println!("{}", tarball_path);
+    info!(
+        "Downloading tar: {} to location: {}",
+        tarball_url, tarball_path
+    );
     if is_web {
         let status = Command::new("wget")
             .arg("-O")
@@ -203,16 +210,24 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<(),
 
 fn extract_source(build_variables: &BookwormBuildVariables) -> Result<(), Error> {
     info!("Extracting source {}", &build_variables.build_files_dir);
-    fs::create_dir_all(&build_variables.build_files_dir).map_err(|err| Error::Extract(err.to_string()))?;
+    fs::create_dir_all(&build_variables.build_files_dir)
+        .map_err(|err| Error::Extract(err.to_string()))?;
 
+    let mut args = vec![
+        "zxvf",
+        &build_variables.tarball_path,
+        "-C",
+        &build_variables.build_files_dir,
+    ];
+    let numbers_to_strip = components_to_strip(build_variables.tarball_path.clone());
+    let numbers_to_strip = numbers_to_strip.unwrap_or_default();
+    let strip = format!("--strip-components={}", numbers_to_strip);
+    if numbers_to_strip > 0 {
+        args.push(&strip);
+    }
+    info!("Stripping components: {} {:?}", numbers_to_strip, args);
     let output = Command::new("tar")
-        .args([
-            "zxvf",
-            &build_variables.tarball_path,
-            "-C",
-            &build_variables.build_files_dir,
-         //   "--strip-components=1",
-        ])
+        .args(args)
         .output()
         .map_err(|err| Error::Extract(err.to_string()))?;
     if !output.status.success() {
@@ -335,8 +350,11 @@ fn patch_source(
         info!("Standards-Version already exists in the control file. No changes made.");
     }
 
-    copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
-        .map_err(|err| Error::Patch(err.to_string()))?;
+    // Only copy if src dir exists
+    if fs::metadata(src_dir).is_ok() {
+        copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
+            .map_err(|err| Error::Patch(err.to_string()))?;
+    }
     // Get the current permissions of the file
     info!(
         "Adding executable permission for {}/debian/rules",
@@ -377,7 +395,7 @@ fn setup_sbuild() -> Result<(), io::Error> {
             ))
         } else {
             Ok(())
-        }
+        };
     }
     let mut file = fs::File::create(&dest_path)?;
     file.write_all(replaced_contents.as_bytes())?;
@@ -401,6 +419,49 @@ fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::E
 
     Ok(())
 }
+
+fn components_to_strip(tar_gz_file: String) -> Result<usize, std::io::Error> {
+    let output = Command::new("tar")
+        .arg("--list")
+        .arg("-z")
+        .arg("-f")
+        .arg(tar_gz_file)
+        .output()?;
+
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = output_str.lines().filter(|l| !l.ends_with("/")).collect();
+
+    let common_prefix = longest_common_prefix(&lines);
+
+    let components_to_strip = common_prefix.split('/').filter(|&x| !x.is_empty()).count();
+
+    Ok(components_to_strip)
+}
+
+fn longest_common_prefix(strings: &[&str]) -> String {
+    if strings.is_empty() {
+        return String::new();
+    }
+
+    let first_string = &strings[0];
+    let mut prefix = String::new();
+
+    'outer: for (i, c) in first_string.char_indices() {
+        for string in &strings[1..] {
+            if let Some(next_char) = string.chars().nth(i) {
+                if next_char != c {
+                    break 'outer;
+                }
+            } else {
+                break 'outer;
+            }
+        }
+        prefix.push(c);
+    }
+
+    prefix
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

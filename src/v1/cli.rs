@@ -4,6 +4,7 @@ use super::packager;
 use super::packager::DistributionPackager;
 use clap::Parser;
 use std::{fs, path::Path};
+use env_logger::Env;
 use thiserror::Error;
 use toml;
 
@@ -42,6 +43,7 @@ fn get_distribution(config_file: String) -> Result<DistributionPackager, CliConf
 }
 pub fn run_cli() -> Result<(), CliConfigError> {
     let args = PkgBuilderArgs::parse();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     match args.action {
         ActionType::Package(command) => {
             let config_file = command.config_file;

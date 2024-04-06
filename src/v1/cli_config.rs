@@ -60,6 +60,7 @@ impl CliPackageFields {
     pub fn homepage(&self) -> &Option<String> {
         &self.homepage
     }
+
 }
 
 fn deserialize_option_string(value: Option<String>) -> Option<String> {

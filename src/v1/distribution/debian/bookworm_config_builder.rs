@@ -269,6 +269,7 @@ impl PackageFields {
     pub fn src_dir(&self) -> &String {
         &self.src_dir
     }
+
 }
 impl BookwormBuildEnv {
     pub fn codename(&self) -> &String {

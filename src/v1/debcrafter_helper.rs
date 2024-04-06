@@ -1,12 +1,13 @@
 use git2::Repository;
 use log::info;
+use std::fs;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{fs};
 use tempfile::tempdir;
 use thiserror::Error;
+use toml::to_string;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -17,9 +18,8 @@ pub enum Error {
     CommandFailed(CommandError),
 
     #[error("Failed to clone: {0}")]
-    GitClone(#[from] git2::Error)
+    GitClone(#[from] git2::Error),
 }
-
 
 #[derive(Debug, Error)]
 pub enum CommandError {
@@ -46,7 +46,10 @@ pub fn check_if_dpkg_parsechangelog_installed() -> Result<(), Error> {
     let mut cmd = Command::new("which");
     cmd.arg("dpkg-parsechangelog");
 
-    handle_failure(&mut cmd)?;
+    handle_failure(
+        &mut cmd,
+        "dpkg-parsechangelog is not installed, please install it.".to_string(),
+    )?;
     Ok(())
 }
 
@@ -67,17 +70,26 @@ pub fn install() -> Result<(), Error> {
     let repo_url = "https://github.com/Kixunil/debcrafter.git";
     Repository::clone(repo_url, repo_dir_path)?;
 
+    // check if cargo is installed
+    let mut cmd = Command::new("which");
+    cmd.arg("cargo");
+
+    handle_failure(&mut cmd, "Cargo not found".to_string())?;
+
     // Build the project
     let mut cmd = Command::new("cargo");
     cmd.arg("build").current_dir(repo_dir_path);
 
-    handle_failure(&mut cmd)?;
+    handle_failure(
+        &mut cmd,
+        "Failed to build debcrafter with cargo.".to_string(),
+    )?;
 
     // Install the binary
     let mut cmd = Command::new("cargo");
     cmd.arg("install").arg("--path").arg(repo_dir_path);
 
-    handle_failure(&mut cmd)?;
+    handle_failure(&mut cmd, "Failed to install debcrafter.".to_string())?;
     Ok(())
 }
 
@@ -98,9 +110,9 @@ pub fn install() -> Result<(), Error> {
 pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), Error> {
     let debcrafter_dir = tempdir().expect("Failed to create temporary directory");
 
-    let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| Error::CommandFailed(
-        format!("{} spec_file doesn't exist", specification_file).into(),
-    ))?;
+    let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| {
+        Error::CommandFailed(format!("{} spec_file doesn't exist", specification_file).into())
+    })?;
     if !spec_file_path.exists() {
         return Err(Error::CommandFailed(
             format!("{} spec_file doesn't exist", specification_file).into(),
@@ -116,7 +128,7 @@ pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(
         .current_dir(spec_dir)
         .arg(debcrafter_dir.path());
 
-    handle_failure(&mut cmd)?;
+    handle_failure(&mut cmd, "Debcrafter error".to_string())?;
 
     if let Some(first_directory) = get_first_directory(debcrafter_dir.path()) {
         let tmp_debian_dir = first_directory.join("debian");
@@ -158,14 +170,14 @@ fn copy_dir_contents_recursive(src_dir: &Path, dest_dir: &Path) -> io::Result<()
 
     Ok(())
 }
-fn handle_failure(cmd: &mut Command) -> Result<(), Error> {
+fn handle_failure(cmd: &mut Command, error: String) -> Result<(), Error> {
     let output = cmd
         .output()
-        .map_err(|err| Error::CommandFailed(err.into()))?;
+        .map_err(|err| Error::CommandFailed(error.clone().into()))?;
 
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        return Err(Error::CommandFailed(stderr.into()));
+        //let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        return Err(Error::CommandFailed(error.into()));
     }
     Ok(())
 }
