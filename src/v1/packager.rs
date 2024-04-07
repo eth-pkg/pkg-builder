@@ -52,6 +52,7 @@ pub enum LanguageEnv {
     CSharp,
     TypeScript,
     Nim,
+    C
 }
 
 impl fmt::Display for LanguageEnv {
@@ -64,6 +65,8 @@ impl fmt::Display for LanguageEnv {
             LanguageEnv::CSharp => write!(f, "csharp"),
             LanguageEnv::TypeScript => write!(f, "typescript"),
             LanguageEnv::Nim => write!(f, "nim"),
+            LanguageEnv::C => write!(f, "c"),
+
         }
     }
 }
@@ -78,6 +81,7 @@ impl LanguageEnv {
             "csharp" => Some(LanguageEnv::CSharp),
             "typescript" => Some(LanguageEnv::TypeScript),
             "nim" => Some(LanguageEnv::Nim),
+            "c" => Some(LanguageEnv::C),
             _ => None,
         }
     }
@@ -104,16 +108,8 @@ impl DistributionPackager {
         let package_fields = self.config.package_fields();
         let config = match build_env.codename().clone().unwrap_or_default().as_str() {
             "bookworm" | "debian 12" => BookwormPackagerConfigBuilder::default()
-                .arch(build_env.arch().clone())
-                .package_name(package_fields.package_name().clone())
-                .version_number(package_fields.version_number().clone())
-                .tarball_url(package_fields.tarball_url().clone())
-                .git_source(package_fields.git_source().clone())
-                .package_type(package_fields.package_type().clone())
-                .lang_env(build_env.lang_env().clone())
-                .debcrafter_version(build_env.debcrafter_version().clone())
-                .spec_file(package_fields.spec_file().clone())
-                .homepage(package_fields.homepage().clone())
+                .build_env(build_env.clone())
+                .package_fields(package_fields.clone())
                 .config_root(self.config_root.clone())
                 .config()
                 .map(Distribution::Bookworm)

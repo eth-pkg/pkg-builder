@@ -1,5 +1,8 @@
-use std::path::PathBuf;
+use crate::v1::cli_config::{CliBuildEnv, CliPackageFields};
 use crate::v1::packager::{LanguageEnv, PackagerConfig};
+use log::info;
+use std::path::PathBuf;
+use std::{env, fs, io};
 
 #[derive(Clone)]
 pub struct BookwormPackagerConfig {
@@ -17,7 +20,7 @@ pub struct PackageFields {
     revision_number: String,
     spec_file: String,
     homepage: String,
-    src_dir: String
+    src_dir: String,
 }
 #[derive(Clone)]
 pub enum PackageType {
@@ -30,6 +33,24 @@ pub enum PackageType {
         lang_env: LanguageEnv,
     },
     Virtual,
+}
+
+impl PackageType {
+    // This should be only used for constructing for Builder
+    fn from_string(package_type: &str) -> Option<Self> {
+        match package_type.to_lowercase().as_str() {
+            "virtual" => Some(PackageType::Virtual),
+            "default" => Some(PackageType::Default {
+                tarball_url: "".to_string(),
+                lang_env: LanguageEnv::Go,
+            }),
+            "from_git" => Some(PackageType::Git {
+                git_source: "".to_string(),
+                lang_env: LanguageEnv::Go,
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -50,62 +71,40 @@ pub struct BookwormPackagerConfigBuilder {
     version_number: Option<String>,
     tarball_url: Option<String>,
     git_source: Option<String>,
-    package_type: Option<String>,
+    package_type: Option<PackageType>,
     lang_env: Option<LanguageEnv>,
     debcrafter_version: Option<String>,
     spec_file: Option<String>,
     homepage: Option<String>,
     config_root: String,
+    pkg_builder_version: Option<String>,
+    run_piuparts: bool,
+    run_lintian: bool,
+    run_autopkgtests: bool,
+    workdir: Option<String>,
 }
 
 impl BookwormPackagerConfigBuilder {
-    pub fn arch(mut self, arch: Option<String>) -> Self {
-        self.arch = arch;
+    pub fn build_env(mut self, build_env: &CliBuildEnv) -> Self {
+        self.arch = build_env.arch().clone();
+        self.pkg_builder_version = build_env.pkg_builder_version().clone();
+        self.debcrafter_version = build_env.debcrafter_version().clone();
+        self.run_lintian = build_env.run_lintian();
+        self.run_autopkgtests = build_env.run_autopkgtest();
+        self.run_piuparts = build_env.run_piuparts();
+        self.lang_env = LanguageEnv::from_string(&build_env.lang_env().clone().unwrap_or_default());
+        self.workdir = build_env.workdir().clone();
         self
     }
-
-    pub fn package_name(mut self, package_name: Option<String>) -> Self {
-        self.package_name = package_name;
-        self
-    }
-
-    pub fn version_number(mut self, version_number: Option<String>) -> Self {
-        self.version_number = version_number;
-        self
-    }
-
-    pub fn tarball_url(mut self, tarball_url: Option<String>) -> Self {
-        self.tarball_url = tarball_url;
-        self
-    }
-
-    pub fn git_source(mut self, git_source: Option<String>) -> Self {
-        self.git_source = git_source;
-        self
-    }
-
-    pub fn package_type(mut self, package_type: Option<String>) -> Self {
-        self.package_type = package_type;
-        self
-    }
-
-    pub fn lang_env(mut self, lang_env: Option<String>) -> Self {
-        self.lang_env = LanguageEnv::from_string(&lang_env.unwrap_or_default());
-        self
-    }
-
-    pub fn debcrafter_version(mut self, debcrafter_version: Option<String>) -> Self {
-        self.debcrafter_version = debcrafter_version;
-        self
-    }
-
-    pub fn spec_file(mut self, spec_file: Option<String>) -> Self {
-        self.spec_file = spec_file;
-        self
-    }
-
-    pub fn homepage(mut self, homepage: Option<String>) -> Self {
-        self.homepage = homepage;
+    pub fn package_fields(mut self, package_fields: &CliPackageFields) -> Self {
+        self.package_name = package_fields.package_name().clone();
+        self.version_number = package_fields.version_number().clone();
+        self.tarball_url = package_fields.tarball_url().clone();
+        self.git_source = package_fields.git_source().clone();
+        self.package_type =
+            PackageType::from_string(&package_fields.package_type().clone().unwrap_or_default());
+        self.spec_file = package_fields.spec_file().clone();
+        self.homepage = package_fields.homepage().clone();
         self
     }
 
@@ -117,43 +116,42 @@ impl BookwormPackagerConfigBuilder {
     pub fn config(self) -> Result<BookwormPackagerConfig, String> {
         let package_type = self
             .package_type
-            .ok_or_else(|| "Missing package_type field".to_string())?;
+            .ok_or_else(|| "Missing package_type field or invalid argument".to_string())?;
 
-        if package_type != "virtual" && package_type != "default" && package_type != "from_git" {
-            return Err("Invalid combination package_is_virtual package_is_git!".to_string());
-        }
-        let package_type = if package_type == "virtual" {
-            PackageType::Virtual
-        } else if package_type == "from_git" {
-            let lang_env = self
-                .lang_env
-                .ok_or_else(|| "Missing lang_env field".to_string())?;
-            let git_source = self
-                .git_source
-                .ok_or_else(|| "Missing git_source field".to_string())?;
-            PackageType::Git {
-                lang_env,
-                git_source,
-            }
-        } else {
-            let lang_env = self
-                .lang_env
-                .ok_or_else(|| "Missing lang_env field".to_string())?;
-            let tarball_url = self
-                .tarball_url
-                .ok_or_else(|| "Missing tarball_url field".to_string())?;
-            let is_web = tarball_url.starts_with("http");
-            let tarball_url = match is_web {
-                true => tarball_url,
-                false => {
-                    let config_root_path = PathBuf::from(&self.config_root);
-                    let tarball_url = config_root_path.join(tarball_url);
-                    tarball_url.to_str().unwrap().to_string()
+        let package_type = match package_type {
+            PackageType::Virtual => package_type,
+            PackageType::Git { .. } => {
+                let lang_env = self
+                    .lang_env
+                    .ok_or_else(|| "Missing lang_env field".to_string())?;
+                let git_source = self
+                    .git_source
+                    .ok_or_else(|| "Missing git_source field".to_string())?;
+                PackageType::Git {
+                    lang_env,
+                    git_source,
                 }
-            };
-            PackageType::Default {
-                lang_env,
-                tarball_url,
+            }
+            PackageType::Default { .. } => {
+                let lang_env = self
+                    .lang_env
+                    .ok_or_else(|| "Missing lang_env field".to_string())?;
+                let tarball_url = self
+                    .tarball_url
+                    .ok_or_else(|| "Missing tarball_url field".to_string())?;
+                let is_web = tarball_url.starts_with("http");
+                let tarball_url = match is_web {
+                    true => tarball_url,
+                    false => {
+                        let config_root_path = PathBuf::from(&self.config_root);
+                        let tarball_url = config_root_path.join(tarball_url);
+                        tarball_url.to_str().unwrap().to_string()
+                    }
+                };
+                PackageType::Default {
+                    lang_env,
+                    tarball_url,
+                }
             }
         };
         let arch = self.arch.ok_or_else(|| "Missing arch field".to_string())?;
@@ -178,6 +176,11 @@ impl BookwormPackagerConfigBuilder {
         let spec_file_canonical = config_root_path.join(spec_file);
         let spec_file = spec_file_canonical.to_str().unwrap().to_string();
         let src_dir = config_root_path.join("src").to_str().unwrap().to_string();
+        let workdir = self
+            .workdir
+            .ok_or("~/.pkg-builder/packages/bookworm")
+            .unwrap();
+        let workdir = expand_path(&workdir);
 
         let package_fields = PackageFields {
             package_name,
@@ -185,17 +188,17 @@ impl BookwormPackagerConfigBuilder {
             revision_number: "".to_string(),
             spec_file,
             homepage,
-            src_dir
+            src_dir,
         };
         let build_env = BookwormBuildEnv {
             codename: "bookworm".to_string(),
             arch,
             pkg_builder_version: "".to_string(),
             debcrafter_version,
-            run_lintian: false,
-            run_piuparts: false,
-            run_autopkgtest: false,
-            workdir: "/tmp/pkg-builder".to_string(),
+            run_lintian: self.run_lintian,
+            run_piuparts: self.run_piuparts,
+            run_autopkgtest: self.run_autopkgtests,
+            workdir,
         };
         let config = BookwormPackagerConfig {
             package_fields,
@@ -269,7 +272,6 @@ impl PackageFields {
     pub fn src_dir(&self) -> &String {
         &self.src_dir
     }
-
 }
 impl BookwormBuildEnv {
     pub fn codename(&self) -> &String {
@@ -285,17 +287,30 @@ impl BookwormBuildEnv {
     pub fn debcrafter_version(&self) -> &String {
         &self.debcrafter_version
     }
-    pub fn run_lintian(&self) -> bool {
-        self.run_lintian
+    pub fn run_lintian(&self) -> &bool {
+        &self.run_lintian
     }
-    pub fn run_piuparts(&self) -> bool {
-        self.run_piuparts
+    pub fn run_piuparts(&self) -> &bool {
+        &self.run_piuparts
     }
-    pub fn run_autopkgtest(&self) -> bool {
-        self.run_autopkgtest
+    pub fn run_autopkgtest(&self) -> &bool {
+        &self.run_autopkgtest
     }
 
     pub fn workdir(&self) -> &String {
         &self.workdir
+    }
+}
+
+fn expand_path(dir: &str) -> String {
+    if dir.starts_with('~') {
+        let expanded_path = shellexpand::tilde(dir).to_string();
+        expanded_path
+    } else {
+        let parent_dir = env::current_dir().unwrap();
+        let dir = parent_dir.join(dir);
+        let path = fs::canonicalize(dir.clone()).unwrap();
+        let path = path.to_str().unwrap().to_string();
+        path
     }
 }

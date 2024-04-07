@@ -4,7 +4,9 @@ use glob::glob;
 use log::info;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
-use std::{fs, io};
+use std::{env, fs, io};
+use std::path::PathBuf;
+use rand::random;
 use thiserror::Error;
 
 pub struct Sbuild {
@@ -46,6 +48,10 @@ impl Sbuild {
                 // additional_deps
                 //     .push(format!("apt install -y {}", additional_build_deps_for_langs));
                 let lang_deps = match lang_env {
+                    LanguageEnv::C => {
+                        let lang_deps = vec![];
+                        lang_deps
+                    }
                     LanguageEnv::Rust => {
                         let rust_version = "1.76.0";
                         let lang_deps = vec![
@@ -154,29 +160,50 @@ impl Sbuild {
         };
         additional_deps
     }
+
+    fn get_cache_dir(&self) -> String {
+        let dir = "~/.cache/sbuild/bookworm-amd64.tar.gz";
+        if dir.starts_with('~') {
+            let expanded_path = shellexpand::tilde(dir).to_string();
+            expanded_path
+        } else {
+            let parent_dir = env::current_dir().unwrap();
+            let dir = parent_dir.join(dir);
+            let path = fs::canonicalize(dir.clone()).unwrap();
+            let path = path.to_str().unwrap().to_string();
+            path
+        }
+    }
 }
+
 
 impl BackendBuildEnv for Sbuild {
     type Error = Error;
     fn clean(&self) -> Result<(), Error> {
+        let cache_dir = self.get_cache_dir();
         info!(
             "Cleaning cached build: {}",
-            "~/.cache/sbuild/bookworm-amd64.tar.gz"
+            cache_dir
         );
-
-        remove_file_or_directory("~/.cache/sbuild/bookworm-amd64.tar.gz", false)?;
+        remove_file_or_directory(&cache_dir, false)?;
 
         Ok(())
     }
 
     fn create(&self) -> Result<(), Error> {
+        let mut temp_dir = env::temp_dir();
+        let dir_name = format!("temp_{}", random::<u32>().to_string());
+        temp_dir.push(dir_name);
+        fs::create_dir(&temp_dir)?;
+
+        let cache_dir = self.get_cache_dir();
 
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
-            .arg("~/.cache/sbuild/bookworm-amd64.tar.gz".to_string())
+            .arg(cache_dir)
             .arg(self.config.build_env().codename())
-            .arg("`mktemp -d`".to_string())
+            .arg(temp_dir)
             .arg("http://deb.debian.org/debian")
             .status();
 
@@ -244,23 +271,6 @@ impl BackendBuildEnv for Sbuild {
 
         Ok(())
     }
-}
-
-fn setup_chroot(action: &str) -> Result<(), Error> {
-    let cmd = Command::new("chroot")
-        .arg("/srv/chroot/bookworm-amd64-rust")
-        .arg("/bin/bash")
-        .arg("-c")
-        .arg(action)
-        .status();
-
-    if let Err(err) = cmd {
-        return Err(Error::CreateBuildEnvFailure(format!(
-            "Failed to install rust in env: {}",
-            err
-        )));
-    }
-    Ok(())
 }
 
 fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {

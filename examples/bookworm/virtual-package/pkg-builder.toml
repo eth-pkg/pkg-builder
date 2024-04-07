@@ -21,7 +21,7 @@ run_lintian=false
 run_piuparts=false
 run_autopkgtest=false
 # package directory
-workdir=".pkg-builder/packages"
+workdir="~/.pkg-builder/packages"
 
 [cli_options]
 # not used
