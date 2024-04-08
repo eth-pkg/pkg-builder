@@ -7,8 +7,18 @@ Pkg-builder simplifies the process of creating packages for Linux distributions.
 If you are using Debian, install sbuild, and various dependencies:
 
 ```bash
-sudo apt install sbuild libssl-dev pkg-config quilt debhelper tar wget
+sudo apt install libssl-dev pkg-config quilt debhelper tar wget
 sudo sbuild-adduser `whoami`
+
+# Install sbuild
+git clone https://github.com/eth-pkg/sbuild.git ~/<DIR>/sbuild 
+cd ~/<DIR>/sbuild  
+# Install dependencies
+sudo apt-get install dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
+# Build the package
+dpkg-buildpackage -us -uc  
+# Install the newly built package 
+cd .. && sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
 
 # if chroot not exists create it, TODO other cases 
 sudo mkdir /srv/chroot 

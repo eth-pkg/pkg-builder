@@ -2,11 +2,11 @@ use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerCo
 use crate::v1::packager::{BackendBuildEnv, LanguageEnv};
 use glob::glob;
 use log::info;
+use rand::random;
 use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::{env, fs, io};
-use std::path::PathBuf;
-use rand::random;
 use thiserror::Error;
 
 pub struct Sbuild {
@@ -78,7 +78,7 @@ impl Sbuild {
                     LanguageEnv::JavaScript | LanguageEnv::TypeScript => {
                         let is_yarn = true;
                         let yarn_version = "1.22.10";
-                        // let node_version = "20.x";
+                        let node_version = "20.x";
                         // from nodesource
                         // TODO switch from nodesource to actual binary without repository
                         let mut install = vec![
@@ -154,7 +154,8 @@ impl Sbuild {
                 //     ];
                 //     additional_deps.extend(install);
                 additional_deps.extend(lang_deps);
-               // additional_deps.push(format!("apt remove -y {}", additional_build_deps_for_langs));
+
+                // additional_deps.push(format!("apt remove -y {}", additional_build_deps_for_langs));
                 additional_deps
             }
         };
@@ -176,15 +177,11 @@ impl Sbuild {
     }
 }
 
-
 impl BackendBuildEnv for Sbuild {
     type Error = Error;
     fn clean(&self) -> Result<(), Error> {
         let cache_dir = self.get_cache_dir();
-        info!(
-            "Cleaning cached build: {}",
-            cache_dir
-        );
+        info!("Cleaning cached build: {}", cache_dir);
         remove_file_or_directory(&cache_dir, false)?;
 
         Ok(())
@@ -231,6 +228,10 @@ impl BackendBuildEnv for Sbuild {
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
+        cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
+        cmd_args.push("--chroot-setup-commands=apt autoremove -y && cat".to_string());
+        cmd_args.push("--chroot-setup-commands=apt install -y ca-certificates curl strace".to_string());
+
         if !self.config.build_env().run_lintian() {
             cmd_args.push("--no-run-lintian".to_string());
         }
