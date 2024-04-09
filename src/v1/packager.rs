@@ -1,202 +1,111 @@
-use core::fmt;
+use eyre::{eyre, Result};
 
 use crate::v1::distribution::debian::bookworm_config_builder::{
-    BookwormPackagerConfig, BookwormPackagerConfigBuilder,
+    BookwormPackagerConfigBuilder,
 };
-use crate::v1::cli_config::{CliConfig};
+use crate::v1::pkg_config::PkgConfig;
 
 use super::distribution::{
     debian::bookworm::BookwormPackager,
-    ubuntu::jammy_jellyfish::{
-        JammJellyfishPackagerConfigBuilder, JammyJellyfishPackager, JammyJellyfishPackagerConfig,
-    },
 };
 
 pub trait PackagerConfig {}
 
 pub trait Packager {
-    type Error;
     type Config: PackagerConfig;
     type BuildEnv: BackendBuildEnv;
     fn new(config: Self::Config) -> Self;
-    fn package(&self) -> Result<(), Self::Error>;
+    fn package(&self) -> Result<()>;
 
-    fn get_build_env(&self) -> Result<Self::BuildEnv,Self::Error>;
+    fn get_build_env(&self) -> Result<Self::BuildEnv>;
 }
-pub enum Distribution {
-    Bookworm(BookwormPackagerConfig),
-    JammyJellyfish(JammyJellyfishPackagerConfig),
-}
-
-
 pub struct DistributionPackager {
-    config: CliConfig,
+    config: PkgConfig,
     config_root: String,
 }
 
-
-
 pub trait BackendBuildEnv {
-    type Error;
-    fn clean(&self) -> Result<(), Self::Error>;
-    fn create(&self) -> Result<(), Self::Error>;
-    fn build(&self) -> Result<(), Self::Error>;
+    fn clean(&self) -> Result<()>;
+    fn create(&self) -> Result<()>;
+    fn build(&self) -> Result<()>;
 }
-
-#[derive(Debug, Copy, Clone)]
-pub enum LanguageEnv {
-    Rust,
-    Go,
-    JavaScript,
-    Java,
-    CSharp,
-    TypeScript,
-    Nim,
-    C
-}
-
-impl fmt::Display for LanguageEnv {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LanguageEnv::Rust => write!(f, "rust"),
-            LanguageEnv::Go => write!(f, "go"),
-            LanguageEnv::JavaScript => write!(f, "javascript"),
-            LanguageEnv::Java => write!(f, "java"),
-            LanguageEnv::CSharp => write!(f, "csharp"),
-            LanguageEnv::TypeScript => write!(f, "typescript"),
-            LanguageEnv::Nim => write!(f, "nim"),
-            LanguageEnv::C => write!(f, "c"),
-
-        }
-    }
-}
-
-impl LanguageEnv {
-    pub fn from_string(lang_env: &str) -> Option<Self> {
-        match lang_env.to_lowercase().as_str() {
-            "rust" => Some(LanguageEnv::Rust),
-            "go" => Some(LanguageEnv::Go),
-            "javascript" => Some(LanguageEnv::JavaScript),
-            "java" => Some(LanguageEnv::Java),
-            "csharp" => Some(LanguageEnv::CSharp),
-            "typescript" => Some(LanguageEnv::TypeScript),
-            "nim" => Some(LanguageEnv::Nim),
-            "c" => Some(LanguageEnv::C),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Invalid codename: {0}")]
-    InvalidCodename(String),
-    #[error("Missing fields: {0}")]
-    MissingConfigFields(String),
-    #[error("Failed to package: {0}")]
-    Packaging(String),
-}
-
-
 
 impl DistributionPackager {
-    pub fn new(config: CliConfig, config_root: String) -> Self {
-         DistributionPackager { config, config_root }
+    pub fn new(config: PkgConfig, config_root: String) -> Self {
+        DistributionPackager {
+            config,
+            config_root,
+        }
     }
-    fn map_config(&self) -> Result<Distribution, Error> {
-        let build_env = self.config.build_env();
-        let package_fields = self.config.package_fields();
-        let config = match build_env.codename().clone().unwrap_or_default().as_str() {
-            "bookworm" | "debian 12" => BookwormPackagerConfigBuilder::default()
-                .build_env(build_env.clone())
-                .package_fields(package_fields.clone())
-                .config_root(self.config_root.clone())
-                .config()
-                .map(Distribution::Bookworm)
-                .map_err(|err| Error::MissingConfigFields(err.to_string())),
-            "jammy jellyfish" | "ubuntu 22.04" => JammJellyfishPackagerConfigBuilder::default()
-                .arch(build_env.arch().clone())
-                .package_name(package_fields.package_name().clone())
-                .version_number(package_fields.version_number().clone())
-                .tarball_url(package_fields.tarball_url().clone())
-                .git_source(package_fields.git_source().clone())
-               // .package_type(package_fields.package_type().clone())
-                .lang_env(build_env.lang_env().clone())
-                .config()
-                .map(Distribution::JammyJellyfish)
-                .map_err(|err| Error::MissingConfigFields(err.to_string())),
+    pub fn package(&self) -> Result<()> {
+        let config = self.config.clone();
+
+        match self.config.build_env.codename.clone().as_str() {
+            "bookworm" | "debian 12" => {
+                let config = BookwormPackagerConfigBuilder::new()
+                    .config(config)
+                    .config_root(self.config_root.clone())
+                    .build()?;
+
+                let packager = BookwormPackager::new(config);
+                packager.package()?;
+            }
+            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
-                return Err(Error::InvalidCodename(format!(
+                return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
                     invalid_codename
                 )));
             }
-        };
-        config
-    }
-    pub fn package(&self) -> Result<(), Error> {
-        let distribution = self.map_config()?;
-
-        match distribution {
-            Distribution::Bookworm(config) => {
-                let packager = BookwormPackager::new(config);
-                packager
-                    .package()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
-            }
-            Distribution::JammyJellyfish(config) => {
-                let packager = JammyJellyfishPackager::new(config);
-                packager
-                    .package()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
-            }
-        };
+        }
         Ok(())
     }
-    pub fn clean_build_env(&self) -> Result<(), Error> {
-        let distribution = self.map_config()?;
+    pub fn clean_build_env(&self) -> Result<()> {
+        let config = self.config.clone();
 
-        match distribution {
-            Distribution::Bookworm(config) => {
+        match self.config.build_env.codename.clone().as_str() {
+            "bookworm" | "debian 12" => {
+                let config = BookwormPackagerConfigBuilder::new()
+                    .config(config)
+                    .config_root(self.config_root.clone())
+                    .build()?;
+
                 let packager = BookwormPackager::new(config);
-                let build_env = packager
-                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
-                build_env
-                    .clean()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
+                let build_env = packager.get_build_env()?;
+                build_env.clean()?;
             }
-            Distribution::JammyJellyfish(config) => {
-                let packager = JammyJellyfishPackager::new(config);
-                let build_env = packager
-                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
-                build_env
-                    .clean()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
+            invalid_codename => {
+                return Err(eyre!(format!(
+                    "Invalid codename '{}' specified",
+                    invalid_codename
+                )));
             }
-        };
+        }
         Ok(())
     }
-    pub fn create_build_env(&self) -> Result<(), Error> {
-        let distribution = self.map_config()?;
+    pub fn create_build_env(&self) -> Result<()> {
+        let config = self.config.clone();
 
-        match distribution {
-            Distribution::Bookworm(config) => {
+        match self.config.build_env.codename.clone().as_str() {
+            "bookworm" | "debian 12" => {
+                let config = BookwormPackagerConfigBuilder::new()
+                    .config(config)
+                    .config_root(self.config_root.clone())
+                    .build()?;
+
                 let packager = BookwormPackager::new(config);
-                let build_env = packager
-                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
-                build_env
-                    .create()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
+                let build_env = packager.get_build_env()?;
+                build_env.create()?;
             }
-            Distribution::JammyJellyfish(config) => {
-                let packager = JammyJellyfishPackager::new(config);
-                let build_env = packager
-                    .get_build_env().map_err(|err| Error::Packaging(err.to_string()))?;
-                build_env
-                    .create()
-                    .map_err(|err| Error::Packaging(err.to_string()))?;
+            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
+            invalid_codename => {
+                return Err(eyre!(format!(
+                    "Invalid codename '{}' specified",
+                    invalid_codename
+                )));
             }
-        };
+        }
         Ok(())
     }
 }

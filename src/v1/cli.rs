@@ -1,34 +1,21 @@
-use super::args::{ActionType, BuildEnvCommand, BuildEnvSubCommand, PkgBuilderArgs};
-use super::cli_config::CliConfig;
-use super::packager;
+use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
 use super::packager::DistributionPackager;
+use crate::v1::pkg_config::{parse, PkgConfig};
 use clap::Parser;
-use std::{fs, path::Path};
 use env_logger::Env;
-use thiserror::Error;
-use toml;
+use eyre::{Result};
+use std::{fs, path::Path};
 
-#[derive(Debug, Error)]
-pub enum CliConfigError {
-    #[error("Failed to read the packageconfig file: {0}")]
-    ConfigRead(#[from] std::io::Error),
-
-    #[error("Failed to parse TOML content of the packagefile: {0}")]
-    ConfigParse(#[from] toml::de::Error),
-
-    #[error("Failed to package: {0}")]
-    Runtime(#[from] packager::Error),
-}
-
-fn read_config(path: &Path) -> Result<CliConfig, CliConfigError> {
+fn read_config(path: &Path) -> Result<PkgConfig> {
     let toml_content = fs::read_to_string(path)?;
 
-    let config: CliConfig = toml::from_str(&toml_content)?;
+    let config: PkgConfig =
+        parse(&toml_content)?;
 
     Ok(config)
 }
 
-fn get_distribution(config_file: String) -> Result<DistributionPackager, CliConfigError> {
+fn get_distribution(config_file: String) -> Result<DistributionPackager> {
     let path = Path::new(&config_file);
     let config_file_path = fs::canonicalize(path)?;
     let config_root = config_file_path
@@ -41,7 +28,7 @@ fn get_distribution(config_file: String) -> Result<DistributionPackager, CliConf
 
     Ok(DistributionPackager::new(config, config_root))
 }
-pub fn run_cli() -> Result<(), CliConfigError> {
+pub fn run_cli() -> Result<()> {
     let args = PkgBuilderArgs::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     match args.action {
@@ -56,14 +43,14 @@ pub fn run_cli() -> Result<(), CliConfigError> {
                     let config_file = sub_command.config_file;
                     let distribution = get_distribution(config_file)?;
                     distribution.create_build_env()?;
-                },
+                }
                 BuildEnvSubCommand::Clean(sub_command) => {
                     let config_file = sub_command.config_file;
                     let distribution = get_distribution(config_file)?;
                     distribution.clean_build_env()?;
                 }
             };
-        },
+        }
     }
     Ok(())
 }

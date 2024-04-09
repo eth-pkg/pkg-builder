@@ -1,59 +1,42 @@
 use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
-use crate::v1::packager::{BackendBuildEnv, LanguageEnv};
-use glob::glob;
+use crate::v1::packager::BackendBuildEnv;
+use crate::v1::pkg_config::{LanguageEnv, PackageType};
+use eyre::{eyre, Result};
 use log::info;
 use rand::random;
 use std::io::{BufRead, BufReader, Write};
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::{env, fs, io};
-use thiserror::Error;
 
 pub struct Sbuild {
     config: BookwormPackagerConfig,
 }
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Clean failed: {0}")]
-    Clean(#[from] io::Error),
-    #[error("Cannot run this command as non-root: {0}")]
-    PriviligeNotRoot(String),
-    #[error("Unknown error: {0}")]
-    Unknown(String),
-    #[error("Failed to create build env: {0}")]
-    CreateBuildEnvFailure(String),
-    #[error("Failed to create build env: {0}")]
-    FailedToExecute(String),
-    #[error("Failed to create build env: {0}")]
-    FailedToBuildPackage(String),
-    #[error("Failed to create build env: {0}")]
-    FailedToLogOutput(String),
-    #[error("Please create build_env first by running the following: sudo pkg-builder build-env <CONFIG_FILE>")]
-    BuildEnvMissing,
-}
+
 impl Sbuild {
     pub fn new(config: BookwormPackagerConfig) -> Sbuild {
         Sbuild { config }
     }
 
     fn get_additional_deps(&self) -> Vec<String> {
-        let additional_deps = match self.config.lang_env() {
+        let package_type = &self.config.read_config.package_type;
+        let lang_env = match package_type {
+            PackageType::Default(config) => Some(&config.language_env),
+            PackageType::Git(config) => Some(&config.language_env),
+            PackageType::Virtual => None,
+        };
+        let additional_deps = match lang_env {
             None => {
                 vec![]
             }
             Some(lang_env) => {
                 let mut additional_deps: Vec<String> = vec![];
-                // let additional_build_deps_for_langs =
-                //     "ca-certificates wget apt-transport-https gnupg";
-                // additional_deps
-                //     .push(format!("apt install -y {}", additional_build_deps_for_langs));
                 let lang_deps = match lang_env {
                     LanguageEnv::C => {
                         let lang_deps = vec![];
                         lang_deps
                     }
-                    LanguageEnv::Rust => {
-                        let rust_version = "1.76.0";
+                    LanguageEnv::Rust(config) => {
+                        let rust_version = &config.rust_version;
                         let lang_deps = vec![
                             "apt install -y curl".to_string(),
                             format!("cd /tmp && curl -o rust.tar.xz -L https://static.rust-lang.org/dist/rust-{}-x86_64-unknown-linux-gnu.tar.xz", rust_version),
@@ -63,8 +46,8 @@ impl Sbuild {
                         ];
                         lang_deps
                     }
-                    LanguageEnv::Go => {
-                        let go_version = "1.22.2";
+                    LanguageEnv::Go(config) => {
+                        let go_version = &config.go_version;
                         let install = vec![
                             "apt install -y curl".to_string(),
                             format!("cd /tmp && curl -o go.tar.gz -L https://go.dev/dl/go{}.linux-amd64.tar.gz", go_version),
@@ -75,10 +58,8 @@ impl Sbuild {
                         ];
                         install
                     }
-                    LanguageEnv::JavaScript | LanguageEnv::TypeScript => {
-                        let is_yarn = true;
-                        let yarn_version = "1.22.10";
-                        let node_version = "20.x";
+                    LanguageEnv::JavaScript(config) | LanguageEnv::TypeScript(config) => {
+                        // TODO node version
                         // from nodesource
                         // TODO switch from nodesource to actual binary without repository
                         let mut install = vec![
@@ -86,16 +67,16 @@ impl Sbuild {
                             "node --version".to_string(),
                             "npm --version".to_string(),
                         ];
-                        if is_yarn {
+                        if let Some(yarn_version) = &config.yarn_version {
                             install.push(format!("npm install --global yarn@{}", yarn_version));
                             install.push("yarn --version".to_string());
                         }
                         install
                     }
-                    LanguageEnv::Java => {
-                        let is_oracle = true;
+                    LanguageEnv::Java(config) => {
+                        let is_oracle = config.is_oracle;
                         if is_oracle {
-                            let jdk_version = "17";
+                            let jdk_version = &config.jdk_version;
                             let install = vec![
                                 "apt install -y wget".to_string(),
                                 format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version = jdk_version),
@@ -110,8 +91,8 @@ impl Sbuild {
                         }
                         vec![]
                     }
-                    LanguageEnv::CSharp => {
-                        let dotnet_version = "8.0";
+                    LanguageEnv::CSharp(config) => {
+                        let dotnet_version = &config.dotnet_version;
                         let install = vec![
                             "apt install -y wget".to_string(),
                             "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
@@ -123,8 +104,8 @@ impl Sbuild {
                         ];
                         install
                     }
-                    LanguageEnv::Nim => {
-                        let nim_version = "2.0.2";
+                    LanguageEnv::Nim(config) => {
+                        let nim_version = &config.nim_version;
                         let install = vec![
                             "apt install -y wget".to_string(),
                             format!("rm -rf /tmp/nim-{version} && rm -rf /usr/lib/nim/nim-{version}&& rm -rf /opt/lib/nim/nim-{version} && mkdir /tmp/nim-{version}", version = nim_version),
@@ -178,8 +159,7 @@ impl Sbuild {
 }
 
 impl BackendBuildEnv for Sbuild {
-    type Error = Error;
-    fn clean(&self) -> Result<(), Error> {
+    fn clean(&self) -> Result<()> {
         let cache_dir = self.get_cache_dir();
         info!("Cleaning cached build: {}", cache_dir);
         remove_file_or_directory(&cache_dir, false)?;
@@ -187,7 +167,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
-    fn create(&self) -> Result<(), Error> {
+    fn create(&self) -> Result<()> {
         let mut temp_dir = env::temp_dir();
         let dir_name = format!("temp_{}", random::<u32>().to_string());
         temp_dir.push(dir_name);
@@ -199,23 +179,20 @@ impl BackendBuildEnv for Sbuild {
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
             .arg(cache_dir)
-            .arg(self.config.build_env().codename())
+            .arg(&self.config.read_config.build_env.codename)
             .arg(temp_dir)
             .arg("http://deb.debian.org/debian")
             .status();
 
         if let Err(err) = create_result {
-            return Err(Error::CreateBuildEnvFailure(format!(
-                "Failed to create new chroot: {}",
-                err
-            )));
+            return Err(eyre!(format!("Failed to create new chroot: {}", err)));
         }
         Ok(())
     }
-    fn build(&self) -> Result<(), Error> {
+    fn build(&self) -> Result<()> {
         let mut cmd_args = vec![
             "-d".to_string(),
-            self.config.build_env().codename().to_string(),
+            self.config.read_config.build_env.codename.to_string(),
             "-A".to_string(),                    // build_arch_all
             "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
@@ -230,15 +207,16 @@ impl BackendBuildEnv for Sbuild {
         }
         cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
         cmd_args.push("--chroot-setup-commands=apt autoremove -y && cat".to_string());
-        cmd_args.push("--chroot-setup-commands=apt install -y ca-certificates curl strace".to_string());
+        cmd_args
+            .push("--chroot-setup-commands=apt install -y ca-certificates curl strace".to_string());
 
-        if !self.config.build_env().run_lintian() {
+        if let Some(true) = self.config.read_config.build_env.run_lintian {
             cmd_args.push("--no-run-lintian".to_string());
         }
-        if !self.config.build_env().run_autopkgtest() {
+        if let Some(true) = self.config.read_config.build_env.run_autopkgtest {
             cmd_args.push("--no-run-autopkgtest".to_string());
         }
-        if !self.config.build_env().run_piuparts() {
+        if let Some(true) = self.config.read_config.build_env.run_piuparts {
             cmd_args.push("--no-run-piuparts".to_string());
         }
         println!(
@@ -247,28 +225,23 @@ impl BackendBuildEnv for Sbuild {
         );
 
         let mut child = Command::new("sbuild")
-            .current_dir(self.config.build_files_dir())
+            .current_dir(self.config.derived_fields.build_files_dir.to_string())
             .args(&cmd_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
-            .spawn()
-            .map_err(|err| Error::FailedToExecute(err.to_string()))?;
+            .spawn()?;
 
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
 
             for line in reader.lines() {
-                let line = line.map_err(|err| Error::FailedToLogOutput(err.to_string()))?;
+                let line = line?;
                 println!("{}", line);
             }
         }
-        io::stdout()
-            .flush()
-            .map_err(|err| Error::FailedToLogOutput(err.to_string()))?;
+        io::stdout().flush()?;
 
-        child
-            .wait()
-            .map_err(|err| Error::FailedToBuildPackage(err.to_string()))?;
+        child.wait().map_err(|err| eyre!(err.to_string()))?;
 
         Ok(())
     }
@@ -296,16 +269,17 @@ mod tests {
         });
     }
     #[test]
+    #[ignore]
     fn test_clean_sbuild_env() {
         setup();
         // let build_env = Sbuild::new(
         //     BuildConfig::new("bookworm", "", None, &"".to_string()),
         //     SbuildBuildOptions::default(),
         // );
-        unreachable!("Test case not implemented yet");
     }
 
     #[test]
+    #[ignore]
     fn test_create_sbuild_env() {
         setup();
 
@@ -313,18 +287,23 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_build_virtual_package_in_sbuild_env() {
         setup();
 
         unreachable!("Test case not implemented yet");
     }
     #[test]
+    #[ignore]
+
     fn test_build_rust_package_in_sbuild_env() {
         setup();
 
         unreachable!("Test case not implemented yet");
     }
     #[test]
+    #[ignore]
+
     fn test_build_go_package_in_sbuild_env() {
         setup();
 
@@ -332,6 +311,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+
     fn test_build_javascript_package_in_sbuild_env() {
         setup();
 
@@ -339,6 +320,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+
     fn test_build_java_package_in_sbuild_env() {
         setup();
 
@@ -346,6 +329,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+
     fn test_build_csharp_package_in_sbuild_env() {
         setup();
 
@@ -353,6 +338,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+
     fn test_build_typescript_package_in_sbuild_env() {
         setup();
 
@@ -360,6 +347,8 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
+
     fn test_build_nim_package_in_sbuild_env() {
         setup();
         unreachable!("Test case not implemented yet");

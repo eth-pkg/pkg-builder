@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 use thiserror::Error;
-use toml::to_string;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -173,7 +172,7 @@ fn copy_dir_contents_recursive(src_dir: &Path, dest_dir: &Path) -> io::Result<()
 fn handle_failure(cmd: &mut Command, error: String) -> Result<(), Error> {
     let output = cmd
         .output()
-        .map_err(|err| Error::CommandFailed(error.clone().into()))?;
+        .map_err(|_| Error::CommandFailed(error.clone().into()))?;
 
     if !output.status.success() {
         //let stderr = String::from_utf8_lossy(&output.stderr).to_string();

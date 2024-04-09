@@ -27,7 +27,7 @@ fn validate_not_empty(name: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct RustConfig {
     pub rust_version: String,
     pub rust_binary_url: String,
@@ -56,7 +56,7 @@ impl Validation for RustConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GoConfig {
     pub go_version: String,
     pub go_binary_url: String,
@@ -85,10 +85,10 @@ impl Validation for GoConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct JavascriptConfig {
     pub node_version: String,
-    pub yarn_version: String,
+    pub yarn_version: Option<String>,
 }
 impl Validation for JavascriptConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
@@ -97,9 +97,10 @@ impl Validation for JavascriptConfig {
         if let Err(err) = validate_not_empty("node_version", &self.node_version) {
             errors.push(err);
         }
-
-        if let Err(err) = validate_not_empty("yarn_version", &self.yarn_version) {
-            errors.push(err);
+        if let Some(yarn_version) = &self.yarn_version {
+            if let Err(err) = validate_not_empty("yarn_version", &yarn_version) {
+                errors.push(err);
+            }
         }
 
         if errors.is_empty() {
@@ -109,7 +110,7 @@ impl Validation for JavascriptConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct JavaConfig {
     pub is_oracle: bool,
     pub jdk_version: String,
@@ -129,7 +130,7 @@ impl Validation for JavaConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct CsharpConfig {
     pub dotnet_version: String,
 }
@@ -149,32 +150,32 @@ impl Validation for CsharpConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
-pub struct TypescriptConfig {
-    pub node_version: String,
-    pub yarn_version: String,
-}
-
-impl Validation for TypescriptConfig {
-    fn validate(&self) -> Result<(), Vec<Report>> {
-        let mut errors = Vec::new();
-
-        if let Err(err) = validate_not_empty("node_version", &self.node_version) {
-            errors.push(err);
-        }
-
-        if let Err(err) = validate_not_empty("yarn_version", &self.yarn_version) {
-            errors.push(err);
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-}
-#[derive(Debug, Deserialize, PartialEq)]
+// #[derive(Debug, Deserialize, PartialEq, Clone)]
+// pub struct TypescriptConfig {
+//     pub node_version: String,
+//     pub yarn_version: String,
+// }
+//
+// impl Validation for TypescriptConfig {
+//     fn validate(&self) -> Result<(), Vec<Report>> {
+//         let mut errors = Vec::new();
+//
+//         if let Err(err) = validate_not_empty("node_version", &self.node_version) {
+//             errors.push(err);
+//         }
+//
+//         if let Err(err) = validate_not_empty("yarn_version", &self.yarn_version) {
+//             errors.push(err);
+//         }
+//
+//         if errors.is_empty() {
+//             Ok(())
+//         } else {
+//             Err(errors)
+//         }
+//     }
+// }
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct NimConfig {
     pub nim_version: String,
     pub nim_binary_url: String,
@@ -202,7 +203,7 @@ impl Validation for NimConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 #[serde(tag = "language_env", rename_all = "lowercase")]
 pub enum LanguageEnv {
     Rust(RustConfig),
@@ -210,41 +211,25 @@ pub enum LanguageEnv {
     JavaScript(JavascriptConfig),
     Java(JavaConfig),
     CSharp(CsharpConfig),
-    TypeScript(TypescriptConfig),
+    TypeScript(JavascriptConfig),
     Nim(NimConfig),
     C,
 }
 impl Validation for LanguageEnv {
     fn validate(&self) -> Result<(), Vec<Report>> {
         match self {
-            LanguageEnv::Rust(config) => {
-                config.validate()
-            }
-            LanguageEnv::Go(config) => {
-                config.validate()
-            }
-            LanguageEnv::JavaScript(config) => {
-                config.validate()
-            }
-            LanguageEnv::Java(config) => {
-                config.validate()
-            }
-            LanguageEnv::CSharp(config) => {
-                config.validate()
-            }
-            LanguageEnv::TypeScript(config) => {
-                config.validate()
-            }
-            LanguageEnv::Nim(config) => {
-                config.validate()
-            }
-            LanguageEnv::C => {
-                Ok(())
-            }
+            LanguageEnv::Rust(config) => config.validate(),
+            LanguageEnv::Go(config) => config.validate(),
+            LanguageEnv::JavaScript(config) => config.validate(),
+            LanguageEnv::Java(config) => config.validate(),
+            LanguageEnv::CSharp(config) => config.validate(),
+            LanguageEnv::TypeScript(config) => config.validate(),
+            LanguageEnv::Nim(config) => config.validate(),
+            LanguageEnv::C => Ok(()),
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct DefaultPackageTypeConfig {
     pub tarball_url: String,
     pub tarball_hash: String,
@@ -269,7 +254,7 @@ impl Validation for DefaultPackageTypeConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GitPackageTypeConfig {
     pub git_commit: String,
     pub git_url: String,
@@ -294,7 +279,7 @@ impl Validation for GitPackageTypeConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 #[serde(tag = "package_type", rename_all = "lowercase")]
 pub enum PackageType {
     Default(DefaultPackageTypeConfig),
@@ -305,20 +290,14 @@ pub enum PackageType {
 impl Validation for PackageType {
     fn validate(&self) -> Result<(), Vec<Report>> {
         match self {
-            PackageType::Default(config) => {
-                config.validate()
-            },
-            PackageType::Git(config) => {
-                config.validate()
-            },
-            PackageType::Virtual => {
-                Ok(())
-            }
+            PackageType::Default(config) => config.validate(),
+            PackageType::Git(config) => config.validate(),
+            PackageType::Virtual => Ok(()),
         }
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Default, Clone)]
 pub struct PackageFields {
     pub spec_file: String,
     pub package_name: String,
@@ -354,7 +333,7 @@ impl Validation for PackageFields {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Default, Clone)]
 pub struct BuildEnv {
     pub codename: String,
     pub arch: String,
@@ -385,7 +364,6 @@ impl Validation for BuildEnv {
             errors.push(err);
         }
 
-
         if errors.is_empty() {
             Ok(())
         } else {
@@ -394,7 +372,7 @@ impl Validation for BuildEnv {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct CliOptions {
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub log: Option<String>,
@@ -402,13 +380,13 @@ pub struct CliOptions {
     pub log_to: Option<String>,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct Verify {
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub bin_bash: Option<String>,
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
@@ -445,7 +423,8 @@ impl Validation for PkgConfig {
 
 pub fn parse(config_str: &str) -> Result<PkgConfig> {
     let configuration = toml::from_str::<PkgConfig>(config_str)?;
-    configuration.validate()
+    configuration
+        .validate()
         .map_err(|errors| eyre!("Validation failed: {:?}", errors))?;
     Ok(configuration)
 }
@@ -591,7 +570,7 @@ bin_bash=""
     fn test_empty_strings_are_error_javascript_config() {
         let config = JavascriptConfig {
             node_version: "".to_string(),
-            yarn_version: "".to_string(),
+            yarn_version: Some("".to_string()),
         };
         match config.validate() {
             Err(validation_errors) => {
@@ -655,30 +634,30 @@ bin_bash=""
         }
     }
 
-    #[test]
-    fn test_empty_strings_are_error_typescript_config() {
-        let config = TypescriptConfig {
-            node_version: "".to_string(),
-            yarn_version: "".to_string(),
-        };
-        match config.validate() {
-            Err(validation_errors) => {
-                let expected_errors = [
-                    "field: node_version cannot be empty",
-                    "field: yarn_version cannot be empty",
-                ];
-                assert_eq!(
-                    validation_errors.len(),
-                    expected_errors.len(),
-                    "Number of errors is different"
-                );
-                for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
-                    assert_eq!(actual.to_string(), *expected);
-                }
-            }
-            Ok(_) => panic!("Validation should have failed."),
-        }
-    }
+    // #[test]
+    // fn test_empty_strings_are_error_typescript_config() {
+    //     let config = TypescriptConfig {
+    //         node_version: "".to_string(),
+    //         yarn_version: "".to_string(),
+    //     };
+    //     match config.validate() {
+    //         Err(validation_errors) => {
+    //             let expected_errors = [
+    //                 "field: node_version cannot be empty",
+    //                 "field: yarn_version cannot be empty",
+    //             ];
+    //             assert_eq!(
+    //                 validation_errors.len(),
+    //                 expected_errors.len(),
+    //                 "Number of errors is different"
+    //             );
+    //             for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
+    //                 assert_eq!(actual.to_string(), *expected);
+    //             }
+    //         }
+    //         Ok(_) => panic!("Validation should have failed."),
+    //     }
+    // }
 
     #[test]
     fn test_empty_strings_are_error_nim_config() {
@@ -825,7 +804,7 @@ bin_bash=""
 
     #[test]
     fn test_validate_with_all_empty_values_pkg_config() {
-        let config = PkgConfig{
+        let config = PkgConfig {
             package_fields: PackageFields {
                 spec_file: "".to_string(),
                 package_name: "".to_string(),
