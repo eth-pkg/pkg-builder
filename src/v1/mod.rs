@@ -6,3 +6,4 @@ pub mod packager;
 pub mod debcrafter_helper;
 mod cli_config;
 mod args;
+mod pkg_config;
