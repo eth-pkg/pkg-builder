@@ -4,17 +4,24 @@ use eyre::{eyre, Result};
 use log::info;
 use rand::random;
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{env, fs, io};
 
 pub struct Sbuild {
     config: PkgConfig,
     build_files_dir: String,
+    cache_dir: String,
 }
 
 impl Sbuild {
     pub fn new(config: PkgConfig, build_files_dir: String) -> Sbuild {
         Sbuild {
+            cache_dir: config
+                .build_env
+                .sbuild_cache_dir
+                .clone()
+                .unwrap_or("~/.cache/sbuild".to_string()),
             config,
             build_files_dir,
         }
@@ -27,7 +34,7 @@ impl Sbuild {
             PackageType::Git(config) => Some(&config.language_env),
             PackageType::Virtual => None,
         };
-        let additional_deps = match lang_env {
+        match lang_env {
             None => {
                 vec![]
             }
@@ -167,42 +174,57 @@ impl Sbuild {
                 // additional_deps.push(format!("apt remove -y {}", additional_build_deps_for_langs));
                 additional_deps
             }
-        };
-        additional_deps
+        }
     }
 
-    fn get_cache_dir(&self) -> String {
-        let dir = "~/.cache/sbuild/bookworm-amd64.tar.gz";
-        if dir.starts_with('~') {
+    pub fn get_cache_file(&self) -> String {
+        let dir = &self.cache_dir;
+        let expanded_path = if dir.starts_with('~') {
             let expanded_path = shellexpand::tilde(dir).to_string();
             expanded_path
+        } else if dir.starts_with('/') {
+            self.cache_dir.clone()
         } else {
             let parent_dir = env::current_dir().unwrap();
             let dir = parent_dir.join(dir);
             let path = fs::canonicalize(dir.clone()).unwrap();
             let path = path.to_str().unwrap().to_string();
             path
-        }
+        };
+        let cache_file_name = format!(
+            "{}-{}.tar.gz",
+            self.config.build_env.codename, self.config.build_env.arch
+        )
+        .to_string();
+        let path = Path::new(&expanded_path);
+        let cache_file = path.join(cache_file_name);
+        cache_file.to_str().unwrap().to_string()
     }
 }
 
 impl BackendBuildEnv for Sbuild {
     fn clean(&self) -> Result<()> {
-        let cache_dir = self.get_cache_dir();
-        info!("Cleaning cached build: {}", cache_dir);
-        remove_file_or_directory(&cache_dir, false)?;
-
+        let cache_file = self.get_cache_file();
+        info!("Cleaning cached build: {}", cache_file);
+        let path = Path::new(&cache_file);
+        if path.exists() {
+            remove_file_or_directory(&cache_file, false)
+                .map_err(|_| eyre!("Could not remove previous cache file!"))?;
+        }
         Ok(())
     }
 
     fn create(&self) -> Result<()> {
         let mut temp_dir = env::temp_dir();
-        let dir_name = format!("temp_{}", random::<u32>().to_string());
+        let dir_name = format!("temp_{}", random::<u32>());
         temp_dir.push(dir_name);
         fs::create_dir(&temp_dir)?;
 
-        let cache_dir = self.get_cache_dir();
+        let cache_dir = self.get_cache_file();
 
+        if self.config.build_env.codename != "bookworm" {
+            return Err(eyre!("Only bookworm supported at the moment!"));
+        }
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
@@ -254,7 +276,7 @@ impl BackendBuildEnv for Sbuild {
         );
 
         let mut child = Command::new("sbuild")
-            .current_dir(self.build_files_dir.to_string())
+            .current_dir(self.build_files_dir.clone())
             .args(&cmd_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -287,8 +309,12 @@ fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use env_logger::Env;
+    use std::fs::File;
     use std::sync::Once;
+    use tempfile::tempdir;
+
     static INIT: Once = Once::new();
 
     // Set up logging for tests
@@ -297,89 +323,65 @@ mod tests {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
         });
     }
+
     #[test]
-    #[ignore]
+    fn test_clean_sbuild_env_when_file_does_not_exist() {
+        setup();
+        let mut pkg_config = PkgConfig::default();
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.codename = "amd64".to_string();
+        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let result = build_env.clean();
+        assert!(result.is_ok());
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+        assert!(!cache_file_path.exists())
+    }
+
+    #[test]
     fn test_clean_sbuild_env() {
         setup();
-        // let build_env = Sbuild::new(
-        //     BuildConfig::new("bookworm", "", None, &"".to_string()),
-        //     SbuildBuildOptions::default(),
-        // );
+        let mut pkg_config = PkgConfig::default();
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.codename = "amd64".to_string();
+        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+        File::create(cache_file_path)
+            .expect("File needs to be created manually before testing deletion.");
+        assert!(
+            cache_file_path.exists(),
+            "File should exist before testing deletion."
+        );
+
+        let result = build_env.clean();
+        assert!(result.is_ok());
+        assert!(!cache_file_path.exists())
     }
 
     #[test]
-    #[ignore]
     fn test_create_sbuild_env() {
         setup();
+        let mut pkg_config = PkgConfig::default();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.codename = "amd64".to_string();
+        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
 
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-    fn test_build_virtual_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-    #[test]
-    #[ignore]
-
-    fn test_build_rust_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-    #[test]
-    #[ignore]
-
-    fn test_build_go_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_build_javascript_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_build_java_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_build_dotnet_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_build_typescript_package_in_sbuild_env() {
-        setup();
-
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_build_nim_package_in_sbuild_env() {
-        setup();
-        unreachable!("Test case not implemented yet");
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        build_env.clean().expect("Could not clean previous env.");
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+        assert!(!cache_file_path.exists());
+        let result = build_env.create();
+        assert!(result.is_ok());
+        assert!(cache_file_path.exists())
     }
 }

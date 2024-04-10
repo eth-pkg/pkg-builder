@@ -354,6 +354,7 @@ pub struct BuildEnv {
     pub arch: String,
     pub pkg_builder_version: String,
     pub debcrafter_version: String,
+    pub sbuild_cache_dir: Option<String>,
     pub run_lintian: Option<bool>,
     pub run_piuparts: Option<bool>,
     pub run_autopkgtest: Option<bool>,
@@ -461,15 +462,15 @@ homepage="https://github.com/eth-pkg/pkg-builder#examples"
 [package_type]
 package_type="default"
 tarball_url = "hello-world-1.0.0.tar.gz"
-tarball_hash=""
+tarball_hash="TODO"
 git_source = ""
 git_commit=""
 
 [package_type.language_env]
 language_env = "rust"
 rust_version = "1.22"
-rust_binary_url = ""
-rust_binary_gpg_asc = ""
+rust_binary_url = "http:://example.com"
+rust_binary_gpg_asc = "binary_key"
 go_version = "1.22"
 
 
@@ -501,11 +502,11 @@ bin_bash=""
             },
             package_type: PackageType::Default(DefaultPackageTypeConfig {
                 tarball_url: "hello-world-1.0.0.tar.gz".to_string(),
-                tarball_hash: "".to_string(),
+                tarball_hash: "TODO".to_string(),
                 language_env: LanguageEnv::Rust(RustConfig {
                     rust_version: "1.22".to_string(),
-                    rust_binary_url: "".to_string(),
-                    rust_binary_gpg_asc: "".to_string(),
+                    rust_binary_url: "http:://example.com".to_string(),
+                    rust_binary_gpg_asc: "binary_key".to_string(),
                 }),
             }),
             build_env: BuildEnv {
@@ -513,6 +514,7 @@ bin_bash=""
                 arch: "amd64".to_string(),
                 pkg_builder_version: "0.1".to_string(),
                 debcrafter_version: "latest".to_string(),
+                sbuild_cache_dir: None,
                 run_lintian: Some(false),
                 run_piuparts: Some(false),
                 run_autopkgtest: Some(false),
@@ -530,11 +532,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_rust_config() {
-        let config = RustConfig {
-            rust_version: "".to_string(),
-            rust_binary_url: "".to_string(),
-            rust_binary_gpg_asc: "".to_string(),
-        };
+        let config = RustConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -556,11 +554,7 @@ bin_bash=""
     }
     #[test]
     fn test_empty_strings_are_error_go_config() {
-        let config = GoConfig {
-            go_version: "".to_string(),
-            go_binary_url: "".to_string(),
-            go_binary_checksum: "".to_string(),
-        };
+        let config = GoConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -583,10 +577,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_javascript_config() {
-        let config = JavascriptConfig {
-            node_version: "".to_string(),
-            yarn_version: Some("".to_string()),
-        };
+        let config = JavascriptConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -608,13 +599,14 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_java_config() {
-        let config = JavaConfig {
-            is_oracle: false,
-            jdk_version: "".to_string(),
-        };
+        let config = JavaConfig::default();
         match config.validate() {
             Err(validation_errors) => {
-                let expected_errors = ["field: jdk_version cannot be empty"];
+                let expected_errors = [
+                    "field: jdk_version cannot be empty",
+                    "field: jdk_binary_url cannot be empty",
+                    "field: jdk_binary_checksum cannot be empty",
+                ];
                 assert_eq!(
                     validation_errors.len(),
                     expected_errors.len(),
@@ -630,9 +622,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_dotnet_config() {
-        let config = DotnetConfig {
-            dotnet_version: "".to_string(),
-        };
+        let config = DotnetConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = ["field: dotnet_version cannot be empty"];
@@ -676,11 +666,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_nim_config() {
-        let config = NimConfig {
-            nim_version: "".to_string(),
-            nim_binary_url: "".to_string(),
-            nim_version_checksum: "".to_string(),
-        };
+        let config = NimConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -703,11 +689,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_default_package_type_config() {
-        let config = DefaultPackageTypeConfig {
-            tarball_url: "".to_string(),
-            tarball_hash: "".to_string(),
-            language_env: LanguageEnv::C,
-        };
+        let config = DefaultPackageTypeConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -729,11 +711,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_git_package_type_config() {
-        let config = GitPackageTypeConfig {
-            git_commit: "".to_string(),
-            git_url: "".to_string(),
-            language_env: LanguageEnv::C,
-        };
+        let config = GitPackageTypeConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -755,13 +733,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_package_fields() {
-        let config = PackageFields {
-            spec_file: "".to_string(),
-            package_name: "".to_string(),
-            version_number: "".to_string(),
-            revision_number: "".to_string(),
-            homepage: "".to_string(),
-        };
+        let config = PackageFields::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -786,16 +758,7 @@ bin_bash=""
 
     #[test]
     fn test_empty_strings_are_error_build_env() {
-        let config = BuildEnv {
-            codename: "".to_string(),
-            arch: "".to_string(),
-            pkg_builder_version: "".to_string(),
-            debcrafter_version: "".to_string(),
-            run_lintian: None,
-            run_piuparts: None,
-            run_autopkgtest: None,
-            workdir: None,
-        };
+        let config = BuildEnv::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
@@ -819,28 +782,7 @@ bin_bash=""
 
     #[test]
     fn test_validate_with_all_empty_values_pkg_config() {
-        let config = PkgConfig {
-            package_fields: PackageFields {
-                spec_file: "".to_string(),
-                package_name: "".to_string(),
-                version_number: "".to_string(),
-                revision_number: "".to_string(),
-                homepage: "".to_string(),
-            },
-            package_type: PackageType::Virtual,
-            build_env: BuildEnv {
-                codename: "".to_string(),
-                arch: "".to_string(),
-                pkg_builder_version: "".to_string(),
-                debcrafter_version: "".to_string(),
-                run_lintian: None,
-                run_piuparts: None,
-                run_autopkgtest: None,
-                workdir: None,
-            },
-            cli_options: None,
-            verify: None,
-        };
+        let config = PkgConfig::default();
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [

@@ -15,8 +15,12 @@ fn read_config(path: &Path) -> Result<PkgConfig> {
     Ok(config)
 }
 
-fn get_distribution(config_file: String) -> Result<DistributionPackager> {
+pub fn get_config(config_file: String) -> Result<PkgConfig> {
     let path = Path::new(&config_file);
+    read_config(path)
+}
+pub fn get_distribution(config: PkgConfig, config_file_path: String) -> Result<DistributionPackager> {
+    let path = Path::new(&config_file_path);
     let config_file_path = fs::canonicalize(path)?;
     let config_root = config_file_path
         .parent()
@@ -24,8 +28,6 @@ fn get_distribution(config_file: String) -> Result<DistributionPackager> {
         .to_str()
         .unwrap()
         .to_string();
-    let config = read_config(path)?;
-
     Ok(DistributionPackager::new(config, config_root))
 }
 pub fn run_cli() -> Result<()> {
@@ -34,19 +36,22 @@ pub fn run_cli() -> Result<()> {
     match args.action {
         ActionType::Package(command) => {
             let config_file = command.config_file;
-            let distribution = get_distribution(config_file)?;
+            let config = get_config(config_file.clone())?;
+            let distribution = get_distribution(config, config_file)?;
             distribution.package()?;
         }
         ActionType::BuildEnv(build_env_action) => {
             match build_env_action.build_env_sub_command {
                 BuildEnvSubCommand::Create(sub_command) => {
                     let config_file = sub_command.config_file;
-                    let distribution = get_distribution(config_file)?;
+                    let config = get_config(config_file.clone())?;
+                    let distribution = get_distribution(config, config_file)?;
                     distribution.create_build_env()?;
                 }
                 BuildEnvSubCommand::Clean(sub_command) => {
                     let config_file = sub_command.config_file;
-                    let distribution = get_distribution(config_file)?;
+                    let config = get_config(config_file.clone())?;
+                    let distribution = get_distribution(config, config_file)?;
                     distribution.clean_build_env()?;
                 }
             };
