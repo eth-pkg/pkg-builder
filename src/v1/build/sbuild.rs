@@ -44,15 +44,15 @@ impl Sbuild {
                         let rust_binary_url = &config.rust_binary_url;
                         let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
                         let lang_deps = vec![
-                            "apt install -y curl".to_string(),
+                            "apt install -y curl gpg gpg-agent".to_string(),
                             format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
-                            "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
                             format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
+                            "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
 
-                            "gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
+                            "cd /tmp && gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
                             "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
                             "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
-                            "apt remove -y curl".to_string()
+                            "apt remove -y curl gpg gpg-agent".to_string()
                         ];
                         lang_deps
                     }

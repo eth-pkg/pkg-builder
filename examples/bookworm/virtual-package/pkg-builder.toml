@@ -3,11 +3,10 @@ spec_file = "test-virtual-package.sss"
 package_name = "test-virtual-package"
 version_number = "1.0.0"
 revision_number = "1"
-tarball_url = ""
-git_source = ""
-# virtual | git | default
-package_type="virtual"
 homepage="https://github.com/eth-pkg/pkg-builder#examples"
+
+[package_type]
+package_type="virtual"
 
 [build_env]
 codename="bookworm"
