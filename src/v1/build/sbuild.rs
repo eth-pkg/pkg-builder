@@ -1,6 +1,5 @@
-use crate::v1::distribution::debian::bookworm_config_builder::BookwormPackagerConfig;
 use crate::v1::packager::BackendBuildEnv;
-use crate::v1::pkg_config::{LanguageEnv, PackageType};
+use crate::v1::pkg_config::{LanguageEnv, PackageType, PkgConfig};
 use eyre::{eyre, Result};
 use log::info;
 use rand::random;
@@ -9,16 +8,20 @@ use std::process::{Command, Stdio};
 use std::{env, fs, io};
 
 pub struct Sbuild {
-    config: BookwormPackagerConfig,
+    config: PkgConfig,
+    build_files_dir: String,
 }
 
 impl Sbuild {
-    pub fn new(config: BookwormPackagerConfig) -> Sbuild {
-        Sbuild { config }
+    pub fn new(config: PkgConfig, build_files_dir: String) -> Sbuild {
+        Sbuild {
+            config,
+            build_files_dir,
+        }
     }
 
     fn get_additional_deps(&self) -> Vec<String> {
-        let package_type = &self.config.read_config.package_type;
+        let package_type = &self.config.package_type;
         let lang_env = match package_type {
             PackageType::Default(config) => Some(&config.language_env),
             PackageType::Git(config) => Some(&config.language_env),
@@ -106,14 +109,20 @@ impl Sbuild {
                     }
                     LanguageEnv::Nim(config) => {
                         let nim_version = &config.nim_version;
+                        let nim_binary_url = &config.nim_binary_url;
+                        let nim_version_checksum = &config.nim_version_checksum;
                         let install = vec![
                             "apt install -y wget".to_string(),
                             format!("rm -rf /tmp/nim-{version} && rm -rf /usr/lib/nim/nim-{version}&& rm -rf /opt/lib/nim/nim-{version} && mkdir /tmp/nim-{version}", version = nim_version),
                             "mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim".to_string(),
-                            format!("cd /tmp && wget https://nim-lang.org/download/nim-{}-linux_x64.tar.xz", nim_version),
+                            format!("cd /tmp && wget -q {}", nim_binary_url),
+                            format!("cd /tmp && echo {} >> hash_file.txt && cat hash_file.txt", nim_version_checksum),
+                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                             format!("cd /tmp && tar xJf nim-{version}-linux_x64.tar.xz -C nim-{version} --strip-components=1", version = nim_version),
                             format!("cd /tmp  && mv nim-{version} /opt/lib/nim", version = nim_version),
                             format!("ln -s /opt/lib/nim/nim-{version}/bin/nim  /usr/bin/nim", version = nim_version),
+                            // equality check not working
+                            //  format!("installed_version=`nim --version | head -n 1 | awk '{{print $4}}'` && echo \"installed version: $installed_version\" && [ \"$installed_version\" != \"{}\" ] && exit 1", nim_version),
                             "nim --version".to_string(),
                             "apt remove -y wget".to_string(),
                         ];
@@ -179,7 +188,7 @@ impl BackendBuildEnv for Sbuild {
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
             .arg(cache_dir)
-            .arg(&self.config.read_config.build_env.codename)
+            .arg(&self.config.build_env.codename)
             .arg(temp_dir)
             .arg("http://deb.debian.org/debian")
             .status();
@@ -192,7 +201,7 @@ impl BackendBuildEnv for Sbuild {
     fn build(&self) -> Result<()> {
         let mut cmd_args = vec![
             "-d".to_string(),
-            self.config.read_config.build_env.codename.to_string(),
+            self.config.build_env.codename.to_string(),
             "-A".to_string(),                    // build_arch_all
             "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
@@ -207,16 +216,17 @@ impl BackendBuildEnv for Sbuild {
         }
         cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
         cmd_args.push("--chroot-setup-commands=apt autoremove -y && cat".to_string());
-        cmd_args
-            .push("--chroot-setup-commands=apt install -y ca-certificates curl strace".to_string());
 
-        if let Some(true) = self.config.read_config.build_env.run_lintian {
+        if let Some(true) = self.config.build_env.run_lintian {
+        } else {
             cmd_args.push("--no-run-lintian".to_string());
         }
-        if let Some(true) = self.config.read_config.build_env.run_autopkgtest {
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+        } else {
             cmd_args.push("--no-run-autopkgtest".to_string());
         }
-        if let Some(true) = self.config.read_config.build_env.run_piuparts {
+        if let Some(true) = self.config.build_env.run_piuparts {
+        } else {
             cmd_args.push("--no-run-piuparts".to_string());
         }
         println!(
@@ -225,7 +235,7 @@ impl BackendBuildEnv for Sbuild {
         );
 
         let mut child = Command::new("sbuild")
-            .current_dir(self.config.derived_fields.build_files_dir.to_string())
+            .current_dir(self.build_files_dir.to_string())
             .args(&cmd_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())

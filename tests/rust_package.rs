@@ -21,7 +21,7 @@ mod package {
                 });
             }
             fn get_virtual_package_config() -> BookwormPackagerConfig {
-               BookwormPackagerConfigBuilder::new()
+               BookwormPackagerConfigBuilder::default()
                     // .arch(Some("amd64".to_string()))
                     // .package_name(Some("test-virtual-package".to_string()))
                     // .version_number(Some("1.0.0".to_string()))
@@ -103,7 +103,7 @@ mod package {
                 });
             }
             fn get_rust_package_config() -> BookwormPackagerConfig {
-                BookwormPackagerConfigBuilder::new()
+                BookwormPackagerConfigBuilder::default()
                     // .arch(Some("amd64".to_string()))
                     // .package_name(Some("hello-world".to_string()))
                     // .version_number(Some("1.0.0".to_string()))

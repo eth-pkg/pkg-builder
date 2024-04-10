@@ -1,20 +1,15 @@
 use eyre::{eyre, Result};
 
-use crate::v1::distribution::debian::bookworm_config_builder::{
-    BookwormPackagerConfigBuilder,
-};
+
 use crate::v1::pkg_config::PkgConfig;
 
 use super::distribution::{
     debian::bookworm::BookwormPackager,
 };
 
-pub trait PackagerConfig {}
-
 pub trait Packager {
-    type Config: PackagerConfig;
     type BuildEnv: BackendBuildEnv;
-    fn new(config: Self::Config) -> Self;
+    fn new(config: PkgConfig, config_root: String) -> Self;
     fn package(&self) -> Result<()>;
 
     fn get_build_env(&self) -> Result<Self::BuildEnv>;
@@ -42,12 +37,8 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-                let config = BookwormPackagerConfigBuilder::new()
-                    .config(config)
-                    .config_root(self.config_root.clone())
-                    .build()?;
 
-                let packager = BookwormPackager::new(config);
+                let packager = BookwormPackager::new(config, self.config_root.clone());
                 packager.package()?;
             }
             "jammy jellyfish" | "ubuntu 22.04" => todo!(),
@@ -65,12 +56,8 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-                let config = BookwormPackagerConfigBuilder::new()
-                    .config(config)
-                    .config_root(self.config_root.clone())
-                    .build()?;
+                let packager = BookwormPackager::new(config, self.config_root.clone());
 
-                let packager = BookwormPackager::new(config);
                 let build_env = packager.get_build_env()?;
                 build_env.clean()?;
             }
@@ -89,12 +76,7 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-                let config = BookwormPackagerConfigBuilder::new()
-                    .config(config)
-                    .config_root(self.config_root.clone())
-                    .build()?;
-
-                let packager = BookwormPackager::new(config);
+                let packager = BookwormPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.create()?;
             }

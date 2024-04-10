@@ -27,7 +27,7 @@ fn validate_not_empty(name: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct RustConfig {
     pub rust_version: String,
     pub rust_binary_url: String,
@@ -56,7 +56,7 @@ impl Validation for RustConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct GoConfig {
     pub go_version: String,
     pub go_binary_url: String,
@@ -85,7 +85,7 @@ impl Validation for GoConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavascriptConfig {
     pub node_version: String,
     pub yarn_version: Option<String>,
@@ -110,7 +110,7 @@ impl Validation for JavascriptConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavaConfig {
     pub is_oracle: bool,
     pub jdk_version: String,
@@ -130,7 +130,7 @@ impl Validation for JavaConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct CsharpConfig {
     pub dotnet_version: String,
 }
@@ -175,7 +175,7 @@ impl Validation for CsharpConfig {
 //         }
 //     }
 // }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct NimConfig {
     pub nim_version: String,
     pub nim_binary_url: String,
@@ -203,7 +203,7 @@ impl Validation for NimConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 #[serde(tag = "language_env", rename_all = "lowercase")]
 pub enum LanguageEnv {
     Rust(RustConfig),
@@ -213,6 +213,7 @@ pub enum LanguageEnv {
     CSharp(CsharpConfig),
     TypeScript(JavascriptConfig),
     Nim(NimConfig),
+    #[default]
     C,
 }
 impl Validation for LanguageEnv {
@@ -229,7 +230,7 @@ impl Validation for LanguageEnv {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DefaultPackageTypeConfig {
     pub tarball_url: String,
     pub tarball_hash: String,
@@ -254,7 +255,7 @@ impl Validation for DefaultPackageTypeConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct GitPackageTypeConfig {
     pub git_commit: String,
     pub git_url: String,
@@ -279,11 +280,12 @@ impl Validation for GitPackageTypeConfig {
         }
     }
 }
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 #[serde(tag = "package_type", rename_all = "lowercase")]
 pub enum PackageType {
     Default(DefaultPackageTypeConfig),
     Git(GitPackageTypeConfig),
+    #[default]
     Virtual,
 }
 
@@ -372,7 +374,7 @@ impl Validation for BuildEnv {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct CliOptions {
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub log: Option<String>,
@@ -380,13 +382,13 @@ pub struct CliOptions {
     pub log_to: Option<String>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct Verify {
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub bin_bash: Option<String>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
