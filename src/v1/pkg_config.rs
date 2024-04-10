@@ -98,7 +98,7 @@ impl Validation for JavascriptConfig {
             errors.push(err);
         }
         if let Some(yarn_version) = &self.yarn_version {
-            if let Err(err) = validate_not_empty("yarn_version", &yarn_version) {
+            if let Err(err) = validate_not_empty("yarn_version", yarn_version) {
                 errors.push(err);
             }
         }
@@ -210,7 +210,7 @@ pub enum LanguageEnv {
     Go(GoConfig),
     JavaScript(JavascriptConfig),
     Java(JavaConfig),
-    dotnet(DotnetConfig),
+    Dotnet(DotnetConfig),
     TypeScript(JavascriptConfig),
     Nim(NimConfig),
     #[default]
@@ -223,7 +223,7 @@ impl Validation for LanguageEnv {
             LanguageEnv::Go(config) => config.validate(),
             LanguageEnv::JavaScript(config) => config.validate(),
             LanguageEnv::Java(config) => config.validate(),
-            LanguageEnv::dotnet(config) => config.validate(),
+            LanguageEnv::Dotnet(config) => config.validate(),
             LanguageEnv::TypeScript(config) => config.validate(),
             LanguageEnv::Nim(config) => config.validate(),
             LanguageEnv::C => Ok(()),
@@ -244,8 +244,13 @@ impl Validation for DefaultPackageTypeConfig {
         if let Err(err) = validate_not_empty("tarball_url", &self.tarball_url) {
             errors.push(err);
         }
-        if let Err(err) = validate_not_empty("tarball_hash", &self.tarball_url) {
+        if let Err(err) = validate_not_empty("tarball_hash", &self.tarball_hash) {
             errors.push(err);
+        }
+        let language_errors = self.language_env.validate();
+
+        if let Err(mut language_errors) = language_errors {
+            errors.append(&mut language_errors);
         }
 
         if errors.is_empty() {
@@ -269,6 +274,7 @@ impl Validation for GitPackageTypeConfig {
         if let Err(err) = validate_not_empty("git_commit", &self.git_commit) {
             errors.push(err);
         }
+
         if let Err(err) = validate_not_empty("git_url", &self.git_url) {
             errors.push(err);
         }

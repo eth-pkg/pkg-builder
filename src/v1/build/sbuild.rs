@@ -50,10 +50,15 @@ impl Sbuild {
                         lang_deps
                     }
                     LanguageEnv::Go(config) => {
-                        let go_version = &config.go_version;
+                        // TODO
+                        //let go_version = &config.go_version;
+                        let go_binary_url = &config.go_binary_url;
+                        let go_binary_checksum = &config.go_binary_checksum;
                         let install = vec![
                             "apt install -y curl".to_string(),
-                            format!("cd /tmp && curl -o go.tar.gz -L https://go.dev/dl/go{}.linux-amd64.tar.gz", go_version),
+                            format!("cd /tmp && curl -o go.tar.gz -L {}", go_binary_url),
+                            format!("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum),
+                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                             "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
                             "ln -s /usr/local/go/bin/go /usr/bin/go".to_string(),
                             "go version".to_string(),
@@ -94,7 +99,7 @@ impl Sbuild {
                         }
                         vec![]
                     }
-                    LanguageEnv::dotnet(config) => {
+                    LanguageEnv::Dotnet(config) => {
                         let dotnet_version = &config.dotnet_version;
                         // TODO do not use MS repository as they upgrade between major versions
                         // this breaks backward compatibility
