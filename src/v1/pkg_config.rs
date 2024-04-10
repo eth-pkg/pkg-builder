@@ -131,11 +131,11 @@ impl Validation for JavaConfig {
     }
 }
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
-pub struct CsharpConfig {
+pub struct DotnetConfig {
     pub dotnet_version: String,
 }
 
-impl Validation for CsharpConfig {
+impl Validation for DotnetConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
 
@@ -210,7 +210,7 @@ pub enum LanguageEnv {
     Go(GoConfig),
     JavaScript(JavascriptConfig),
     Java(JavaConfig),
-    CSharp(CsharpConfig),
+    dotnet(DotnetConfig),
     TypeScript(JavascriptConfig),
     Nim(NimConfig),
     #[default]
@@ -223,7 +223,7 @@ impl Validation for LanguageEnv {
             LanguageEnv::Go(config) => config.validate(),
             LanguageEnv::JavaScript(config) => config.validate(),
             LanguageEnv::Java(config) => config.validate(),
-            LanguageEnv::CSharp(config) => config.validate(),
+            LanguageEnv::dotnet(config) => config.validate(),
             LanguageEnv::TypeScript(config) => config.validate(),
             LanguageEnv::Nim(config) => config.validate(),
             LanguageEnv::C => Ok(()),
@@ -616,8 +616,8 @@ bin_bash=""
     }
 
     #[test]
-    fn test_empty_strings_are_error_csharp_config() {
-        let config = CsharpConfig {
+    fn test_empty_strings_are_error_dotnet_config() {
+        let config = DotnetConfig {
             dotnet_version: "".to_string(),
         };
         match config.validate() {

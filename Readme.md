@@ -79,14 +79,14 @@ pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```
 
-### Example csharp package
+### Example dotnet package
 
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/csharp/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/csharp/hello-world/pkg-builder.toml
-pkg-builder package examples/bookworm/csharp/hello-world/pkg-builder.toml
+pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
+pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
+pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```
 
 ### Example java package

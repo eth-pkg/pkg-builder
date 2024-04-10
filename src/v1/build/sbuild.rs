@@ -94,8 +94,11 @@ impl Sbuild {
                         }
                         vec![]
                     }
-                    LanguageEnv::CSharp(config) => {
+                    LanguageEnv::dotnet(config) => {
                         let dotnet_version = &config.dotnet_version;
+                        // TODO do not use MS repository as they upgrade between major versions
+                        // this breaks backward compatibility
+                        // reproducible builds should use pinned versions
                         let install = vec![
                             "apt install -y wget".to_string(),
                             "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
@@ -341,7 +344,7 @@ mod tests {
     #[test]
     #[ignore]
 
-    fn test_build_csharp_package_in_sbuild_env() {
+    fn test_build_dotnet_package_in_sbuild_env() {
         setup();
 
         unreachable!("Test case not implemented yet");
