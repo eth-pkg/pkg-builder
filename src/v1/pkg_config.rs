@@ -114,6 +114,8 @@ impl Validation for JavascriptConfig {
 pub struct JavaConfig {
     pub is_oracle: bool,
     pub jdk_version: String,
+    pub jdk_binary_url: String,
+    pub jdk_binary_checksum: String,
 }
 impl Validation for JavaConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
@@ -122,7 +124,12 @@ impl Validation for JavaConfig {
         if let Err(err) = validate_not_empty("jdk_version", &self.jdk_version) {
             errors.push(err);
         }
-
+        if let Err(err) = validate_not_empty("jdk_binary_url", &self.jdk_binary_url) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("jdk_binary_checksum", &self.jdk_binary_checksum) {
+            errors.push(err);
+        }
         if errors.is_empty() {
             Ok(())
         } else {

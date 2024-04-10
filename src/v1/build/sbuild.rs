@@ -39,10 +39,17 @@ impl Sbuild {
                         lang_deps
                     }
                     LanguageEnv::Rust(config) => {
-                        let rust_version = &config.rust_version;
+                        // TODO
+                        // let rust_version = &config.rust_version;
+                        let rust_binary_url = &config.rust_binary_url;
+                        let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
                         let lang_deps = vec![
                             "apt install -y curl".to_string(),
-                            format!("cd /tmp && curl -o rust.tar.xz -L https://static.rust-lang.org/dist/rust-{}-x86_64-unknown-linux-gnu.tar.xz", rust_version),
+                            format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
+                            "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
+                            format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
+
+                            "gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
                             "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
                             "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
                             "apt remove -y curl".to_string()
@@ -85,11 +92,15 @@ impl Sbuild {
                         let is_oracle = config.is_oracle;
                         if is_oracle {
                             let jdk_version = &config.jdk_version;
+                            let jdk_binary_url = &config.jdk_binary_url;
+                            let jdk_binary_checksum = &config.jdk_binary_checksum;
                             let install = vec![
                                 "apt install -y wget".to_string(),
                                 format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version = jdk_version),
-                                format!("cd /tmp && wget -q https://download.oracle.com/java/{version}/latest/jdk-{version}_linux-x64_bin.tar.gz", version = jdk_version),
-                                format!("cd /tmp && tar -zxf jdk-{version}_linux-x64_bin.tar.gz -C /opt/lib/jvm/jdk-{version}-oracle --strip-components=1", version = jdk_version),
+                                format!("cd /tmp && wget -q --output-document jdk.tar.gz {}", jdk_binary_url),
+                                format!("cd /tmp && echo \"{} jdk.tar.gz\" >> hash_file.txt && cat hash_file.txt", jdk_binary_checksum),
+                                "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                                format!("cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{version}-oracle --strip-components=1", version = jdk_version),
                                 format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/java  /usr/bin/java", version = jdk_version),
                                 format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/javac  /usr/bin/javac", version = jdk_version),
                                 "java -version".to_string(),
