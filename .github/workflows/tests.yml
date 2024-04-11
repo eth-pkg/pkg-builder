@@ -42,12 +42,11 @@ jobs:
 
       - name: Build Sbuild
         run: |
-          cd sbuild
           dpkg-buildpackage -us -uc
 
       - name: Install Sbuild
         run: |
-          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
+          sudo dpkg -i ../sbuild_0.85.6_all.deb ../libsbuild-perl_0.85.6_all.deb
   test:
     runs-on: ubuntu-latest
     needs: sbuild
