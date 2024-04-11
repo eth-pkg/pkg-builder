@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-   - name: Cache sbuild
+      - name: Cache sbuild
         uses: actions/cache@v2
         with:
           path: |
