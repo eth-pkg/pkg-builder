@@ -16,39 +16,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:  
       - name: Cache sbuild
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             /var/cache/apt/archives
             /usr/bin/sbuild
           key: sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }}
-      
-      - name: Check if sbuild is installed
+
+      - if: ${{ sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }} != 'true' }}
+        name: Check if sbuild is installed
         run: dpkg -s sbuild && exit 1 || exit 0
         id: check-installed
         continue-on-error: true
   
       - name: Checkout sbuild Repository
-        if: steps.check-installed.outcome == 'success'
         uses: actions/checkout@v2
         with:
           repository: eth-pkg/sbuild
           ref: main
 
       - name: Install Build Dependencies
-        if: steps.check-installed.outcome == 'success'
         run: |
           sudo apt-get update
           sudo apt-get install -y dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
 
-      - name: Build Package
-        if: steps.check-installed.outcome == 'success'
+      - name: Build Sbuild
         run: |
           cd sbuild
           dpkg-buildpackage -us -uc
 
-      - name: Install Package
-        if: steps.check-installed.outcome == 'success'
+      - name: Install Sbuild
         run: |
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
   test:
@@ -56,7 +53,7 @@ jobs:
     needs: sbuild
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Build
         run: cargo build --verbose
