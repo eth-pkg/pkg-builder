@@ -246,6 +246,8 @@ impl BackendBuildEnv for Sbuild {
             "-A".to_string(),                    // build_arch_all
             "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
+            "-c".to_string(),                    // override cache file location, default is ~/.cache/sbuild both by sbuild and pkg-builder
+            self.get_cache_file(),
             "-v".to_string(),                    // verbose
             "--chroot-mode=unshare".to_string(),
         ];

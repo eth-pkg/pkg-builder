@@ -57,7 +57,7 @@ impl Packager for BookwormPackager {
             build_files_dir,
             debian_artifacts_dir,
             debian_orig_tarball_path,
-            config_root
+            config_root,
         };
         updated_config.config.build_env.workdir = Some(workdir);
         let spec_file = package_fields.spec_file;
@@ -71,7 +71,11 @@ impl Packager for BookwormPackager {
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
                 create_package_dir(&self.debian_artifacts_dir.clone())?;
-                download_source(&self.debian_orig_tarball_path, &config.tarball_url, &self.config_root)?;
+                download_source(
+                    &self.debian_orig_tarball_path,
+                    &config.tarball_url,
+                    &self.config_root,
+                )?;
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
                     &self.build_files_dir.clone(),
@@ -455,14 +459,12 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
     if dir.starts_with('~') {
         let expanded_path = shellexpand::tilde(dir).to_string();
         expanded_path
+    } else if dir.starts_with('/') {
+        dir.to_string()
     } else {
         let parent_dir = match dir_to_expand {
-            None => {
-                env::current_dir().unwrap()
-            }
-            Some(path) => {
-                PathBuf::from(path)
-            }
+            None => env::current_dir().unwrap(),
+            Some(path) => PathBuf::from(path),
         };
         let dir = parent_dir.join(dir);
         let path = fs::canonicalize(dir.clone()).unwrap();
