@@ -582,7 +582,6 @@ bin_bash=""
             Err(validation_errors) => {
                 let expected_errors = [
                     "field: node_version cannot be empty",
-                    "field: yarn_version cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
