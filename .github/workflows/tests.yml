@@ -14,26 +14,9 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    needs: sbuild
 
     steps:
-      - name: Cache sbuild
-        uses: actions/cache@v2
-        with:
-          path: |
-            /var/cache/apt/archives
-            /usr/bin/sbuild
-          key: sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }}
-
-      - name: Install Build Dependencies
-        run: |
-          sudo apt-get update
-          # Check if sbuild package is already installed
-          if ! dpkg -s sbuild &> /dev/null; then
-            sudo apt-get install -y dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
-            cd sbuild && dpkg-buildpackage -us -uc
-            cd .. && sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
-          fi     
-
       - uses: actions/checkout@v2
 
       - name: Build
