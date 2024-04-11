@@ -38,7 +38,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
+          sudo apt-get install -y dh-python dh-sequence-python3 libyaml-tiny-perl python3-all debhelper-compat libdpkg-perl libexception-class-perl libfilesys-df-perl libmime-lite-perl
 
       - name: Build Sbuild
         run: |
