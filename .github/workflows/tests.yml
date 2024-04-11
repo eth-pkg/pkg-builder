@@ -15,16 +15,16 @@ jobs:
   sbuild:
     runs-on: ubuntu-latest
     steps:  
-      - name: Cache sbuild
-        uses: actions/cache@v4
-        with:
-          path: |
-            /var/cache/apt/archives
-            /usr/bin/sbuild
-          key: sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }}
+      # - name: Cache sbuild
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       /var/cache/apt/archives
+      #       /usr/bin/sbuild
+      #     key: sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }}
 
-      - if: ${{ sbuild-${{ runner.os }}-${{ hashFiles('**/apt.txt') }} != 'true' }}
-        name: Check if sbuild is installed
+      # - if: ${{ steps.cache-sbuild.outputs.cache-hit != 'true' }}
+      - name: Check if sbuild is installed
         run: dpkg -s sbuild && exit 1 || exit 0
         id: check-installed
         continue-on-error: true
@@ -53,7 +53,7 @@ jobs:
     needs: sbuild
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
       - name: Build
         run: cargo build --verbose
