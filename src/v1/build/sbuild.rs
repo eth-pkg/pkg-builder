@@ -330,7 +330,7 @@ mod tests {
         let mut pkg_config = PkgConfig::default();
         let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
         pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.codename = "amd64".to_string();
+        pkg_config.build_env.arch = "amd64".to_string();
         let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
         pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
         let build_env = Sbuild::new(pkg_config, build_files_dir);
@@ -347,14 +347,22 @@ mod tests {
         let mut pkg_config = PkgConfig::default();
         let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
         pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.codename = "amd64".to_string();
-        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
+        pkg_config.build_env.arch = "amd64".to_string();
+        let sbuild_cache = tempdir().unwrap();
+        // create dir manually, as it doesn't exist
+        fs::create_dir_all(sbuild_cache.path()).expect("Could not create temporary directory for testing.");
+        let sbuild_cache_dir = sbuild_cache.path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir.clone());
         let build_env = Sbuild::new(pkg_config, build_files_dir);
         let cache_file = build_env.get_cache_file();
         let cache_file_path = Path::new(&cache_file);
+
         File::create(cache_file_path)
             .expect("File needs to be created manually before testing deletion.");
+        assert!(
+            Path::new(&sbuild_cache_dir).exists(),
+        );
+
         assert!(
             cache_file_path.exists(),
             "File should exist before testing deletion."
@@ -370,7 +378,7 @@ mod tests {
         setup();
         let mut pkg_config = PkgConfig::default();
         pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.codename = "amd64".to_string();
+        pkg_config.build_env.arch = "amd64".to_string();
         let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
         pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
 
