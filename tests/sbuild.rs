@@ -43,7 +43,7 @@ mod tests {
     }
 
     fn get_debian_output(config: PkgConfig)-> Vec<String>{
-        let vec = vec![
+        let mut vec = vec![
             format!(
                 "{}_{}-{}_{}.buildinfo",
                 config.package_fields.package_name,
@@ -107,6 +107,7 @@ mod tests {
                 config.build_env.arch
             ),
         ];
+        vec.sort();
         vec
     }
 
@@ -134,6 +135,7 @@ mod tests {
 
             }
         }
+        output.sort();
         let expected_output = get_debian_output(config);
         let build_artificats_dir_path: &Path = build_artificats_dir.as_ref();
         assert!(build_artificats_dir_path.exists());
