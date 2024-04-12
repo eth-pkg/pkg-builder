@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  unit_tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
-  integration_test:
+  bookworm_packaging:
     runs-on: ubuntu-latest
 
     strategy:
