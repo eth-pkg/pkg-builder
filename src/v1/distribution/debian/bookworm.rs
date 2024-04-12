@@ -338,7 +338,6 @@ fn setup_sbuild() -> Result<()> {
     let home_dir = home_dir().expect("Home dir is empty");
     let dest_path = home_dir.join(".sbuildrc");
     let contents = fs::read_to_string(src_path)?;
-    let replaced_contents = contents.replace("<HOME>", home_dir.to_str().unwrap());
 
     if dest_path.exists() {
         let existing_contents = fs::read_to_string(&dest_path)?;
@@ -350,7 +349,11 @@ fn setup_sbuild() -> Result<()> {
             Ok(())
         };
     }
-
+    let mut home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
+    if home_dir == *"/nonexistant" {
+        home_dir = "/home/runner".to_string();
+    }
+    let replaced_contents = contents.replace("<HOME>", &home_dir);
     let mut file = fs::File::create(&dest_path)?;
     file.write_all(replaced_contents.as_bytes())?;
 
