@@ -339,23 +339,23 @@ fn setup_sbuild() -> Result<()> {
     let dest_path = home_dir.join(".sbuildrc");
     let contents = fs::read_to_string(src_path)?;
 
-    if dest_path.exists() {
-        let existing_contents = fs::read_to_string(&dest_path)?;
-        return if existing_contents != contents {
-            Err(eyre!(
-                "Existing .sbuildrc file differs from expected content. Please backup your ~/.sbuildrc file. And rerun this script!",
-            ))
-        } else {
-            Ok(())
-        };
-    }
-    let mut home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
-    if home_dir == *"/home/runner" {
-        home_dir = "/home/runner".to_string();
-    }
-    let replaced_contents = contents.replace("<HOME>", &home_dir);
-    let mut file = fs::File::create(&dest_path)?;
-    file.write_all(replaced_contents.as_bytes())?;
+    // if dest_path.exists() {
+    //     let existing_contents = fs::read_to_string(&dest_path)?;
+    //     return if existing_contents != contents {
+    //         Err(eyre!(
+    //             "Existing .sbuildrc file differs from expected content. Please backup your ~/.sbuildrc file. And rerun this script!",
+    //         ))
+    //     } else {
+    //         Ok(())
+    //     };
+    // }
+    // let mut home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
+    // if home_dir == *"/home/runner" {
+    //     home_dir = "/home/runner".to_string();
+    // }
+    // let replaced_contents = contents.replace("<HOME>", &home_dir);
+    // let mut file = fs::File::create(&dest_path)?;
+    // file.write_all(replaced_contents.as_bytes())?;
 
 
     Ok(())
