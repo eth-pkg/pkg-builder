@@ -349,9 +349,9 @@ fn setup_sbuild() -> Result<()> {
             Ok(())
         };
     }
-    let mut home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
-    if home_dir == *"/nonexistant" {
-        home_dir = "/home/runner".to_string();
+    let mut home_dir = home_dir.to_str().unwrap_or("/tmp").to_string();
+    if home_dir == *"/tmp" {
+        home_dir = "/tmp".to_string();
     }
     let replaced_contents = contents.replace("<HOME>", &home_dir);
     let mut file = fs::File::create(&dest_path)?;
