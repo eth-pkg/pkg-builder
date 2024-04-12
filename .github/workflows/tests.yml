@@ -58,7 +58,7 @@ jobs:
         - name: .sbuildrc
           run: |
             pwd
-            cp src/overrides/.sbuildrc-github /home/runner/.sbuildrc
+            cp overrides/.sbuildrc-github /home/runner/.sbuildrc
             echo "/home/runner/.sbuildrc" >> $GITHUB_PATH
 
         - name: Build
