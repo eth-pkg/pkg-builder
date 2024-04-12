@@ -1,4 +1,4 @@
-name: Rust CI
+name: Tests
 
 on:
   push:
@@ -28,5 +28,37 @@ jobs:
       - name: Build
         run: cargo build --verbose
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run unit tests
+        run: cargo test --lib --verbose
+
+  integration_test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        language:
+          - virtual
+          - dotnet
+          - go
+          - java
+          - javascript
+          - nim
+          - rust
+          - typescript
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+
+        - name: Sbuild setup
+          run: |
+            sudo apt-get update
+            # Note this is an older version of sbuild, no need to patch it, yet
+            sudo apt install debhelper sbuild schroot ubuntu-dev-tools
+            sudo apt-get install pkg-config libssl-dev uidmap
+  
+        - name: Build
+          run: cargo build --verbose  
+
+        - name: Test ${{ matrix.language }} packaging
+          run: cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+
