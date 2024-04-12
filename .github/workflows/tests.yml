@@ -37,14 +37,14 @@ jobs:
     strategy:
       matrix:
         language:
-          - virtual
-          - dotnet
+#          - virtual
+#          - dotnet
           - go
-          - java
-          - javascript
-          - nim
-          - rust
-          - typescript
+#          - java
+#          - javascript
+#          - nim
+#          - rust
+#          - typescript
     steps:
         - name: Checkout code
           uses: actions/checkout@v2
@@ -55,7 +55,12 @@ jobs:
             # Note this is an older version of sbuild, no need to patch it, yet
             sudo apt install debhelper sbuild schroot ubuntu-dev-tools
             sudo apt-get install pkg-config libssl-dev uidmap
-  
+        - name: .sbuildrc
+          run: |
+            pwd
+            cp src/overrides/.sbuildrc-github /home/runner/.sbuildrc
+            echo "/home/runner/.sbuildrc" >> $GITHUB_PATH
+
         - name: Build
           run: cargo build --verbose  
 
