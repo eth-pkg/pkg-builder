@@ -152,63 +152,60 @@ mod tests {
         let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
         test_builds(&config_file);
     }
-    // #[test]
-    // #[ignore]
-    // fn test_build_rust_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_go_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    //
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_javascript_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    //
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_java_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    //
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_dotnet_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    //
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_typescript_package_in_sbuild_env() {
-    //     setup();
-    //
-    //     unreachable!("Test case not implemented yet");
-    // }
-    //
-    // #[test]
-    // #[ignore]
-    //
-    // fn test_build_nim_package_in_sbuild_env() {
-    //     setup();
-    //     unreachable!("Test case not implemented yet");
-    // }
+
+    #[test]
+    fn test_build_rust_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_go_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_javascript_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_java_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_dotnet_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_typescript_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
+
+    #[test]
+    fn test_build_nim_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
 }
