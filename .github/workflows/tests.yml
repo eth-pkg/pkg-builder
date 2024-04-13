@@ -22,9 +22,18 @@ jobs:
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install debhelper sbuild schroot ubuntu-dev-tools
+          sudo apt install debhelper schroot ubuntu-dev-tools
           sudo apt-get install pkg-config libssl-dev uidmap
 
+      - name: Sbuild setup
+        run: |
+          sudo apt-get update
+          # Note this is an older version of sbuild, no need to patch it, yet
+          sudo apt install debhelper schroot ubuntu-dev-tools
+          sudo apt-get install pkg-config libssl-dev uidmap
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
       - name: Build
         run: cargo build --verbose
 
@@ -37,33 +46,31 @@ jobs:
     strategy:
       matrix:
         language:
-#          - virtual
-#          - dotnet
+          #          - virtual
+          #          - dotnet
           - go
-#          - java
-#          - javascript
-#          - nim
-#          - rust
-#          - typescript
+    #          - java
+    #          - javascript
+    #          - nim
+    #          - rust
+    #          - typescript
     steps:
-        - name: Checkout code
-          uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-        - name: Sbuild setup
-          run: |
-            sudo apt-get update
-            # Note this is an older version of sbuild, no need to patch it, yet
-            sudo apt install debhelper sbuild schroot ubuntu-dev-tools
-            sudo apt-get install pkg-config libssl-dev uidmap
-        - name: .sbuildrc
-          run: |
-            pwd
-            sudo cp overrides/.sbuildrc /etc/sbuild/sbuild.conf
-            sudo sed -i 's/<HOME>/\home\/runner/g' /etc/sbuild/sbuild.conf
+      - name: Sbuild setup
+        run: |
+          sudo apt-get update
+          # Note this is an older version of sbuild, no need to patch it, yet
+          sudo apt install debhelper schroot ubuntu-dev-tools
+          sudo apt-get install pkg-config libssl-dev uidmap
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
 
-        - name: Build
-          run: cargo build --verbose  
+      - name: Build
+        run: cargo build --verbose
 
-        - name: Test ${{ matrix.language }} packaging
-          run: cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+      - name: Test ${{ matrix.language }} packaging
+        run: cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
 
