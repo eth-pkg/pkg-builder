@@ -58,8 +58,8 @@ jobs:
         - name: .sbuildrc
           run: |
             pwd
-            cp overrides/.sbuildrc-github /home/runner/.sbuildrc
-            echo "/home/runner/.sbuildrc" >> $GITHUB_PATH
+            sudo cp overrides/.sbuildrc /etc/sbuild/sbuild.conf
+            sudo sed -i 's/<HOME>/\home\/runner/g' /etc/sbuild/sbuild.conf
 
         - name: Build
           run: cargo build --verbose  
