@@ -40,14 +40,14 @@ jobs:
     strategy:
       matrix:
         language:
-          #          - virtual
-          #          - dotnet
+          - virtual
+          - dotnet
           - go
-    #          - java
-    #          - javascript
-    #          - nim
-    #          - rust
-    #          - typescript
+          - java
+          - javascript
+          - nim
+          - rust
+          - typescript
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
