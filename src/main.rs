@@ -1,6 +1,9 @@
-
-mod v1_build;
+mod v1;
 
 fn main() {
-    v1_build::cli::run_cli();
+    let result = v1::cli::run_cli();
+    match result {
+        Ok(_) => println!("Success"),
+        Err(err) => println!("Failed to run: {:?}", err),
+    }
 }
