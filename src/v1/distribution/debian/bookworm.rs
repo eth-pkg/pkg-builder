@@ -513,15 +513,15 @@ mod tests {
     use httpmock::prelude::*;
     use std::path::PathBuf;
     use std::sync::Once;
-    use env_logger::Env;
+   // use env_logger::Env;
     use tempfile::tempdir;
 
     static INIT: Once = Once::new();
 
     fn setup() {
-        INIT.call_once(|| {
-            env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-        });
+        // INIT.call_once(|| {
+        //     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        // });
     }
 
     fn setup_mock_server() -> MockServer {
