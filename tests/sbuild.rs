@@ -2,10 +2,10 @@
 mod tests {
     use env_logger::Env;
     use pkg_builder::v1::cli::{get_config, get_distribution};
+    use pkg_builder::v1::pkg_config::PkgConfig;
     use std::fs;
     use std::path::Path;
     use std::sync::Once;
-    use pkg_builder::v1::pkg_config::PkgConfig;
 
     static INIT: Once = Once::new();
     static CODENAME: &str = "bookworm";
@@ -30,9 +30,23 @@ mod tests {
             get_distribution(config, config_file).expect("Could not get distribution");
 
         let result = distribution.clean_build_env();
-        assert!(result.is_ok());
+        match result {
+            Ok(_) => {
+                assert!(result.is_ok());
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
         let result = distribution.create_build_env();
-        assert!(result.is_ok());
+        match result {
+            Ok(_) => {
+                assert!(result.is_ok());
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
     }
     fn setup() {
         INIT.call_once(|| {
@@ -42,7 +56,7 @@ mod tests {
         });
     }
 
-    fn get_debian_output(config: PkgConfig)-> Vec<String>{
+    fn get_debian_output(config: PkgConfig) -> Vec<String> {
         let mut vec = vec![
             format!(
                 "{}_{}-{}_{}.buildinfo",
@@ -63,8 +77,7 @@ mod tests {
             ),
             format!(
                 "{}_{}.orig.tar.gz",
-                config.package_fields.package_name,
-                config.package_fields.version_number,
+                config.package_fields.package_name, config.package_fields.version_number,
             ),
             format!(
                 "{}_{}-{}_{}.build",
@@ -113,18 +126,25 @@ mod tests {
 
     fn test_builds(config_file: &str) {
         let mut config = get_config(config_file.to_string()).expect("Could not read config_file");
-        let work_dir = Path::new(BUILD_FILES_DIR)
-            .join("virtual");
+        let work_dir = Path::new(BUILD_FILES_DIR).join("virtual");
         config.build_env.workdir = Some(work_dir.clone().to_str().unwrap().to_string());
         config.build_env.sbuild_cache_dir = Some(SBUILD_CACHE_DIR.to_string());
-        let distribution =
-            get_distribution(config.clone(), config_file.to_string()).expect("Could not get distribution");
+        let distribution = get_distribution(config.clone(), config_file.to_string())
+            .expect("Could not get distribution");
 
         let result = distribution.package();
-        assert!(result.is_ok());
+        match result {
+            Ok(_) => {
+                assert!(result.is_ok());
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
         // Read the contents of the directory
         let build_artificats_dir = work_dir.join(config.package_fields.package_name.clone());
-        let entries = fs::read_dir(build_artificats_dir.clone()).expect("Could not read package directory.");
+        let entries =
+            fs::read_dir(build_artificats_dir.clone()).expect("Could not read package directory.");
         let mut output: Vec<String> = vec![];
         for entry in entries {
             let entry = entry.expect("Could not access entry.");
@@ -139,10 +159,18 @@ mod tests {
         let build_artificats_dir_path: &Path = build_artificats_dir.as_ref();
         assert!(build_artificats_dir_path.exists());
         // Check if the vectors are equal
-        assert_eq!(expected_output.len(), output.len(), "Number of files does not match");
+        assert_eq!(
+            expected_output.len(),
+            output.len(),
+            "Number of files does not match"
+        );
 
         for (idx, (expected, actual)) in expected_output.iter().zip(output.iter()).enumerate() {
-            assert_eq!(expected, actual, "File at index {} does not match: expected '{}', actual '{}'", idx, expected, actual);
+            assert_eq!(
+                expected, actual,
+                "File at index {} does not match: expected '{}', actual '{}'",
+                idx, expected, actual
+            );
         }
     }
     #[test]

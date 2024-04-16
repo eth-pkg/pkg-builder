@@ -13,7 +13,7 @@ homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 # virtual | git | default
 package_type="default"
 tarball_url = "hello-world-1.0.0.tar.gz"
-tarball_hash = "TODO"
+tarball_hash = "23d83684b8970e3ca34ebbdd7dbb6929d62d839de00bb1f0d422bc37e736a9b3c106d3011fc27383a69ef8e545529633477c45ffba38040876edc0f00d6bb0d3"
 
 [package_type.language_env]
 language_env = "java"

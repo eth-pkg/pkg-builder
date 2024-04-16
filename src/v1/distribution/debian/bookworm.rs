@@ -12,12 +12,12 @@ use crate::v1::pkg_config::{PackageType, PkgConfig};
 use dirs::home_dir;
 use log::info;
 use log::warn;
-use std::io::Write;
+use std::io::{Write, Read};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-
+use sha2::{Digest, Sha512};
 pub struct BookwormPackager {
     config: PkgConfig,
     source_to_patch_from_path: String,
@@ -76,6 +76,7 @@ impl Packager for BookwormPackager {
                     &config.tarball_url,
                     &self.config_root,
                 )?;
+                verify_hash(&self.debian_orig_tarball_path, &config.tarball_hash)?;
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
                     &self.build_files_dir.clone(),
@@ -193,7 +194,29 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()>
 
     Ok(())
 }
+fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
+    let mut hasher = Sha512::new();
+    io::copy(&mut reader, &mut hasher)?;
+    let digest_bytes = hasher.finalize();
+    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
 
+    Ok(hex_digest)
+}
+
+fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
+    let file = fs::File::open(tarball_path)?;
+    let actual_checksum = calculate_sha512(file)?;
+
+    Ok(actual_checksum == expected_checksum)
+}
+
+fn verify_hash(tarball_path: &str, expected_checksum: &str) -> Result<()>{
+    match verify_tarball_checksum(tarball_path, expected_checksum) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(eyre!("Checksum is invalid.")),
+        Err(err) => Err(eyre!("Error checking hash: {}", err)),
+    }
+}
 fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     info!("Extracting source {}", &build_files_dir);
     fs::create_dir_all(build_files_dir)?;
@@ -518,6 +541,7 @@ mod tests {
 
     #[test]
     fn expand_path_expands_tilde_correctly() {
+        setup();
         let result = expand_path("~", None);
         assert_ne!(result, "~");
         assert!(!result.contains('~'));
@@ -525,24 +549,29 @@ mod tests {
 
     #[test]
     fn expand_path_handles_absolute_paths() {
+        setup();
         let result = expand_path("/absolute/path", None);
         assert_eq!(result, "/absolute/path");
     }
 
     #[test]
     fn expand_path_expands_relative_paths_with_parent() {
+        setup();
         let result = expand_path("somefile", Some("/tmp"));
         assert_eq!(result, "/tmp/somefile");
     }
 
     #[test]
     fn expand_path_expands_relative_paths_without_parent() {
+        setup();
         let result = expand_path("somefile", None);
         assert!(result.starts_with('/'));
     }
 
     #[test]
     fn test_create_package_dir() {
+        setup();
+
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
         let build_artifacts_dir = temp_dir.path().join("test_package");
@@ -555,6 +584,8 @@ mod tests {
 
     #[test]
     fn test_create_package_dir_if_already_exists() {
+        setup();
+
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
         let build_artifacts_dir = temp_dir.path().join("test_package");
@@ -572,6 +603,8 @@ mod tests {
 
     #[test]
     fn test_download_source_virtual_package() {
+        setup();
+
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
         let build_artifacts_dir = String::from(temp_dir.path().to_str().unwrap());
@@ -587,6 +620,8 @@ mod tests {
 
     #[test]
     fn test_download_source_non_virtual_package() {
+        setup();
+
         let server = setup_mock_server();
 
         let temp_dir = tempdir().expect("Failed to create temporary directory");
@@ -616,7 +651,6 @@ mod tests {
         let temp_dir = temp_dir.path();
         let tarball_path: PathBuf = PathBuf::from("tests/misc/test_package.tar.gz");
 
-        let build_artifacts_dir = temp_dir.to_string_lossy().to_string();
         let build_files_dir = temp_dir
             .join(package_name)
             .to_string_lossy()
@@ -639,6 +673,8 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_adds_exec_permission() -> Result<(), Box<dyn std::error::Error>> {
+        setup();
+
         let temp_dir = tempdir()?;
         let rules_path = temp_dir.path().join("debian/rules");
         fs::create_dir_all(temp_dir.path().join("debian")).expect("Could not create dir");
@@ -654,6 +690,8 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_handles_nonexistent_directory() {
+        setup();
+
         let result = patch_rules_permission("/nonexistent/dir");
 
         assert!(result.is_err());
@@ -661,6 +699,8 @@ mod tests {
 
     #[test]
     fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
+        setup();
+
         let temp_dir = tempdir()?;
         let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
 
@@ -678,6 +718,8 @@ mod tests {
 
     #[test]
     fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
+        setup();
+
         let temp_dir = tempdir()?;
         let temp_dir = temp_dir.path();
         let build_files_dir = temp_dir.to_str().unwrap().to_string();
@@ -693,4 +735,27 @@ mod tests {
 
         Ok(())
     }
+
+
+    #[test]
+    fn test_verify_hash_valid_checksum() {
+        let tarball_path = "tests/misc/test_package.tar.gz";
+        let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
+
+        let result = verify_hash(tarball_path, expected_checksum);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_hash_invalid_checksum() {
+        let tarball_path = "tests/misc/test_package.tar.gz";
+        let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab2";
+
+        let result = verify_hash(tarball_path, expected_checksum);
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "Checksum is invalid.");
+    }
+
 }
