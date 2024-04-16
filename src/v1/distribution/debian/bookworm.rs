@@ -739,6 +739,7 @@ mod tests {
 
     #[test]
     fn test_verify_hash_valid_checksum() {
+        setup();
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
 
@@ -749,6 +750,7 @@ mod tests {
 
     #[test]
     fn test_verify_hash_invalid_checksum() {
+        setup();
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab2";
 
