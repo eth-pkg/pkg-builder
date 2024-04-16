@@ -22,13 +22,6 @@ jobs:
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install debhelper schroot ubuntu-dev-tools
-          sudo apt-get install pkg-config libssl-dev uidmap
-
-      - name: Sbuild setup
-        run: |
-          sudo apt-get update
-          # Note this is an older version of sbuild, no need to patch it, yet
           sudo apt install -y debhelper schroot ubuntu-dev-tools
           sudo apt-get -y install pkg-config libssl-dev uidmap
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
