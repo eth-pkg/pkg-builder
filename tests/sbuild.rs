@@ -130,9 +130,8 @@ mod tests {
             let entry = entry.expect("Could not access entry.");
             let file_name = entry.file_name().into_string().unwrap();
             // TODO ignore testing the timezone build
-            if !file_name.ends_with("Z.build"){
+            if !file_name.ends_with("Z.build") && !file_name.contains("dbgsym") {
                 output.push(file_name);
-
             }
         }
         output.sort();
