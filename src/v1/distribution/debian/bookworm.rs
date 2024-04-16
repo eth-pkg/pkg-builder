@@ -240,8 +240,7 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<()> {
-    // Patch quilt
+fn patch_quilt(build_files_dir: &String) -> Result<()>{
     let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
         "Setting up quilt format for patching. Debian source format path: {}",
@@ -268,15 +267,18 @@ fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -
             debian_source_format_path
         );
     }
+    Ok(())
+}
 
-    // Patch .pc dir setup
+fn patch_pc_dir(build_files_dir: &String) -> Result<()>{
     let pc_version_path = format!("{}/.pc/.version", &build_files_dir);
     info!("Creating necessary directories for patching");
     fs::create_dir_all(format!("{}/.pc", &build_files_dir))?;
     let mut pc_version_file = fs::File::create(pc_version_path)?;
     writeln!(pc_version_file, "2")?;
-
-    // Patch .pc patch version number
+    Ok(())
+}
+fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Result<()>{
     let debian_control_path = format!("{}/debian/control", build_files_dir);
     info!(
         "Adding Standards-Version to the control file. Debian control path: {}",
@@ -313,12 +315,16 @@ fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -
     } else {
         info!("Standards-Version already exists in the control file. No changes made.");
     }
+    Ok(())
+}
 
-    // Only copy if src dir exists
+fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     if fs::metadata(src_dir).is_ok() {
         copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))?;
     }
-    // Get the current permissions of the file
+    Ok(())
+}
+fn patch_rules_permission(build_files_dir: &str) -> Result<()>{
     info!(
         "Adding executable permission for {}/debian/rules",
         build_files_dir
@@ -328,6 +334,22 @@ fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -
     let mut permissions = fs::metadata(debian_rules.clone())?.permissions();
     permissions.set_mode(permissions.mode() | 0o111);
     fs::set_permissions(debian_rules, permissions)?;
+    Ok(())
+}
+fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<()> {
+    // Patch quilt
+    patch_quilt(build_files_dir)?;
+
+    // Patch .pc dir setup
+    patch_pc_dir(build_files_dir)?;
+
+    // Patch .pc patch version number
+    patch_standards_version(build_files_dir, homepage)?;
+
+    // Only copy if src dir exists
+    copy_src_dir(build_files_dir, src_dir)?;
+
+    patch_rules_permission(build_files_dir)?;
 
     info!("Patching finished successfully!");
     Ok(())
@@ -338,10 +360,10 @@ fn setup_sbuild() -> Result<()> {
     let home_dir = home_dir().expect("Home dir is empty");
     let dest_path = home_dir.join(".sbuildrc");
     let contents = fs::read_to_string(src_path)?;
-    
+
     let home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
     let replaced_contents = contents.replace("<HOME>", &home_dir);
-    let mut file = fs::File::create(&dest_path)?;
+    let mut file = fs::File::create(dest_path)?;
     file.write_all(replaced_contents.as_bytes())?;
 
     Ok(())
@@ -375,7 +397,7 @@ fn components_to_strip(tar_gz_file: String) -> Result<usize, io::Error> {
     let output_str = String::from_utf8_lossy(&output.stdout);
     let lines: Vec<&str> = output_str.lines().filter(|l| !l.ends_with('/')).collect();
 
-    let common_prefix = longest_common_prefix(&lines);
+    let common_prefix = longest_common_prefix(&lines.clone());
 
     let components_to_strip = common_prefix.split('/').filter(|&x| !x.is_empty()).count();
 
@@ -385,6 +407,12 @@ fn components_to_strip(tar_gz_file: String) -> Result<usize, io::Error> {
 fn longest_common_prefix(strings: &[&str]) -> String {
     if strings.is_empty() {
         return String::new();
+    }
+    if strings.len() == 1 {
+        let mut path_buf = PathBuf::from(strings[0]);
+        path_buf.pop();
+        let common_prefix = path_buf.to_string_lossy().to_string();
+        return common_prefix
     }
 
     let first_string = &strings[0];
@@ -450,17 +478,28 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
             Some(path) => PathBuf::from(path),
         };
         let dir = parent_dir.join(dir);
-        let path = fs::canonicalize(dir.clone()).unwrap();
+        let path = fs::canonicalize(dir.clone()).unwrap_or(dir);
         let path = path.to_str().unwrap().to_string();
         path
     }
 }
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
     use super::*;
     use httpmock::prelude::*;
     use std::path::PathBuf;
+    use std::sync::Once;
+    use env_logger::Env;
     use tempfile::tempdir;
+
+    static INIT: Once = Once::new();
+
+    fn setup() {
+        INIT.call_once(|| {
+            env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        });
+    }
 
     fn setup_mock_server() -> MockServer {
         // Start the mock server
@@ -471,14 +510,38 @@ mod tests {
             when.method(GET).path("/test_package.tar.gz");
             then.status(200)
                 .header("Content-Type", "application/octet-stream")
-                .body_from_file("tests/test_package.tar.gz");
+                .body_from_file("tests/misc/test_package.tar.gz");
         });
 
         server
     }
 
     #[test]
-    #[ignore]
+    fn expand_path_expands_tilde_correctly() {
+        let result = expand_path("~", None);
+        assert_ne!(result, "~");
+        assert!(!result.contains('~'));
+    }
+
+    #[test]
+    fn expand_path_handles_absolute_paths() {
+        let result = expand_path("/absolute/path", None);
+        assert_eq!(result, "/absolute/path");
+    }
+
+    #[test]
+    fn expand_path_expands_relative_paths_with_parent() {
+        let result = expand_path("somefile", Some("/tmp"));
+        assert_eq!(result, "/tmp/somefile");
+    }
+
+    #[test]
+    fn expand_path_expands_relative_paths_without_parent() {
+        let result = expand_path("somefile", None);
+        assert!(result.starts_with('/'));
+    }
+
+    #[test]
     fn test_create_package_dir() {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
@@ -489,14 +552,25 @@ mod tests {
         assert!(result.is_ok());
         assert!(build_artifacts_dir.exists());
     }
+
     #[test]
-    #[ignore]
     fn test_create_package_dir_if_already_exists() {
-        unreachable!("Test case not implemented yet");
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+
+        let build_artifacts_dir = temp_dir.path().join("test_package");
+        let result = fs::create_dir(build_artifacts_dir.clone());
+        assert!(result.is_ok());
+        let test_file = build_artifacts_dir.clone().join("test_file");
+        File::create(test_file.clone()).expect("Failed to create test_file");
+        assert!(test_file.clone().exists());
+        let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
+
+        assert!(result.is_ok());
+        assert!(!test_file.clone().exists());
+        assert!(build_artifacts_dir.exists());
     }
 
     #[test]
-    #[ignore]
     fn test_download_source_virtual_package() {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
@@ -512,7 +586,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_download_source_non_virtual_package() {
         let server = setup_mock_server();
 
@@ -531,60 +604,93 @@ mod tests {
     #[test]
     #[ignore]
     fn test_download_source_with_git_package() {
-        // TODO: Write test case for downloading source for a Git package
-        unreachable!("Test case not implemented yet");
     }
 
-    #[test]
-    #[ignore]
-    fn test_patch_src_dir() {
-        // src patching is not implemented yet
-        unreachable!("Test case not implemented yet");
-    }
+
 
     #[test]
-    #[ignore]
-    fn test_patch_standards_version() {
-        // src patching is not implemented yet
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
-    fn test_patch_homepage() {
-        // src patching is not implemented yet
-        unreachable!("Test case not implemented yet");
-    }
-
-    #[test]
-    #[ignore]
-
     fn test_extract_source() {
+        setup();
         let package_name = "test_package";
         let temp_dir = tempdir().expect("Failed to create temporary directory");
-        let tarball_path: PathBuf = PathBuf::from("tests/test_package.tar.gz");
+        let temp_dir = temp_dir.path();
+        let tarball_path: PathBuf = PathBuf::from("tests/misc/test_package.tar.gz");
 
-        let build_artifacts_dir = temp_dir.path().to_string_lossy().to_string();
-        let packaging_source = temp_dir
-            .path()
-            .join("test_package")
+        let build_artifacts_dir = temp_dir.to_string_lossy().to_string();
+        let build_files_dir = temp_dir
+            .join(package_name)
             .to_string_lossy()
             .to_string();
 
         assert!(tarball_path.exists());
-
-        let result = extract_source(&packaging_source, tarball_path.to_str().unwrap());
+        let result = extract_source(tarball_path.to_str().unwrap(), &build_files_dir);
 
         assert!(result.is_ok(), "{:?}", result);
+        assert!(Path::new(&build_files_dir).exists());
 
-        let empty_file_path = PathBuf::from(build_artifacts_dir)
-            .join(package_name)
+        let test_file_path = PathBuf::from(build_files_dir.clone())
             .join("empty_file.txt");
 
         assert!(
-            empty_file_path.exists(),
+            test_file_path.exists(),
             "Empty file not found after extraction"
         );
+    }
+
+    #[test]
+    fn patch_rules_permission_adds_exec_permission() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempdir()?;
+        let rules_path = temp_dir.path().join("debian/rules");
+        fs::create_dir_all(temp_dir.path().join("debian")).expect("Could not create dir");
+        File::create(&rules_path)?;
+
+        patch_rules_permission(temp_dir.path().to_str().unwrap())?;
+
+        let permissions = fs::metadata(&rules_path)?.permissions();
+        assert_ne!(permissions.mode() & 0o111, 0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn patch_rules_permission_handles_nonexistent_directory() {
+        let result = patch_rules_permission("/nonexistent/dir");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempdir()?;
+        let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
+
+        patch_quilt(&build_files_dir)?;
+
+        let debian_source_dir = temp_dir.path().join("debian/source");
+        assert!(debian_source_dir.exists());
+
+        let debian_source_format_path = temp_dir.path().join("debian/source/format");
+        let format_content = fs::read_to_string(debian_source_format_path)?;
+        assert_eq!(format_content, "3.0 (quilt)\n");
+
+        Ok(())
+    }
+
+    #[test]
+    fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
+        let temp_dir = tempdir()?;
+        let temp_dir = temp_dir.path();
+        let build_files_dir = temp_dir.to_str().unwrap().to_string();
+
+        fs::create_dir_all(temp_dir.join("debian/source")).expect("Failed to create dir for test.");
+        File::create(temp_dir.join("debian/source/format")).expect("Failed to create file.");
+
+        let result = patch_quilt(&build_files_dir);
+        assert!(result.is_ok());
+
+        let entries: Vec<_> = fs::read_dir(temp_dir)?.collect();
+        assert_eq!(entries.len(), 1);
+
+        Ok(())
     }
 }
