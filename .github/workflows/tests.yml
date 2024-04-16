@@ -29,8 +29,8 @@ jobs:
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install debhelper schroot ubuntu-dev-tools
-          sudo apt-get install pkg-config libssl-dev uidmap
+          sudo apt install -y debhelper schroot ubuntu-dev-tools
+          sudo apt-get -y install pkg-config libssl-dev uidmap
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
@@ -62,8 +62,8 @@ jobs:
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install debhelper schroot ubuntu-dev-tools
-          sudo apt-get install pkg-config libssl-dev uidmap
+          sudo apt install -y debhelper schroot ubuntu-dev-tools
+          sudo apt-get install -y pkg-config libssl-dev uidmap
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
