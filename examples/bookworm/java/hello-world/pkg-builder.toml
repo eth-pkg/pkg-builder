@@ -19,7 +19,7 @@ tarball_hash = "23d83684b8970e3ca34ebbdd7dbb6929d62d839de00bb1f0d422bc37e736a9b3
 language_env = "java"
 is_oracle=true
 jdk_version="17.0"
-jdk_binary_url="https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz"
+jdk_binary_url="https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz"
 jdk_binary_checksum="e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1"
 
 [build_env]
