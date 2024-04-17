@@ -164,6 +164,7 @@ fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> 
             tarball_url, tarball_path
         );
         let status = Command::new("wget")
+            .arg("-q")
             .arg("-O")
             .arg(tarball_path)
             .arg(tarball_url)
@@ -215,17 +216,20 @@ fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
 }
 
 fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
-    let mut file = fs::File::open(tarball_path)?;
+    let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."));
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 
     let actual_sha512 = calculate_sha512(&*buffer.clone()).unwrap_or_default();
+    info!("sha512 hash {}", &actual_sha512);
 
     if actual_sha512 == expected_checksum {
         return Ok(true);
     }
 
     let actual_sha256 = calculate_sha256(&*buffer).unwrap_or_default();
+    info!("sha256 hash {}", &actual_sha256);
+
     if actual_sha256 == expected_checksum {
         return Ok(true);
     }
@@ -371,8 +375,9 @@ fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Resul
 }
 
 fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
-    if fs::metadata(src_dir).is_ok() {
-        copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))?;
+    if let Ok(_) = fs::metadata(src_dir) {
+        copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
+            .map_err(|_| eyre!("Failed to copy src directory."))?;
     }
     Ok(())
 }
@@ -384,9 +389,10 @@ fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     );
 
     let debian_rules = format!("{}/debian/rules", build_files_dir);
-    let mut permissions = fs::metadata(debian_rules.clone())?.permissions();
+    let mut permissions = fs::metadata(debian_rules.clone())
+        .map_err(|_| eyre!("Failed to get debian/rules permission.")).permissions();
     permissions.set_mode(permissions.mode() | 0o111);
-    fs::set_permissions(debian_rules, permissions)?;
+    fs::set_permissions(debian_rules, permissions).map_err(|_| eyre!("Failed to set debian/rules permission."))?;
     Ok(())
 }
 
@@ -550,7 +556,7 @@ mod tests {
     use super::*;
     use httpmock::prelude::*;
     use std::path::PathBuf;
-    use std::sync::Once;
+    // use std::sync::Once;
     // use env_logger::Env;
     use tempfile::tempdir;
 
