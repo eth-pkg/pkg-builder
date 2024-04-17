@@ -375,7 +375,8 @@ fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Resul
 }
 
 fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
-    if let Ok(_) = fs::metadata(src_dir) {
+    let src_dir_path = Path::new(src_dir);
+    if src_dir_path.exists() {
         copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
             .map_err(|_| eyre!("Failed to copy src directory."))?;
     }
@@ -419,12 +420,12 @@ fn setup_sbuild() -> Result<()> {
     let src_path = Path::new("overrides/.sbuildrc");
     let home_dir = home_dir().expect("Home dir is empty");
     let dest_path = home_dir.join(".sbuildrc");
-    let contents = fs::read_to_string(src_path)?;
+    let contents = fs::read_to_string(src_path) .map_err(|_| eyre!("Failed to read overrides/.sbuildrc."))?;
 
     let home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
     let replaced_contents = contents.replace("<HOME>", &home_dir);
-    let mut file = fs::File::create(dest_path)?;
-    file.write_all(replaced_contents.as_bytes())?;
+    let mut file = fs::File::create(dest_path) .map_err(|_| eyre!("Failed to create ~/.sbuildrc."))?;
+    file.write_all(replaced_contents.as_bytes()).map_err(|_| eyre!("Failed to write ~/.sbuildrc."))?;
 
     Ok(())
 }
