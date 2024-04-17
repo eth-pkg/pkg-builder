@@ -159,11 +159,9 @@ mod tests {
         let build_artificats_dir_path: &Path = build_artificats_dir.as_ref();
         assert!(build_artificats_dir_path.exists());
         // Check if the vectors are equal
-        assert_eq!(
-            expected_output.len(),
-            output.len(),
-            format!("Number of files does not match: {:?}", output)
-        );
+        if expected_output.len() != output.len() {
+            panic!("Number of files does not match, expected:{:?}, received:{:?}", expected_output, output)
+        }
 
         for (idx, (expected, actual)) in expected_output.iter().zip(output.iter()).enumerate() {
             assert_eq!(
