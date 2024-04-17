@@ -111,11 +111,39 @@ impl Validation for JavascriptConfig {
     }
 }
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+pub struct GradleConfig {
+    pub gradle_version: String,
+    pub gradle_binary_url: String,
+    pub gradle_binary_checksum: String,
+}
+
+impl Validation for GradleConfig {
+    fn validate(&self) -> Result<(), Vec<Report>> {
+        let mut errors = Vec::new();
+
+        if let Err(err) = validate_not_empty("gradle_version", &self.gradle_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("gradle_binary_url", &self.gradle_binary_url) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("gradle_binary_checksum", &self.gradle_binary_checksum) {
+            errors.push(err);
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavaConfig {
     pub is_oracle: bool,
     pub jdk_version: String,
     pub jdk_binary_url: String,
     pub jdk_binary_checksum: String,
+    pub gradle: Option<GradleConfig>
 }
 impl Validation for JavaConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
@@ -716,6 +744,29 @@ bin_bash=""
                 let expected_errors = [
                     "field: git_commit cannot be empty",
                     "field: git_url cannot be empty",
+                ];
+                assert_eq!(
+                    validation_errors.len(),
+                    expected_errors.len(),
+                    "Number of errors is different"
+                );
+                for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
+                    assert_eq!(actual.to_string(), *expected);
+                }
+            }
+            Ok(_) => panic!("Validation should have failed."),
+        }
+    }
+
+    #[test]
+    fn test_empty_strings_are_error_gradle_config() {
+        let config = GradleConfig::default();
+        match config.validate() {
+            Err(validation_errors) => {
+                let expected_errors = [
+                    "field: gradle_version cannot be empty",
+                    "field: gradle_binary_url cannot be empty",
+                    "field: gradle_binary_checksum cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),

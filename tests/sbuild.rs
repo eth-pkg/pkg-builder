@@ -233,4 +233,12 @@ mod tests {
         let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
         test_builds(&config_file);
     }
+
+    #[test]
+    fn test_build_gradle_java_package_in_sbuild_env() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        test_builds(&config_file);
+    }
 }

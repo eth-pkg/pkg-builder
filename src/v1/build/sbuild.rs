@@ -55,11 +55,10 @@ impl Sbuild {
                             format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
                             format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
                             "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
-
                             "cd /tmp && gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
                             "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
                             "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
-                            "apt remove -y curl gpg gpg-agent".to_string()
+                            "apt remove -y curl gpg gpg-agent".to_string(),
                         ];
                         lang_deps
                     }
@@ -101,7 +100,7 @@ impl Sbuild {
                             let jdk_version = &config.jdk_version;
                             let jdk_binary_url = &config.jdk_binary_url;
                             let jdk_binary_checksum = &config.jdk_binary_checksum;
-                            let install = vec![
+                            let mut install = vec![
                                 "apt install -y wget".to_string(),
                                 format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version = jdk_version),
                                 format!("cd /tmp && wget -q --output-document jdk.tar.gz {}", jdk_binary_url),
@@ -113,6 +112,21 @@ impl Sbuild {
                                 "java -version".to_string(),
                                 "apt remove -y wget".to_string(),
                             ];
+                            if let Some(gradle_config) = &config.gradle {
+                                let gradle_version = &gradle_config.gradle_version;
+                                let gradle_binary_url = &gradle_config.gradle_binary_url;
+                                let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
+
+                                install.push("apt install -y wget unzip".to_string());
+                                install.push(format!("mkdir -p /opt/lib/gradle-{version}", version = gradle_version));
+                                install.push(format!("cd /tmp && wget -q --output-document gradle.tar.gz {}", gradle_binary_url));
+                                install.push(format!("cd /tmp && echo \"{} gradle.tar.gz\" > hash_file.txt && cat hash_file.txt", gradle_binary_checksum));
+                                install.push("cd /tmp && sha256sum -c hash_file.txt".to_string());
+                                install.push(format!("cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib", version = gradle_version));
+                                install.push(format!("ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle", version = gradle_version));
+                                install.push("gradle -version".to_string());
+                                install.push( "apt remove -y wget".to_string());
+                            }
                             return install;
                         }
                         vec![]
@@ -195,7 +209,7 @@ impl Sbuild {
             "{}-{}.tar.gz",
             self.config.build_env.codename, self.config.build_env.arch
         )
-        .to_string();
+            .to_string();
         let path = Path::new(&expanded_path);
         let cache_file = path.join(cache_file_name);
         cache_file.to_str().unwrap().to_string()
@@ -258,18 +272,15 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
         cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
-        cmd_args.push("--chroot-setup-commands=apt autoremove -y && cat".to_string());
+        cmd_args.push("--chroot-setup-commands=apt autoremove -y".to_string());
 
-        if let Some(true) = self.config.build_env.run_lintian {
-        } else {
+        if let Some(true) = self.config.build_env.run_lintian {} else {
             cmd_args.push("--no-run-lintian".to_string());
         }
-        if let Some(true) = self.config.build_env.run_autopkgtest {
-        } else {
+        if let Some(true) = self.config.build_env.run_autopkgtest {} else {
             cmd_args.push("--no-run-autopkgtest".to_string());
         }
-        if let Some(true) = self.config.build_env.run_piuparts {
-        } else {
+        if let Some(true) = self.config.build_env.run_piuparts {} else {
             cmd_args.push("--no-run-piuparts".to_string());
         }
         println!(
