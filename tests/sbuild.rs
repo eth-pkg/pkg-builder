@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(
             expected_output.len(),
             output.len(),
-            "Number of files does not match"
+            format!("Number of files does not match: {:?}", output)
         );
 
         for (idx, (expected, actual)) in expected_output.iter().zip(output.iter()).enumerate() {

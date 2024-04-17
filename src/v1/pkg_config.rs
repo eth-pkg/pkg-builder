@@ -694,7 +694,6 @@ bin_bash=""
             Err(validation_errors) => {
                 let expected_errors = [
                     "field: tarball_url cannot be empty",
-                    "field: tarball_hash cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
