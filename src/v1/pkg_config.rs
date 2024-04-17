@@ -240,7 +240,7 @@ impl Validation for LanguageEnv {
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DefaultPackageTypeConfig {
     pub tarball_url: String,
-    pub tarball_hash: String,
+    pub tarball_hash: Option<String>,
     pub language_env: LanguageEnv,
 }
 
@@ -251,8 +251,10 @@ impl Validation for DefaultPackageTypeConfig {
         if let Err(err) = validate_not_empty("tarball_url", &self.tarball_url) {
             errors.push(err);
         }
-        if let Err(err) = validate_not_empty("tarball_hash", &self.tarball_hash) {
-            errors.push(err);
+        if let Some(value) = &self.tarball_hash{
+            if let Err(err) = validate_not_empty("tarball_hash", value) {
+                errors.push(err);
+            }
         }
         let language_errors = self.language_env.validate();
 
@@ -462,7 +464,6 @@ homepage="https://github.com/eth-pkg/pkg-builder#examples"
 [package_type]
 package_type="default"
 tarball_url = "hello-world-1.0.0.tar.gz"
-tarball_hash="TODO"
 git_source = ""
 git_commit=""
 
@@ -502,7 +503,7 @@ bin_bash=""
             },
             package_type: PackageType::Default(DefaultPackageTypeConfig {
                 tarball_url: "hello-world-1.0.0.tar.gz".to_string(),
-                tarball_hash: "TODO".to_string(),
+                tarball_hash: None,
                 language_env: LanguageEnv::Rust(RustConfig {
                     rust_version: "1.22".to_string(),
                     rust_binary_url: "http:://example.com".to_string(),

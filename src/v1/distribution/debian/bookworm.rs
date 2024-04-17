@@ -17,7 +17,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use sha2::{Digest, Sha512};
+use sha2::{Digest, Sha256, Sha512};
+
 pub struct BookwormPackager {
     config: PkgConfig,
     source_to_patch_from_path: String,
@@ -76,7 +77,7 @@ impl Packager for BookwormPackager {
                     &config.tarball_url,
                     &self.config_root,
                 )?;
-                verify_hash(&self.debian_orig_tarball_path, &config.tarball_hash)?;
+                verify_hash(&self.debian_orig_tarball_path, config.tarball_hash.clone())?;
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
                     &self.build_files_dir.clone(),
@@ -194,6 +195,7 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()>
 
     Ok(())
 }
+
 fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha512::new();
     io::copy(&mut reader, &mut hasher)?;
@@ -203,20 +205,46 @@ fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     Ok(hex_digest)
 }
 
-fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
-    let file = fs::File::open(tarball_path)?;
-    let actual_checksum = calculate_sha512(file)?;
+fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
+    let mut hasher = Sha256::new();
+    io::copy(&mut reader, &mut hasher)?;
+    let digest_bytes = hasher.finalize();
+    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
 
-    Ok(actual_checksum == expected_checksum)
+    Ok(hex_digest)
 }
 
-fn verify_hash(tarball_path: &str, expected_checksum: &str) -> Result<()>{
-    match verify_tarball_checksum(tarball_path, expected_checksum) {
-        Ok(true) => Ok(()),
-        Ok(false) => Err(eyre!("Checksum is invalid.")),
-        Err(err) => Err(eyre!("Error checking hash: {}", err)),
+fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
+    let mut file = fs::File::open(tarball_path)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+
+    let actual_sha512 = calculate_sha512(&*buffer.clone()).unwrap_or_default();
+
+    if actual_sha512 == expected_checksum {
+        return Ok(true);
+    }
+
+    let actual_sha256 = calculate_sha256(&*buffer).unwrap_or_default();
+    if actual_sha256 == expected_checksum {
+        return Ok(true);
+    }
+    Err(eyre!("Hashes do not match."))
+}
+
+fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<()> {
+    match expected_checksum {
+        Some(tarball_hash) => {
+            match verify_tarball_checksum(tarball_path, &tarball_hash) {
+                Ok(true) => Ok(()),
+                Ok(false) => Err(eyre!("Checksum is invalid.")),
+                Err(err) => Err(eyre!("Error checking hash: {}", err)),
+            }
+        }
+        None => Ok(()), // If no checksum is provided, consider it verified
     }
 }
+
 fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     info!("Extracting source {}", &build_files_dir);
     fs::create_dir_all(build_files_dir)?;
@@ -263,7 +291,7 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_quilt(build_files_dir: &String) -> Result<()>{
+fn patch_quilt(build_files_dir: &String) -> Result<()> {
     let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
         "Setting up quilt format for patching. Debian source format path: {}",
@@ -293,7 +321,7 @@ fn patch_quilt(build_files_dir: &String) -> Result<()>{
     Ok(())
 }
 
-fn patch_pc_dir(build_files_dir: &String) -> Result<()>{
+fn patch_pc_dir(build_files_dir: &String) -> Result<()> {
     let pc_version_path = format!("{}/.pc/.version", &build_files_dir);
     info!("Creating necessary directories for patching");
     fs::create_dir_all(format!("{}/.pc", &build_files_dir))?;
@@ -301,7 +329,8 @@ fn patch_pc_dir(build_files_dir: &String) -> Result<()>{
     writeln!(pc_version_file, "2")?;
     Ok(())
 }
-fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Result<()>{
+
+fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Result<()> {
     let debian_control_path = format!("{}/debian/control", build_files_dir);
     info!(
         "Adding Standards-Version to the control file. Debian control path: {}",
@@ -347,7 +376,8 @@ fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     }
     Ok(())
 }
-fn patch_rules_permission(build_files_dir: &str) -> Result<()>{
+
+fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     info!(
         "Adding executable permission for {}/debian/rules",
         build_files_dir
@@ -359,6 +389,7 @@ fn patch_rules_permission(build_files_dir: &str) -> Result<()>{
     fs::set_permissions(debian_rules, permissions)?;
     Ok(())
 }
+
 fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<()> {
     // Patch quilt
     patch_quilt(build_files_dir)?;
@@ -391,6 +422,7 @@ fn setup_sbuild() -> Result<()> {
 
     Ok(())
 }
+
 fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
     for entry in fs::read_dir(src_dir)? {
         let entry = entry?;
@@ -435,7 +467,7 @@ fn longest_common_prefix(strings: &[&str]) -> String {
         let mut path_buf = PathBuf::from(strings[0]);
         path_buf.pop();
         let common_prefix = path_buf.to_string_lossy().to_string();
-        return common_prefix
+        return common_prefix;
     }
 
     let first_string = &strings[0];
@@ -456,10 +488,12 @@ fn longest_common_prefix(strings: &[&str]) -> String {
 
     prefix
 }
+
 pub fn get_build_artifacts_dir(package_name: &str, work_dir: &str) -> String {
     let build_artifacts_dir = format!("{}/{}", work_dir, &package_name);
     build_artifacts_dir
 }
+
 pub fn get_tarball_path(
     package_name: &str,
     version_number: &str,
@@ -471,6 +505,7 @@ pub fn get_tarball_path(
     );
     tarball_path
 }
+
 pub fn get_build_files_dir(
     package_name: &str,
     version_number: &str,
@@ -482,6 +517,7 @@ pub fn get_build_files_dir(
     );
     build_files_dir
 }
+
 pub fn get_tarball_url(tarball_url: &str, config_root: &str) -> String {
     if tarball_url.starts_with("http") {
         tarball_url.to_string()
@@ -489,6 +525,7 @@ pub fn get_tarball_url(tarball_url: &str, config_root: &str) -> String {
         expand_path(tarball_url, Some(config_root))
     }
 }
+
 pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
     if dir.starts_with('~') {
         let expanded_path = shellexpand::tilde(dir).to_string();
@@ -506,6 +543,7 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
         path
     }
 }
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
@@ -513,10 +551,10 @@ mod tests {
     use httpmock::prelude::*;
     use std::path::PathBuf;
     use std::sync::Once;
-   // use env_logger::Env;
+    // use env_logger::Env;
     use tempfile::tempdir;
 
-    static INIT: Once = Once::new();
+    // static INIT: Once = Once::new();
 
     fn setup() {
         // INIT.call_once(|| {
@@ -638,9 +676,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_download_source_with_git_package() {
-    }
-
+    fn test_download_source_with_git_package() {}
 
 
     #[test]
@@ -738,26 +774,48 @@ mod tests {
 
 
     #[test]
-    fn test_verify_hash_valid_checksum() {
+    fn test_verify_hash_valid_checksum_512() {
         setup();
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
 
-        let result = verify_hash(tarball_path, expected_checksum);
+        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
 
         assert!(result.is_ok());
     }
 
     #[test]
-    fn test_verify_hash_invalid_checksum() {
+    fn test_verify_hash_invalid_checksum_512() {
         setup();
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab2";
 
-        let result = verify_hash(tarball_path, expected_checksum);
+        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
 
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap().to_string(), "Checksum is invalid.");
+        assert_eq!(result.err().unwrap().to_string(), "Error checking hash: Hashes do not match.");
     }
 
+    #[test]
+    fn test_verify_hash_valid_checksum_256() {
+        setup();
+        let tarball_path = "tests/misc/test_package.tar.gz";
+        let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478d";
+
+        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_verify_hash_invalid_checksum_256() {
+        setup();
+        let tarball_path = "tests/misc/test_package.tar.gz";
+        let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478_";
+
+        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "Error checking hash: Hashes do not match.");
+    }
 }
