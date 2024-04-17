@@ -216,9 +216,9 @@ fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
 }
 
 fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
-    let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."));
+    let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."))?;
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
+    file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read tarball."))?;
 
     let actual_sha512 = calculate_sha512(&*buffer.clone()).unwrap_or_default();
     info!("sha512 hash {}", &actual_sha512);
@@ -390,7 +390,7 @@ fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
 
     let debian_rules = format!("{}/debian/rules", build_files_dir);
     let mut permissions = fs::metadata(debian_rules.clone())
-        .map_err(|_| eyre!("Failed to get debian/rules permission.")).permissions();
+        .map_err(|_| eyre!("Failed to get debian/rules permission."))?.permissions();
     permissions.set_mode(permissions.mode() | 0o111);
     fs::set_permissions(debian_rules, permissions).map_err(|_| eyre!("Failed to set debian/rules permission."))?;
     Ok(())
