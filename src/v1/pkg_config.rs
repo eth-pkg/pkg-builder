@@ -553,6 +553,7 @@ bin_bash=""
                 pkg_builder_version: "0.1".to_string(),
                 debcrafter_version: "latest".to_string(),
                 sbuild_cache_dir: None,
+                docker: None,
                 run_lintian: Some(false),
                 run_piuparts: Some(false),
                 run_autopkgtest: Some(false),
