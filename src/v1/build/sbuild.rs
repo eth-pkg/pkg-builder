@@ -80,16 +80,27 @@ impl Sbuild {
                         install
                     }
                     LanguageEnv::JavaScript(config) | LanguageEnv::TypeScript(config) => {
-                        // TODO node version
-                        // from nodesource
-                        // TODO switch from nodesource to actual binary without repository
+                       // let node_version = &config.go_version;
+                        let node_binary_url = &config.node_binary_url;
+                        let node_binary_checksum = &config.node_binary_checksum;
                         let mut install = vec![
-                            "curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && apt-get install -y nodejs npm".to_string(),
+                            "apt install -y curl".to_string(),
+                            format!("cd /tmp && curl -o node.tar.gz -L {}", node_binary_url),
+                            format!("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum),
+                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                            "cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1".to_string(),
+                            "ls -l /usr/share/node/bin".to_string(),
+                            "ln -s /usr/share/node/bin/node /usr/bin/node".to_string(),
+                            "ln -s /usr/share/node/bin/npm /usr/bin/npm".to_string(),
+                            "ln -s /usr/share/node/bin/npx /usr/bin/npx".to_string(),
+                            "ln -s /usr/share/node/bin/corepack /usr/bin/corepack".to_string(),
+                            "apt remove -y curl".to_string(),
                             "node --version".to_string(),
                             "npm --version".to_string(),
                         ];
                         if let Some(yarn_version) = &config.yarn_version {
                             install.push(format!("npm install --global yarn@{}", yarn_version));
+                            install.push("ln -s /usr/share/node/bin/yarn /usr/bin/yarn".to_string());
                             install.push("yarn --version".to_string());
                         }
                         install
@@ -181,7 +192,7 @@ impl Sbuild {
                         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
                                 tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
                         "apt-get update".to_string(),
-                        format!("usermod -aG docker {}", username),
+                       // format!("usermod -aG docker {}", username),
                         "apt-get remove -y gnupg curl".to_string(),
                     ];
                     additional_deps.extend(install);

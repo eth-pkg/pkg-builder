@@ -88,6 +88,8 @@ impl Validation for GoConfig {
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavascriptConfig {
     pub node_version: String,
+    pub node_binary_url: String,
+    pub node_binary_checksum: String,
     pub yarn_version: Option<String>,
 }
 impl Validation for JavascriptConfig {
@@ -95,6 +97,12 @@ impl Validation for JavascriptConfig {
         let mut errors = Vec::new();
 
         if let Err(err) = validate_not_empty("node_version", &self.node_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("node_binary_url", &self.node_binary_url) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("node_binary_checksum", &self.node_binary_checksum) {
             errors.push(err);
         }
         if let Some(yarn_version) = &self.yarn_version {
@@ -612,6 +620,8 @@ bin_bash=""
             Err(validation_errors) => {
                 let expected_errors = [
                     "field: node_version cannot be empty",
+                    "field: node_binary_url cannot be empty",
+                    "field: node_binary_checksum cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
