@@ -429,6 +429,10 @@ fn setup_sbuild() -> Result<()> {
 }
 
 fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
+    if !dest_dir.exists() {
+        fs::create_dir_all(dest_dir)?;
+    }
+
     for entry in fs::read_dir(src_dir)? {
         let entry = entry?;
         let entry_path = entry.path();
