@@ -125,7 +125,7 @@ impl Sbuild {
                                 install.push(format!("cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib", version = gradle_version));
                                 install.push(format!("ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle", version = gradle_version));
                                 install.push("gradle -version".to_string());
-                                install.push( "apt remove -y wget".to_string());
+                                install.push("apt remove -y wget".to_string());
                             }
                             return install;
                         }
@@ -170,19 +170,20 @@ impl Sbuild {
                     }
                 };
                 // let is_docker_needed_for_tests = true;
-                // if is_docker_needed_for_tests {
-                //     // Note this doesn't install docker, please put into that into build_depends
-                //     let install = vec![
-                //         "apt install -y gnupg".to_string(),
-                //         "install -m 0755 -d /etc/apt/keyrings".to_string(),
-                //         "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
-                //         "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
-                //         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
-                //                 tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
-                //         "apt-get update".to_string(),
-                //         "apt-get remove gnupg".to_string()
-                //     ];
-                //     additional_deps.extend(install);
+                if let Some(true) = &self.config.build_env.docker {
+                    // Note this doesn't install docker, please put into that into build_depends
+                    let install = vec![
+                        "apt install -y gnupg curl".to_string(),
+                        "install -m 0755 -d /etc/apt/keyrings".to_string(),
+                        "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
+                        "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
+                        "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
+                                tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
+                        "apt-get update".to_string(),
+                        "apt-get remove -y gnupg curl".to_string(),
+                    ];
+                    additional_deps.extend(install);
+                }
                 additional_deps.extend(lang_deps);
 
                 // additional_deps.push(format!("apt remove -y {}", additional_build_deps_for_langs));

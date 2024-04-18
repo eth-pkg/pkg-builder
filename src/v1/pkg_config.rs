@@ -385,6 +385,7 @@ pub struct BuildEnv {
     pub pkg_builder_version: String,
     pub debcrafter_version: String,
     pub sbuild_cache_dir: Option<String>,
+    pub docker: Option<bool>,
     pub run_lintian: Option<bool>,
     pub run_piuparts: Option<bool>,
     pub run_autopkgtest: Option<bool>,
