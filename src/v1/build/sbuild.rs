@@ -171,7 +171,8 @@ impl Sbuild {
                 };
                 // let is_docker_needed_for_tests = true;
                 if let Some(true) = &self.config.build_env.docker {
-                    // Note this doesn't install docker, please put into that into build_depends
+                    let username = whoami::username();
+                    // Have to install dependencies here, as docker service needs to be started
                     let install = vec![
                         "apt install -y gnupg curl".to_string(),
                         "install -m 0755 -d /etc/apt/keyrings".to_string(),
@@ -180,6 +181,7 @@ impl Sbuild {
                         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
                                 tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
                         "apt-get update".to_string(),
+                        format!("usermod -aG docker {}", username),
                         "apt-get remove -y gnupg curl".to_string(),
                     ];
                     additional_deps.extend(install);
