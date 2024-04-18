@@ -305,9 +305,12 @@ impl BackendBuildEnv for Sbuild {
         }
         io::stdout().flush()?;
 
-        child.wait().map_err(|err| eyre!(err.to_string()))?;
-
-        Ok(())
+        let status = child.wait().map_err(|err| eyre!(err.to_string()))?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(eyre!("Sbuild exited with non-zero status code. Please see build output for potential causes."))
+        }
     }
 }
 
