@@ -27,6 +27,148 @@ impl Sbuild {
         }
     }
 
+    fn get_additional_install(&self, lang_env: &LanguageEnv) -> Vec<String>{
+        match lang_env {
+            LanguageEnv::C => {
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Rust(config) => {
+                // TODO
+                // let rust_version = &config.rust_version;
+                let rust_binary_url = &config.rust_binary_url;
+                let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
+                let lang_deps = vec![
+                    "apt install -y curl gpg gpg-agent".to_string(),
+                    format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
+                    format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
+                    "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
+                    "cd /tmp && gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
+                    "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
+                    "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
+                    "apt remove -y curl gpg gpg-agent".to_string(),
+                ];
+                lang_deps
+            }
+            LanguageEnv::Go(config) => {
+                // TODO
+                //let go_version = &config.go_version;
+                let go_binary_url = &config.go_binary_url;
+                let go_binary_checksum = &config.go_binary_checksum;
+                let install = vec![
+                    "apt install -y curl".to_string(),
+                    format!("cd /tmp && curl -o go.tar.gz -L {}", go_binary_url),
+                    format!("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum),
+                    "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                    "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
+                    "ln -s /usr/local/go/bin/go /usr/bin/go".to_string(),
+                    "go version".to_string(),
+                    "apt remove -y curl".to_string(),
+                ];
+                install
+            }
+            LanguageEnv::JavaScript(config) | LanguageEnv::TypeScript(config) => {
+                // let node_version = &config.go_version;
+                let node_binary_url = &config.node_binary_url;
+                let node_binary_checksum = &config.node_binary_checksum;
+                let mut install = vec![
+                    "apt install -y curl".to_string(),
+                    format!("cd /tmp && curl -o node.tar.gz -L {}", node_binary_url),
+                    format!("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum),
+                    "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                    "cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1".to_string(),
+                    "ls -l /usr/share/node/bin".to_string(),
+                    "ln -s /usr/share/node/bin/node /usr/bin/node".to_string(),
+                    "ln -s /usr/share/node/bin/npm /usr/bin/npm".to_string(),
+                    "ln -s /usr/share/node/bin/npx /usr/bin/npx".to_string(),
+                    "ln -s /usr/share/node/bin/corepack /usr/bin/corepack".to_string(),
+                    "apt remove -y curl".to_string(),
+                    "node --version".to_string(),
+                    "npm --version".to_string(),
+                ];
+                if let Some(yarn_version) = &config.yarn_version {
+                    install.push(format!("npm install --global yarn@{}", yarn_version));
+                    install.push("ln -s /usr/share/node/bin/yarn /usr/bin/yarn".to_string());
+                    install.push("yarn --version".to_string());
+                }
+                install
+            }
+            LanguageEnv::Java(config) => {
+                let is_oracle = config.is_oracle;
+                if is_oracle {
+                    let jdk_version = &config.jdk_version;
+                    let jdk_binary_url = &config.jdk_binary_url;
+                    let jdk_binary_checksum = &config.jdk_binary_checksum;
+                    let mut install = vec![
+                        "apt install -y wget".to_string(),
+                        format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version = jdk_version),
+                        format!("cd /tmp && wget -q --output-document jdk.tar.gz {}", jdk_binary_url),
+                        format!("cd /tmp && echo \"{} jdk.tar.gz\" >> hash_file.txt && cat hash_file.txt", jdk_binary_checksum),
+                        "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                        format!("cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{version}-oracle --strip-components=1", version = jdk_version),
+                        format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/java  /usr/bin/java", version = jdk_version),
+                        format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/javac  /usr/bin/javac", version = jdk_version),
+                        "java -version".to_string(),
+                        "apt remove -y wget".to_string(),
+                    ];
+                    if let Some(gradle_config) = &config.gradle {
+                        let gradle_version = &gradle_config.gradle_version;
+                        let gradle_binary_url = &gradle_config.gradle_binary_url;
+                        let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
+
+                        install.push("apt install -y wget unzip".to_string());
+                        install.push(format!("mkdir -p /opt/lib/gradle-{version}", version = gradle_version));
+                        install.push(format!("cd /tmp && wget -q --output-document gradle.tar.gz {}", gradle_binary_url));
+                        install.push(format!("cd /tmp && echo \"{} gradle.tar.gz\" > hash_file.txt && cat hash_file.txt", gradle_binary_checksum));
+                        install.push("cd /tmp && sha256sum -c hash_file.txt".to_string());
+                        install.push(format!("cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib", version = gradle_version));
+                        install.push(format!("ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle", version = gradle_version));
+                        install.push("gradle -version".to_string());
+                        install.push("apt remove -y wget".to_string());
+                    }
+                    return install;
+                }
+                vec![]
+            }
+            LanguageEnv::Dotnet(config) => {
+                let dotnet_version = &config.dotnet_version;
+                // TODO do not use MS repository as they upgrade between major versions
+                // this breaks backward compatibility
+                // reproducible builds should use pinned versions
+                let install = vec![
+                    "apt install -y wget".to_string(),
+                    "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                    "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                    "apt-get update -y".to_string(),
+                    format!("apt-get install -y dotnet-sdk-{}", dotnet_version),
+                    "dotnet --version".to_string(),
+                    "apt remove -y wget".to_string(),
+                ];
+                install
+            }
+            LanguageEnv::Nim(config) => {
+                let nim_version = &config.nim_version;
+                let nim_binary_url = &config.nim_binary_url;
+                let nim_version_checksum = &config.nim_version_checksum;
+                let install = vec![
+                    "apt install -y wget".to_string(),
+                    format!("rm -rf /tmp/nim-{version} && rm -rf /usr/lib/nim/nim-{version}&& rm -rf /opt/lib/nim/nim-{version} && mkdir /tmp/nim-{version}", version = nim_version),
+                    "mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim".to_string(),
+                    format!("cd /tmp && wget -q {}", nim_binary_url),
+                    format!("cd /tmp && echo {} >> hash_file.txt && cat hash_file.txt", nim_version_checksum),
+                    "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                    format!("cd /tmp && tar xJf nim-{version}-linux_x64.tar.xz -C nim-{version} --strip-components=1", version = nim_version),
+                    format!("cd /tmp  && mv nim-{version} /opt/lib/nim", version = nim_version),
+                    format!("ln -s /opt/lib/nim/nim-{version}/bin/nim  /usr/bin/nim", version = nim_version),
+                    // equality check not working
+                    //  format!("installed_version=`nim --version | head -n 1 | awk '{{print $4}}'` && echo \"installed version: $installed_version\" && [ \"$installed_version\" != \"{}\" ] && exit 1", nim_version),
+                    "nim --version".to_string(),
+                    "apt remove -y wget".to_string(),
+                ];
+                install
+            }
+        }
+    }
     fn get_additional_deps(&self) -> Vec<String> {
         let package_type = &self.config.package_type;
         let lang_env = match package_type {
@@ -39,168 +181,7 @@ impl Sbuild {
                 vec![]
             }
             Some(lang_env) => {
-                let mut additional_deps: Vec<String> = vec![];
-                let lang_deps = match lang_env {
-                    LanguageEnv::C => {
-                        let lang_deps = vec![];
-                        lang_deps
-                    }
-                    LanguageEnv::Rust(config) => {
-                        // TODO
-                        // let rust_version = &config.rust_version;
-                        let rust_binary_url = &config.rust_binary_url;
-                        let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
-                        let lang_deps = vec![
-                            "apt install -y curl gpg gpg-agent".to_string(),
-                            format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
-                            format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
-                            "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
-                            "cd /tmp && gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
-                            "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
-                            "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
-                            "apt remove -y curl gpg gpg-agent".to_string(),
-                        ];
-                        lang_deps
-                    }
-                    LanguageEnv::Go(config) => {
-                        // TODO
-                        //let go_version = &config.go_version;
-                        let go_binary_url = &config.go_binary_url;
-                        let go_binary_checksum = &config.go_binary_checksum;
-                        let install = vec![
-                            "apt install -y curl".to_string(),
-                            format!("cd /tmp && curl -o go.tar.gz -L {}", go_binary_url),
-                            format!("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum),
-                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
-                            "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
-                            "ln -s /usr/local/go/bin/go /usr/bin/go".to_string(),
-                            "go version".to_string(),
-                            "apt remove -y curl".to_string(),
-                        ];
-                        install
-                    }
-                    LanguageEnv::JavaScript(config) | LanguageEnv::TypeScript(config) => {
-                       // let node_version = &config.go_version;
-                        let node_binary_url = &config.node_binary_url;
-                        let node_binary_checksum = &config.node_binary_checksum;
-                        let mut install = vec![
-                            "apt install -y curl".to_string(),
-                            format!("cd /tmp && curl -o node.tar.gz -L {}", node_binary_url),
-                            format!("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum),
-                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
-                            "cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1".to_string(),
-                            "ls -l /usr/share/node/bin".to_string(),
-                            "ln -s /usr/share/node/bin/node /usr/bin/node".to_string(),
-                            "ln -s /usr/share/node/bin/npm /usr/bin/npm".to_string(),
-                            "ln -s /usr/share/node/bin/npx /usr/bin/npx".to_string(),
-                            "ln -s /usr/share/node/bin/corepack /usr/bin/corepack".to_string(),
-                            "apt remove -y curl".to_string(),
-                            "node --version".to_string(),
-                            "npm --version".to_string(),
-                        ];
-                        if let Some(yarn_version) = &config.yarn_version {
-                            install.push(format!("npm install --global yarn@{}", yarn_version));
-                            install.push("ln -s /usr/share/node/bin/yarn /usr/bin/yarn".to_string());
-                            install.push("yarn --version".to_string());
-                        }
-                        install
-                    }
-                    LanguageEnv::Java(config) => {
-                        let is_oracle = config.is_oracle;
-                        if is_oracle {
-                            let jdk_version = &config.jdk_version;
-                            let jdk_binary_url = &config.jdk_binary_url;
-                            let jdk_binary_checksum = &config.jdk_binary_checksum;
-                            let mut install = vec![
-                                "apt install -y wget".to_string(),
-                                format!("mkdir -p /opt/lib/jvm/jdk-{version}-oracle && mkdir -p /usr/lib/jvm", version = jdk_version),
-                                format!("cd /tmp && wget -q --output-document jdk.tar.gz {}", jdk_binary_url),
-                                format!("cd /tmp && echo \"{} jdk.tar.gz\" >> hash_file.txt && cat hash_file.txt", jdk_binary_checksum),
-                                "cd /tmp && sha256sum -c hash_file.txt".to_string(),
-                                format!("cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{version}-oracle --strip-components=1", version = jdk_version),
-                                format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/java  /usr/bin/java", version = jdk_version),
-                                format!("ln -s /opt/lib/jvm/jdk-{version}-oracle/bin/javac  /usr/bin/javac", version = jdk_version),
-                                "java -version".to_string(),
-                                "apt remove -y wget".to_string(),
-                            ];
-                            if let Some(gradle_config) = &config.gradle {
-                                let gradle_version = &gradle_config.gradle_version;
-                                let gradle_binary_url = &gradle_config.gradle_binary_url;
-                                let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
-
-                                install.push("apt install -y wget unzip".to_string());
-                                install.push(format!("mkdir -p /opt/lib/gradle-{version}", version = gradle_version));
-                                install.push(format!("cd /tmp && wget -q --output-document gradle.tar.gz {}", gradle_binary_url));
-                                install.push(format!("cd /tmp && echo \"{} gradle.tar.gz\" > hash_file.txt && cat hash_file.txt", gradle_binary_checksum));
-                                install.push("cd /tmp && sha256sum -c hash_file.txt".to_string());
-                                install.push(format!("cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib", version = gradle_version));
-                                install.push(format!("ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle", version = gradle_version));
-                                install.push("gradle -version".to_string());
-                                install.push("apt remove -y wget".to_string());
-                            }
-                            return install;
-                        }
-                        vec![]
-                    }
-                    LanguageEnv::Dotnet(config) => {
-                        let dotnet_version = &config.dotnet_version;
-                        // TODO do not use MS repository as they upgrade between major versions
-                        // this breaks backward compatibility
-                        // reproducible builds should use pinned versions
-                        let install = vec![
-                            "apt install -y wget".to_string(),
-                            "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                            "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                            "apt-get update -y".to_string(),
-                            format!("apt-get install -y dotnet-sdk-{}", dotnet_version),
-                            "dotnet --version".to_string(),
-                            "apt remove -y wget".to_string(),
-                        ];
-                        install
-                    }
-                    LanguageEnv::Nim(config) => {
-                        let nim_version = &config.nim_version;
-                        let nim_binary_url = &config.nim_binary_url;
-                        let nim_version_checksum = &config.nim_version_checksum;
-                        let install = vec![
-                            "apt install -y wget".to_string(),
-                            format!("rm -rf /tmp/nim-{version} && rm -rf /usr/lib/nim/nim-{version}&& rm -rf /opt/lib/nim/nim-{version} && mkdir /tmp/nim-{version}", version = nim_version),
-                            "mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim".to_string(),
-                            format!("cd /tmp && wget -q {}", nim_binary_url),
-                            format!("cd /tmp && echo {} >> hash_file.txt && cat hash_file.txt", nim_version_checksum),
-                            "cd /tmp && sha256sum -c hash_file.txt".to_string(),
-                            format!("cd /tmp && tar xJf nim-{version}-linux_x64.tar.xz -C nim-{version} --strip-components=1", version = nim_version),
-                            format!("cd /tmp  && mv nim-{version} /opt/lib/nim", version = nim_version),
-                            format!("ln -s /opt/lib/nim/nim-{version}/bin/nim  /usr/bin/nim", version = nim_version),
-                            // equality check not working
-                            //  format!("installed_version=`nim --version | head -n 1 | awk '{{print $4}}'` && echo \"installed version: $installed_version\" && [ \"$installed_version\" != \"{}\" ] && exit 1", nim_version),
-                            "nim --version".to_string(),
-                            "apt remove -y wget".to_string(),
-                        ];
-                        install
-                    }
-                };
-                // let is_docker_needed_for_tests = true;
-                if let Some(true) = &self.config.build_env.docker {
-                    let username = whoami::username();
-                    // Have to install dependencies here, as docker service needs to be started
-                    let install = vec![
-                        "apt install -y gnupg curl".to_string(),
-                        "install -m 0755 -d /etc/apt/keyrings".to_string(),
-                        "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
-                        "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
-                        "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
-                                tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
-                        "apt-get update".to_string(),
-                       // format!("usermod -aG docker {}", username),
-                        "apt-get remove -y gnupg curl".to_string(),
-                    ];
-                    additional_deps.extend(install);
-                }
-                additional_deps.extend(lang_deps);
-
-                // additional_deps.push(format!("apt remove -y {}", additional_build_deps_for_langs));
-                additional_deps
+                 self.get_additional_install(lang_env)
             }
         }
     }
@@ -285,9 +266,58 @@ impl BackendBuildEnv for Sbuild {
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
-        cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
-        cmd_args.push("--chroot-setup-commands=apt autoremove -y".to_string());
-
+        //cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
+        // cmd_args.push("--chroot-setup-commands=apt autoremove -y".to_string());
+        // cmd_args.push("--pre-build-commands=sudo mkdir /sys/fs/cgroup/systemd || true".to_string());
+        // cmd_args.push("--pre-build-commands=sudo umount /sys/fs/cgroup/systemd || true".to_string());
+        // cmd_args.push("--pre-build-commands=sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd".to_string());
+        //
+        // let mut starting_build_commands: Vec<String> = vec![];
+        // if let Some(true) = &self.config.build_env.docker {
+        //     let username = whoami::username();
+        //     // Have to install dependencies here, as docker service needs to be started
+        //     let install = vec![
+        //         "apt install -y gnupg curl".to_string(),
+        //
+        //         "install -m 0755 -d /etc/apt/keyrings".to_string(),
+        //         "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
+        //         "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
+        //         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
+        //                         tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
+        //         "apt-get update".to_string(),
+        //         "apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin".to_string(),
+        //         "apt install -y uidmap dbus-user-session fuse-overlayfs cgroup-tools".to_string(),
+        //         format!("usermod -aG docker {}", username),
+        //         "grep ^SUB_UID_MIN /etc/login.defs".to_string(),
+        //         "grep ^SUB_UID_MAX /etc/login.defs".to_string(),
+        //         "grep ^SUB_GID_MIN /etc/login.defs".to_string(),
+        //         "grep ^SUB_GID_MAX /etc/login.defs".to_string(),
+        //         // values are based on above
+        //         format!("usermod --add-subuids 100000-1001999999 {}", username),
+        //         format!("usermod --add-subgids 100000-1001999999 {}", username),
+        //         // rewrite policy.d to allow to docker to be running, but only after docker is installed,
+        //         // as we need to fix the script
+        //         "echo '#!/bin/sh' |  tee /usr/sbin/policy-rc.d > /dev/null".to_string(),
+        //         "echo 'exit 0' |  tee -a /usr/sbin/policy-rc.d > /dev/null".to_string(),
+        //         "ulimit -Hn 524288".to_string(),
+        //         // remove ulimit lines
+        //         "sed -i '60,71d' /etc/init.d/docker".to_string(),
+        //         "cat /etc/init.d/docker".to_string(),
+        //        // "dockerd-rootless.sh --experimental --storage-driver vfs".to_string(),
+        //        // "rm /var/run/docker.pid || true".to_string(),
+        //       //  "".to_string(),
+        //         "start-stop-daemon --start --exec /usr/bin/dockerd --pidfile /var/run/docker.pid --make-pidfile -- -p /var/run/docker.pid --storage-driver vfs --experimental".to_string(),
+        //         "/etc/init.d/docker start".to_string(),
+        //         "cat /var/log/docker.log".to_string(),
+        //         //"grep -r 'docker' /var/log".to_string(),
+        //         "/etc/init.d/docker status".to_string(),
+        //         // intentionally, do not remove installed packages at this point, as build will fail
+        //     ];
+        //     starting_build_commands.extend(install);
+        // }
+        for action in starting_build_commands.iter() {
+            cmd_args.push(format!("--starting-build-commands={}", action))
+        }
         if let Some(true) = self.config.build_env.run_lintian {} else {
             cmd_args.push("--no-run-lintian".to_string());
         }
