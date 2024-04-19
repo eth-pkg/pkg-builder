@@ -315,9 +315,9 @@ impl BackendBuildEnv for Sbuild {
         //     ];
         //     starting_build_commands.extend(install);
         // }
-        for action in starting_build_commands.iter() {
-            cmd_args.push(format!("--starting-build-commands={}", action))
-        }
+        // for action in starting_build_commands.iter() {
+        //     cmd_args.push(format!("--starting-build-commands={}", action))
+        // }
         if let Some(true) = self.config.build_env.run_lintian {} else {
             cmd_args.push("--no-run-lintian".to_string());
         }
