@@ -1,6 +1,7 @@
 use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
+use std::env::temp_dir;
 
 use crate::v1::build::sbuild::Sbuild;
 use crate::v1::debcrafter_helper;
@@ -8,7 +9,7 @@ use crate::v1::packager::{BackendBuildEnv, Packager};
 
 use eyre::{eyre, Result};
 
-use crate::v1::pkg_config::{PackageType, PkgConfig};
+use crate::v1::pkg_config::{PackageType, PkgConfig, SubModule};
 use dirs::home_dir;
 use log::info;
 use log::warn;
@@ -98,6 +99,8 @@ impl Packager for BookwormPackager {
                     &self.debian_artifacts_dir,
                     &self.debian_orig_tarball_path,
                     &config.git_url,
+                    &config.git_tag,
+                    &config.submodules,
                 )?;
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
@@ -179,9 +182,76 @@ fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> 
     Ok(())
 }
 
-#[allow(unused_variables)]
-fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_source: &str) -> Result<()> {
-    todo!()
+fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Result<()> {
+    // DO not use git2, it has very little git supported functionality
+    // Initialize all submodules if they are not already initialized
+    // Update submodules to specific commits
+    for submodule in git_submodules.clone() {
+        let output = Command::new("git")
+            .current_dir(Path::new(current_dir).join(submodule.path.clone()))
+            .args(&["checkout", &submodule.commit.clone()])
+            .output()
+            .map_err(|err| eyre!(format!("Failed to checkout submodule {}", err)))?;
+        if !output.status.success() {
+            return Err(eyre!(
+                "Failed to checkout commit {} for submodule {}: {}",
+                submodule.commit,
+                submodule.path,
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+    fs::remove_dir_all(path)?;
+    let output = Command::new("git")
+        .args(&["clone", "--depth", "1", "--branch", tag_version, git_url, path])
+        .output()
+        .expect("Failed to execute git clone command");
+    if !output.status.success() {
+        return Err(eyre!(
+            "Failed to checkout tag {}: {}",
+            tag_version,
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    // Initialize submodules
+    let output = Command::new("git")
+        .current_dir(path)
+        .args(&["submodule", "update", "--init", "--recursive"])
+        .output()?;
+
+    if !output.status.success() {
+        return Err(eyre!(
+            "Failed to initialize submodules: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    update_submodules(git_submodules, path)?;
+
+    Ok(())
+}
+
+fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+    let path = temp_dir().as_path();
+    clone_and_checkout_tag(git_url, tag_version, path.to_str().unwrap(), &git_submodules)?;
+    info!("Creating tar from .git repo");
+    // remove .git directory, no need to package it
+    fs::remove_dir_all(path.join(".git"))?;
+    let output = Command::new("tar")
+        .args(["czvf", tarball_path, "--files-from", path.to_str().unwrap()])
+        .current_dir(build_artifacts_dir)
+        .output()?;
+    if !output.status.success() {
+        return Err(eyre!("Creating tar.gz failed".to_string(),));
+    }
+
+    Ok(())
 }
 
 fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()> {
@@ -422,7 +492,7 @@ fn setup_sbuild() -> Result<()> {
     let content = include_str!(".sbuildrc");
     let home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
     let replaced_contents = content.replace("<HOME>", &home_dir);
-    let mut file = fs::File::create(dest_path) .map_err(|_| eyre!("Failed to create ~/.sbuildrc."))?;
+    let mut file = fs::File::create(dest_path).map_err(|_| eyre!("Failed to create ~/.sbuildrc."))?;
     file.write_all(replaced_contents.as_bytes()).map_err(|_| eyre!("Failed to write ~/.sbuildrc."))?;
 
     Ok(())
@@ -826,5 +896,28 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(result.err().unwrap().to_string(), "Error checking hash: Hashes do not match.");
+    }
+
+    #[test]
+    fn test_clone_and_checkout_tag() {
+        let url = "https://github.com/status-im/nimbus-eth2.git";
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let repo_path = temp_dir.path();
+        let repo_path_str = repo_path.to_str().unwrap();
+        let tag_version = "v24.3.0";
+        let str = fs::read_to_string("examples/bookworm/git-package/nimbus/pkg-builder.toml")
+            .expect("File does not exist");
+        let config: PkgConfig = toml::from_str(&str)
+            .expect("Cannot parse file.");
+        match config.package_type {
+            PackageType::Git(gitconfig) => {
+                let result = clone_and_checkout_tag(url, tag_version, "/tmp/nimbus", &gitconfig.submodules);
+                assert!(result.is_ok(), "Failed to clone and checkout tag: {:?}", result);
+            }
+            _ => panic!("Wrong type of file."),
+        }
+
+
+        fs::remove_dir_all(temp_dir).unwrap();
     }
 }

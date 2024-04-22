@@ -1,12 +1,14 @@
+use std::fs;
+use std::path::Path;
 use eyre::{eyre, Report, Result};
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
 fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    T: FromStr,
-    T::Err: std::fmt::Display,
-    D: Deserializer<'de>,
+    where
+        T: FromStr,
+        T::Err: std::fmt::Display,
+        D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
     if s.is_empty() {
@@ -33,6 +35,7 @@ pub struct RustConfig {
     pub rust_binary_url: String,
     pub rust_binary_gpg_asc: String,
 }
+
 impl Validation for RustConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
@@ -56,12 +59,14 @@ impl Validation for RustConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct GoConfig {
     pub go_version: String,
     pub go_binary_url: String,
     pub go_binary_checksum: String,
 }
+
 impl Validation for GoConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
@@ -85,6 +90,7 @@ impl Validation for GoConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavascriptConfig {
     pub node_version: String,
@@ -92,6 +98,7 @@ pub struct JavascriptConfig {
     pub node_binary_checksum: String,
     pub yarn_version: Option<String>,
 }
+
 impl Validation for JavascriptConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
@@ -118,6 +125,7 @@ impl Validation for JavascriptConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct GradleConfig {
     pub gradle_version: String,
@@ -145,14 +153,16 @@ impl Validation for GradleConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct JavaConfig {
     pub is_oracle: bool,
     pub jdk_version: String,
     pub jdk_binary_url: String,
     pub jdk_binary_checksum: String,
-    pub gradle: Option<GradleConfig>
+    pub gradle: Option<GradleConfig>,
 }
+
 impl Validation for JavaConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
@@ -173,6 +183,7 @@ impl Validation for JavaConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DotnetConfig {
     pub dotnet_version: String,
@@ -193,6 +204,7 @@ impl Validation for DotnetConfig {
         }
     }
 }
+
 // #[derive(Debug, Deserialize, PartialEq, Clone)]
 // pub struct TypescriptConfig {
 //     pub node_version: String,
@@ -246,6 +258,7 @@ impl Validation for NimConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 #[serde(tag = "language_env", rename_all = "lowercase")]
 pub enum LanguageEnv {
@@ -259,6 +272,7 @@ pub enum LanguageEnv {
     #[default]
     C,
 }
+
 impl Validation for LanguageEnv {
     fn validate(&self) -> Result<(), Vec<Report>> {
         match self {
@@ -273,6 +287,7 @@ impl Validation for LanguageEnv {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DefaultPackageTypeConfig {
     pub tarball_url: String,
@@ -287,7 +302,7 @@ impl Validation for DefaultPackageTypeConfig {
         if let Err(err) = validate_not_empty("tarball_url", &self.tarball_url) {
             errors.push(err);
         }
-        if let Some(value) = &self.tarball_hash{
+        if let Some(value) = &self.tarball_hash {
             if let Err(err) = validate_not_empty("tarball_hash", value) {
                 errors.push(err);
             }
@@ -305,10 +320,38 @@ impl Validation for DefaultPackageTypeConfig {
         }
     }
 }
+
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+pub struct SubModule {
+    pub commit: String,
+    pub path: String,
+}
+
+impl Validation for SubModule {
+    fn validate(&self) -> Result<(), Vec<Report>> {
+        let mut errors = Vec::new();
+
+        if let Err(err) = validate_not_empty("commit", &self.commit) {
+            errors.push(err);
+        }
+
+        if let Err(err) = validate_not_empty("path", &self.path) {
+            errors.push(err);
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct GitPackageTypeConfig {
-    pub git_commit: String,
+    pub git_tag: String,
     pub git_url: String,
+    pub submodules: Vec<SubModule>,
     pub language_env: LanguageEnv,
 }
 
@@ -316,7 +359,7 @@ impl Validation for GitPackageTypeConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
         let mut errors = Vec::new();
 
-        if let Err(err) = validate_not_empty("git_commit", &self.git_commit) {
+        if let Err(err) = validate_not_empty("git_tag", &self.git_tag) {
             errors.push(err);
         }
 
@@ -331,6 +374,7 @@ impl Validation for GitPackageTypeConfig {
         }
     }
 }
+
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 #[serde(tag = "package_type", rename_all = "lowercase")]
 pub enum PackageType {
@@ -484,6 +528,21 @@ pub fn parse(config_str: &str) -> Result<PkgConfig> {
     Ok(configuration)
 }
 
+pub fn read_config(path: &Path) -> Result<PkgConfig> {
+    let toml_content = fs::read_to_string(path)?;
+
+    let config: PkgConfig =
+        parse(&toml_content)?;
+
+
+    Ok(config)
+}
+
+pub fn get_config(config_file: String) -> Result<PkgConfig> {
+    let path = Path::new(&config_file);
+    read_config(path)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -591,6 +650,7 @@ bin_bash=""
             Ok(_) => panic!("Validation should have failed."),
         }
     }
+
     #[test]
     fn test_empty_strings_are_error_go_config() {
         let config = GoConfig::default();

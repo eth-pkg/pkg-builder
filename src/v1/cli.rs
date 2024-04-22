@@ -1,24 +1,12 @@
 use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
 use super::packager::DistributionPackager;
-use crate::v1::pkg_config::{parse, PkgConfig};
+use crate::v1::pkg_config::{get_config, PkgConfig};
 use clap::Parser;
 use env_logger::Env;
 use eyre::{Result};
 use std::{fs, path::Path};
 
-fn read_config(path: &Path) -> Result<PkgConfig> {
-    let toml_content = fs::read_to_string(path)?;
 
-    let config: PkgConfig =
-        parse(&toml_content)?;
-
-    Ok(config)
-}
-
-pub fn get_config(config_file: String) -> Result<PkgConfig> {
-    let path = Path::new(&config_file);
-    read_config(path)
-}
 pub fn get_distribution(config: PkgConfig, config_file_path: String) -> Result<DistributionPackager> {
     let path = Path::new(&config_file_path);
     let config_file_path = fs::canonicalize(path)?;
