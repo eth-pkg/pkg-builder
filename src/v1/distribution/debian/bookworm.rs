@@ -1,7 +1,6 @@
 use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
-use std::env::temp_dir;
 
 use crate::v1::build::sbuild::Sbuild;
 use crate::v1::debcrafter_helper;
@@ -19,6 +18,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use sha2::{Digest, Sha256, Sha512};
+use tempfile::tempdir;
 
 pub struct BookwormPackager {
     config: PkgConfig,
@@ -206,7 +206,6 @@ fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Resu
 }
 
 fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
-    fs::remove_dir_all(path)?;
     let output = Command::new("git")
         .args(&["clone", "--depth", "1", "--branch", tag_version, git_url, path])
         .output()
@@ -238,17 +237,24 @@ fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_subm
 }
 
 fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
-    let path = temp_dir().as_path();
+    let temporary_dir = tempdir()?;
+    let path = temporary_dir.path();
+    //let path = Path::new("/tmp/nimbus");
     clone_and_checkout_tag(git_url, tag_version, path.to_str().unwrap(), &git_submodules)?;
-    info!("Creating tar from .git repo");
     // remove .git directory, no need to package it
     fs::remove_dir_all(path.join(".git"))?;
+
+    info!("Creating tar from git repo from {}", path.to_str().unwrap());
     let output = Command::new("tar")
-        .args(["czvf", tarball_path, "--files-from", path.to_str().unwrap()])
+        .args(&["czvf", tarball_path, "-C", path.to_str().unwrap(), "."])
         .current_dir(build_artifacts_dir)
         .output()?;
     if !output.status.success() {
-        return Err(eyre!("Creating tar.gz failed".to_string(),));
+        return Err(eyre!(format!(
+            "Failed to create tarball: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ))
+            .into());
     }
 
     Ok(())
@@ -911,7 +917,7 @@ mod tests {
             .expect("Cannot parse file.");
         match config.package_type {
             PackageType::Git(gitconfig) => {
-                let result = clone_and_checkout_tag(url, tag_version, "/tmp/nimbus", &gitconfig.submodules);
+                let result = clone_and_checkout_tag(url, tag_version, repo_path_str, &gitconfig.submodules);
                 assert!(result.is_ok(), "Failed to clone and checkout tag: {:?}", result);
             }
             _ => panic!("Wrong type of file."),
