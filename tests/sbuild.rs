@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use env_logger::Env;
-    use pkg_builder::v1::cli::{get_config, get_distribution};
-    use pkg_builder::v1::pkg_config::PkgConfig;
+    use pkg_builder::v1::pkg_config::{get_config, PkgConfig};
     use std::fs;
     use std::path::Path;
     use std::sync::Once;
+    use pkg_builder::v1::cli::get_distribution;
 
     static INIT: Once = Once::new();
     static CODENAME: &str = "bookworm";
