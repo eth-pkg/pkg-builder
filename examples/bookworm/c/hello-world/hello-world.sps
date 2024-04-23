@@ -1,6 +1,9 @@
 name = "hello-world"
 architecture = "any"
-summary = "A simple test package"
+summary = """Example Package
+This is a short description of the package. It should provide a brief summary
+of what the package does and its purpose. The short description should be
+limited to a single line."""
 conflicts = []
 recommends = []
 provides = []
@@ -9,5 +12,10 @@ depends = []
 add_files = []
 add_manpages = []
 long_doc = """
-Example description. If not provided, lintian will fail.
+Example Package
+ This is a short description of the package. It should provide a brief summary
+ of what the package does and its purpose. The short description should be
+ limited to a single line.
+ Long Description:
+  Example description. If not provided, lintian will fail.
 """
