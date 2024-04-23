@@ -814,7 +814,7 @@ bin_bash=""
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: git_commit cannot be empty",
+                    "field: git_tag cannot be empty",
                     "field: git_url cannot be empty",
                 ];
                 assert_eq!(
