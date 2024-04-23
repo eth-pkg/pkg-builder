@@ -267,16 +267,36 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
 
-        cmd_args.push("--lintian-opt=--suppress-tags".to_string());
-        cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
 
-        if let Some(true) = self.config.build_env.run_lintian {} else {
+
+        if let Some(true) = self.config.build_env.run_lintian {
+            cmd_args.push("--run-lintian".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
+            cmd_args.push("--lintian-opts=-i".to_string());
+            cmd_args.push("--lintian-opts=--I".to_string());
+        } else {
             cmd_args.push("--no-run-lintian".to_string());
         }
-        if let Some(true) = self.config.build_env.run_autopkgtest {} else {
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+            cmd_args.push("--run-autopkgtest".to_string());
+
+            cmd_args.push("--autopkgtest-root-args=".to_string());
+            cmd_args.push("--autopkgtest-opts=--".to_string());
+            cmd_args.push("--autopkgtest-opts=schroot".to_string());
+            cmd_args.push(format!("--autopkgtest-opts={}", self.get_cache_file()));
+
+        } else {
             cmd_args.push("--no-run-autopkgtest".to_string());
         }
-        if let Some(true) = self.config.build_env.run_piuparts {} else {
+        if let Some(true) = self.config.build_env.run_piuparts {
+            cmd_args.push("--run-piuparts".to_string());
+            cmd_args.push("--piuparts-opts=-b".to_string());
+            cmd_args.push(format!("--piuparts-opts={}", self.get_cache_file()));
+            cmd_args.push("--piuparts-opts=-d".to_string());
+
+            cmd_args.push(format!("--piuparts-opts={}", self.config.build_env.codename));
+        } else {
             cmd_args.push("--no-run-piuparts".to_string());
         }
         println!(
