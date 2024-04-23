@@ -27,7 +27,7 @@ impl Sbuild {
         }
     }
 
-    fn get_additional_install(&self, lang_env: &LanguageEnv) -> Vec<String>{
+    fn get_additional_install(&self, lang_env: &LanguageEnv) -> Vec<String> {
         match lang_env {
             LanguageEnv::C => {
                 let lang_deps = vec![];
@@ -181,7 +181,7 @@ impl Sbuild {
                 vec![]
             }
             Some(lang_env) => {
-                 self.get_additional_install(lang_env)
+                self.get_additional_install(lang_env)
             }
         }
     }
@@ -266,58 +266,10 @@ impl BackendBuildEnv for Sbuild {
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
-        //cmd_args.push("--chroot-setup-commands=apt dist-upgrade".to_string());
-        // cmd_args.push("--chroot-setup-commands=apt autoremove -y".to_string());
-        // cmd_args.push("--pre-build-commands=sudo mkdir /sys/fs/cgroup/systemd || true".to_string());
-        // cmd_args.push("--pre-build-commands=sudo umount /sys/fs/cgroup/systemd || true".to_string());
-        // cmd_args.push("--pre-build-commands=sudo mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd".to_string());
-        //
-        // let mut starting_build_commands: Vec<String> = vec![];
-        // if let Some(true) = &self.config.build_env.docker {
-        //     let username = whoami::username();
-        //     // Have to install dependencies here, as docker service needs to be started
-        //     let install = vec![
-        //         "apt install -y gnupg curl".to_string(),
-        //
-        //         "install -m 0755 -d /etc/apt/keyrings".to_string(),
-        //         "curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc".to_string(),
-        //         "chmod a+r /etc/apt/keyrings/docker.asc".to_string(),
-        //         "echo deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable | \
-        //                         tee /etc/apt/sources.list.d/docker.list > /dev/null".to_string(),
-        //         "apt-get update".to_string(),
-        //         "apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin".to_string(),
-        //         "apt install -y uidmap dbus-user-session fuse-overlayfs cgroup-tools".to_string(),
-        //         format!("usermod -aG docker {}", username),
-        //         "grep ^SUB_UID_MIN /etc/login.defs".to_string(),
-        //         "grep ^SUB_UID_MAX /etc/login.defs".to_string(),
-        //         "grep ^SUB_GID_MIN /etc/login.defs".to_string(),
-        //         "grep ^SUB_GID_MAX /etc/login.defs".to_string(),
-        //         // values are based on above
-        //         format!("usermod --add-subuids 100000-1001999999 {}", username),
-        //         format!("usermod --add-subgids 100000-1001999999 {}", username),
-        //         // rewrite policy.d to allow to docker to be running, but only after docker is installed,
-        //         // as we need to fix the script
-        //         "echo '#!/bin/sh' |  tee /usr/sbin/policy-rc.d > /dev/null".to_string(),
-        //         "echo 'exit 0' |  tee -a /usr/sbin/policy-rc.d > /dev/null".to_string(),
-        //         "ulimit -Hn 524288".to_string(),
-        //         // remove ulimit lines
-        //         "sed -i '60,71d' /etc/init.d/docker".to_string(),
-        //         "cat /etc/init.d/docker".to_string(),
-        //        // "dockerd-rootless.sh --experimental --storage-driver vfs".to_string(),
-        //        // "rm /var/run/docker.pid || true".to_string(),
-        //       //  "".to_string(),
-        //         "start-stop-daemon --start --exec /usr/bin/dockerd --pidfile /var/run/docker.pid --make-pidfile -- -p /var/run/docker.pid --storage-driver vfs --experimental".to_string(),
-        //         "/etc/init.d/docker start".to_string(),
-        //         "cat /var/log/docker.log".to_string(),
-        //         //"grep -r 'docker' /var/log".to_string(),
-        //         "/etc/init.d/docker status".to_string(),
-        //         // intentionally, do not remove installed packages at this point, as build will fail
-        //     ];
-        //     starting_build_commands.extend(install);
-        // }
-        // for action in starting_build_commands.iter() {
-        //     cmd_args.push(format!("--starting-build-commands={}", action))
-        // }
+
+        cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+        cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
+
         if let Some(true) = self.config.build_env.run_lintian {} else {
             cmd_args.push("--no-run-lintian".to_string());
         }
