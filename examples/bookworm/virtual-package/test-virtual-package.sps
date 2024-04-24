@@ -18,4 +18,5 @@ Example Package
  limited to a single line.
  Long Description:
   Example description. If not provided, lintian will fail.
+ Note this is a metapackage. Add this to deisable lintian errors.
 """

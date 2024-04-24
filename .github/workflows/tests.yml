@@ -48,7 +48,7 @@ jobs:
           - nim
           - rust
           - typescript
-          - gradle-java
+          - gradle_java
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
