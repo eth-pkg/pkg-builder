@@ -1,13 +1,22 @@
 #!/usr/bin/make -f
+export GO=go
+export SRC=src
+export TARGET=bin
+export LDFLAGS="-linkmode=external -extldflags=-dynamic-linker"
+export CGO=0
 
 %:
 	dh $@
 
 override_dh_dwz:
 
+override_dh_auto_build:
+	$(GO) build  -C $(SRC) -ldflags=$(LDFLAGS) -o $(TARGET) -linkshared cmd/hello/main.go
+
 override_dh_auto_install:
 	# This relies on make install script
 	# if there is no install script, you have define your own rules
+	# or use add_files if your script doesnt have install script
 	dh_auto_install -- prefix=/usr
 
 override_dh_auto_clean:
