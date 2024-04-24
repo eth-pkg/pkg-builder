@@ -296,6 +296,10 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push("--piuparts-opts=-d".to_string());
 
             cmd_args.push(format!("--piuparts-opts={}", self.config.build_env.codename));
+            cmd_args.push("--piuparts-opts=-m".to_string());
+            // TODO supply through config
+            cmd_args.push(format!("--piuparts-opts={}", "http://deb.debian.org/debian".to_string()));
+
         } else {
             cmd_args.push("--no-run-piuparts".to_string());
         }
