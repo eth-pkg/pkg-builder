@@ -362,6 +362,8 @@ impl BackendBuildEnv for Sbuild {
 
         let mut cmd = Command::new("sudo")
             .current_dir(deb_dir)
+            // for CI
+            .arg("-S")
             .arg("piuparts")
             .args(&cmd_args)
             .arg(deb_name)

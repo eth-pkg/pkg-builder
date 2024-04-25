@@ -68,11 +68,11 @@ jobs:
       - name: Build
         run: cargo build --verbose
 
-      - name: Test ${{ matrix.language }} packaging
+      - name: package
         run: |
           cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
 
-      - name: Piuparts
+      - name: piuparts
         # TODO seperate piuparts and autopkgtest into their own command, as not to run the packaging as root
         # though as it runs under chroot it won't affect things
         run: |
