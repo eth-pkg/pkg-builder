@@ -78,7 +78,7 @@ jobs:
         run: |
           which cargo
           sudo apt-get update
-          sudo apt-get install debian-archive-keyring
+          sudo apt-get install -y debian-archive-keyring
           sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
           sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_piuparts -- --ignored
 
