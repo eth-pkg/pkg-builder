@@ -73,5 +73,5 @@ jobs:
         # though as it runs under chroot it won't affect things
         run: |
           which cargo
-          sudo /usr/local/cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
 
