@@ -233,7 +233,9 @@ impl BackendBuildEnv for Sbuild {
         temp_dir.push(dir_name);
         fs::create_dir(&temp_dir)?;
 
-        let cache_dir = self.get_cache_file();
+        let cache_file = self.get_cache_file();
+        let cache_dir = Path::new(&cache_file).parent().unwrap();
+        fs::create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
 
         if self.config.build_env.codename != "bookworm" {
             return Err(eyre!("Only bookworm supported at the moment!"));
@@ -241,7 +243,7 @@ impl BackendBuildEnv for Sbuild {
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
-            .arg(cache_dir)
+            .arg(cache_file)
             .arg(&self.config.build_env.codename)
             .arg(temp_dir)
             .arg("http://deb.debian.org/debian")
@@ -335,7 +337,7 @@ impl BackendBuildEnv for Sbuild {
             };
             if let Some(env) = lang_env {
                 match env {
-                    LanguageEnv::Dotnet(config) => {
+                    LanguageEnv::Dotnet(_) => {
                        // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
                         // doesn't work as ca-certificates must be installed under chroot before adding repo
                         // chicken and egg problem
@@ -350,9 +352,8 @@ impl BackendBuildEnv for Sbuild {
                 }
             }
 
-            let mut cmd = Command::new("sudo")
+            let mut cmd = Command::new("piuparts")
                 .current_dir(deb_dir)
-                .arg("piuparts")
                 .args(&cmd_args)
                 .arg(deb_name)
                 .stdout(Stdio::inherit())

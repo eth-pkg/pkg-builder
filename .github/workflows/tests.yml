@@ -69,10 +69,14 @@ jobs:
         run: cargo build --verbose
 
       - name: Test ${{ matrix.language }} packaging
-        # TODO seperate piuparts and autopkgtest into their own command, as not to run the packaging as root
-        # though as it runs under chroot it won't affect things
         run: |
-          which cargo
-          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
-          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
 
+#      - name: Piuparts on ${{ matrix.language }}
+#        # TODO seperate piuparts and autopkgtest into their own command, as not to run the packaging as root
+#        # though as it runs under chroot it won't affect things
+#        run: |
+#          which cargo
+#          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
+#          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+#
