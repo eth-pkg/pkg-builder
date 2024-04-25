@@ -35,7 +35,7 @@ mod tests {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                panic!("Could not clean build env: {}", err);
             }
         }
         let result = distribution.create_build_env();
@@ -44,7 +44,7 @@ mod tests {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                panic!("Could not create build env: {}", err);
             }
         }
     }
@@ -138,7 +138,7 @@ mod tests {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                panic!("Could not package: {}", err);
             }
         }
         // Read the contents of the directory
