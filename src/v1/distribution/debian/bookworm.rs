@@ -137,7 +137,7 @@ impl Packager for BookwormPackager {
         };
         pre_build?;
         let build_env = self.get_build_env().unwrap();
-        build_env.build()?;
+        build_env.package()?;
         Ok(())
     }
 

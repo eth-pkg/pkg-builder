@@ -22,6 +22,18 @@ pub fn run_cli() -> Result<()> {
     let args = PkgBuilderArgs::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     match args.action {
+        ActionType::Piuparts(command) => {
+            let config_file = command.config_file;
+            let config = get_config(config_file.clone())?;
+            let distribution = get_distribution(config, config_file)?;
+            distribution.run_piuparts()?;
+        }
+        ActionType::Autopkgtest(command) => {
+            let config_file = command.config_file;
+            let config = get_config(config_file.clone())?;
+            let distribution = get_distribution(config, config_file)?;
+            distribution.run_autopkgtests()?;
+        }
         ActionType::Package(command) => {
             let config_file = command.config_file;
             let config = get_config(config_file.clone())?;

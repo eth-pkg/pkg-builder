@@ -254,7 +254,7 @@ impl BackendBuildEnv for Sbuild {
         }
         Ok(())
     }
-    fn build(&self) -> Result<()> {
+    fn package(&self) -> Result<()> {
         let mut cmd_args = vec![
             "-d".to_string(),
             self.config.build_env.codename.to_string(),
@@ -308,60 +308,68 @@ impl BackendBuildEnv for Sbuild {
         run_process(&mut cmd)?;
 
         if let Some(true) = self.config.build_env.run_piuparts {
-            println!(
-                "Running piuparts command with elevated privileges..",
-            );
-            println!(
-                "Piuparts must run as root user through sudo, please provide your password."
-            );
-            let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
-            let deb_file_name = format!("{}_{}-{}_{}.deb",
-                                        self.config.package_fields.package_name,
-                                        self.config.package_fields.version_number,
-                                        self.config.package_fields.revision_number,
-                                        self.config.build_env.arch);
-            let deb_name = deb_dir.join(deb_file_name);
-            let mut cmd_args = vec![
-                "-d".to_string(),
-                self.config.build_env.codename.to_string(),
-                "-m".to_string(),
-                "http://deb.debian.org/debian".to_string(),
-                "--bindmount=/dev".to_string(),
-            ];
-            let package_type = &self.config.package_type;
-
-            let lang_env = match package_type {
-                PackageType::Default(config) => Some(&config.language_env),
-                PackageType::Git(config) => Some(&config.language_env),
-                PackageType::Virtual => None,
-            };
-            if let Some(env) = lang_env {
-                match env {
-                    LanguageEnv::Dotnet(_) => {
-                       // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
-                        // doesn't work as ca-certificates must be installed under chroot before adding repo
-                        // chicken and egg problem
-                        let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
-                        cmd_args.push(format!("--extra-repo={}", ms_repo));
-                        cmd_args.push("--do-not-verify-signatures".to_string());
-                    }
-                    _ => {
-                        // no other package repositories supported
-                        // might supply my own, but not for now
-                    }
-                }
-            }
-
-            let mut cmd = Command::new("piuparts")
-                .current_dir(deb_dir)
-                .args(&cmd_args)
-                .arg(deb_name)
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()?;
-            run_process(&mut cmd)?
+            self.run_piuparts()?;
         };
         Ok(())
+    }
+
+    fn run_piuparts(&self) -> Result<()> {
+        println!(
+            "Running piuparts command with elevated privileges..",
+        );
+        println!(
+            "Piuparts must run as root user through sudo, please provide your password."
+        );
+        let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
+        let deb_file_name = format!("{}_{}-{}_{}.deb",
+                                    self.config.package_fields.package_name,
+                                    self.config.package_fields.version_number,
+                                    self.config.package_fields.revision_number,
+                                    self.config.build_env.arch);
+        let deb_name = deb_dir.join(deb_file_name);
+        let mut cmd_args = vec![
+            "-d".to_string(),
+            self.config.build_env.codename.to_string(),
+            "-m".to_string(),
+            "http://deb.debian.org/debian".to_string(),
+            "--bindmount=/dev".to_string(),
+        ];
+        let package_type = &self.config.package_type;
+
+        let lang_env = match package_type {
+            PackageType::Default(config) => Some(&config.language_env),
+            PackageType::Git(config) => Some(&config.language_env),
+            PackageType::Virtual => None,
+        };
+        if let Some(env) = lang_env {
+            match env {
+                LanguageEnv::Dotnet(_) => {
+                    // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
+                    // doesn't work as ca-certificates must be installed under chroot before adding repo
+                    // chicken and egg problem
+                    let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
+                    cmd_args.push(format!("--extra-repo={}", ms_repo));
+                    cmd_args.push("--do-not-verify-signatures".to_string());
+                }
+                _ => {
+                    // no other package repositories supported
+                    // might supply my own, but not for now
+                }
+            }
+        }
+
+        let mut cmd = Command::new("piuparts")
+            .current_dir(deb_dir)
+            .args(&cmd_args)
+            .arg(deb_name)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
+    }
+
+    fn run_autopkgtests(&self) -> Result<()> {
+        todo!()
     }
 }
 

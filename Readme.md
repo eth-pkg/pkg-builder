@@ -33,7 +33,6 @@ sudo chown :sbuild /srv/chroot
 cargo build 
 cargo install . 
 pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
 pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
@@ -45,7 +44,6 @@ This will build the package using the provided configuration file.
 cargo build 
 cargo install . 
 pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
-pkg-builder pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
 
@@ -54,7 +52,6 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
@@ -65,7 +62,6 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 cargo build 
 cargo install . 
 pkg-builder build-env create examples/bookworm/javascript/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/javascript/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```
 
@@ -74,7 +70,6 @@ pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
 pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```
@@ -85,7 +80,6 @@ pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 cargo build 
 cargo install . 
 pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```
 
@@ -95,6 +89,35 @@ pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 cargo build 
 cargo install . 
 pkg-builder build-env create examples/bookworm/java/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/java/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/java/hello-world/pkg-builder.toml
+```
+
+### Piuparts only 
+
+Assuming that you already packaged your source before as such 
+```bash
+cargo build 
+cargo install . 
+pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+you can run only piuparts 
+```bash
+pkg-builder piuparts examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+### Autopkgtest only
+
+Assuming that you already packaged your source before as such
+```bash
+cargo build 
+cargo install . 
+pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+you can run only piuparts
+```bash
+pkg-builder autopkgtests examples/bookworm/virtual-package/pkg-builder.toml
 ```

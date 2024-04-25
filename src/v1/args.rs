@@ -13,6 +13,8 @@ pub enum ActionType {
     Package(PackageCommand),
     /// clean, delete, create buildenv for package, you must run with sudo
     BuildEnv(BuildEnvCommand),
+    Piuparts(PackageCommand),
+    Autopkgtest(PackageCommand)
 }
 
 #[derive(Debug, Args)]
