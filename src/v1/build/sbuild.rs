@@ -314,19 +314,46 @@ impl BackendBuildEnv for Sbuild {
             );
             let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
             let deb_file_name = format!("{}_{}-{}_{}.deb",
-                                                self.config.package_fields.package_name,
-                                                self.config.package_fields.version_number,
-                                                self.config.package_fields.revision_number,
-                                                self.config.build_env.arch);
+                                        self.config.package_fields.package_name,
+                                        self.config.package_fields.version_number,
+                                        self.config.package_fields.revision_number,
+                                        self.config.build_env.arch);
             let deb_name = deb_dir.join(deb_file_name);
+            let mut cmd_args = vec![
+                "-d".to_string(),
+                self.config.build_env.codename.to_string(),
+                "-m".to_string(),
+                "http://deb.debian.org/debian".to_string(),
+                "--bindmount=/dev".to_string(),
+            ];
+            let package_type = &self.config.package_type;
+
+            let lang_env = match package_type {
+                PackageType::Default(config) => Some(&config.language_env),
+                PackageType::Git(config) => Some(&config.language_env),
+                PackageType::Virtual => None,
+            };
+            if let Some(env) = lang_env {
+                match env {
+                    LanguageEnv::Dotnet(config) => {
+                       // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
+                        // doesn't work as ca-certificates must be installed under chroot before adding repo
+                        // chicken and egg problem
+                        let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
+                        cmd_args.push(format!("--extra-repo={}", ms_repo));
+                        cmd_args.push("--do-not-verify-signatures".to_string());
+                    }
+                    _ => {
+                        // no other package repositories supported
+                        // might supply my own, but not for now
+                    }
+                }
+            }
+
             let mut cmd = Command::new("sudo")
                 .current_dir(deb_dir)
-                .arg("piuparts".to_string())
-                .arg("-d".to_string())
-                .arg(&self.config.build_env.codename)
-                .arg("-m".to_string())
-                .arg("http://deb.debian.org/debian".to_string())
-                .arg("--bindmount=/dev".to_string())
+                .arg("piuparts")
+                .args(&cmd_args)
                 .arg(deb_name)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
