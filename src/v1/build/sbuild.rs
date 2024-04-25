@@ -333,6 +333,8 @@ impl BackendBuildEnv for Sbuild {
             "-m".to_string(),
             "http://deb.debian.org/debian".to_string(),
             "--bindmount=/dev".to_string(),
+            // TODO as parameter
+            "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg".to_string()
         ];
         let package_type = &self.config.package_type;
 
@@ -358,8 +360,9 @@ impl BackendBuildEnv for Sbuild {
             }
         }
 
-        let mut cmd = Command::new("piuparts")
+        let mut cmd = Command::new("sudo")
             .current_dir(deb_dir)
+            .arg("piuparts")
             .args(&cmd_args)
             .arg(deb_name)
             .stdout(Stdio::inherit())
