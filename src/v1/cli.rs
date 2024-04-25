@@ -36,7 +36,13 @@ pub fn run_cli() -> Result<()> {
         }
         ActionType::Package(command) => {
             let config_file = command.config_file;
-            let config = get_config(config_file.clone())?;
+            let mut config = get_config(config_file.clone())?;
+            if let Some(run_piuparts) = command.run_piuparts {
+                config.build_env.run_piuparts = Some(run_piuparts);
+            }
+            if let Some(run_autopkgttests) = command.run_autopkgtests {
+                config.build_env.run_piuparts = Some(run_autopkgttests);
+            }
             let distribution = get_distribution(config, config_file)?;
             distribution.package()?;
         }

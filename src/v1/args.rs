@@ -13,14 +13,24 @@ pub enum ActionType {
     Package(PackageCommand),
     /// clean, delete, create buildenv for package, you must run with sudo
     BuildEnv(BuildEnvCommand),
-    Piuparts(PackageCommand),
-    Autopkgtest(PackageCommand)
+    Piuparts(DefaultCommand),
+    Autopkgtest(DefaultCommand)
+}
+
+#[derive(Debug, Args)]
+pub struct DefaultCommand {
+    /// location of pkg-builder config_file
+    pub config_file: String,
 }
 
 #[derive(Debug, Args)]
 pub struct PackageCommand {
     /// location of pkg-builder config_file
     pub config_file: String,
+    /// overrides config value
+    pub run_piuparts: Option<bool>,
+    /// overrides config value
+    pub run_autopkgtests: Option<bool>,
 }
 
 #[derive(Debug, Args)]
