@@ -5,7 +5,7 @@ use log::info;
 use rand::random;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
 
 pub struct Sbuild {
@@ -271,7 +271,16 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
 
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+            cmd_args.push("--run-autopkgtest".to_string());
 
+            cmd_args.push("--autopkgtest-root-args=".to_string());
+            cmd_args.push("--autopkgtest-opts=--".to_string());
+            cmd_args.push("--autopkgtest-opts=schroot".to_string());
+            cmd_args.push(format!("--autopkgtest-opts={}", self.get_cache_file()));
+        } else {
+            cmd_args.push("--no-run-autopkgtest".to_string());
+        }
 
         if let Some(true) = self.config.build_env.run_lintian {
             cmd_args.push("--run-lintian".to_string());
@@ -282,59 +291,68 @@ impl BackendBuildEnv for Sbuild {
         } else {
             cmd_args.push("--no-run-lintian".to_string());
         }
-        if let Some(true) = self.config.build_env.run_autopkgtest {
-            cmd_args.push("--run-autopkgtest".to_string());
 
-            cmd_args.push("--autopkgtest-root-args=".to_string());
-            cmd_args.push("--autopkgtest-opts=--".to_string());
-            cmd_args.push("--autopkgtest-opts=schroot".to_string());
-            cmd_args.push(format!("--autopkgtest-opts={}", self.get_cache_file()));
-
-        } else {
-            cmd_args.push("--no-run-autopkgtest".to_string());
-        }
-        if let Some(true) = self.config.build_env.run_piuparts {
-            cmd_args.push("--run-piuparts".to_string());
-            cmd_args.push("--piuparts-opts=-b".to_string());
-            cmd_args.push(format!("--piuparts-opts={}", self.get_cache_file()));
-            cmd_args.push("--piuparts-opts=-d".to_string());
-
-            cmd_args.push(format!("--piuparts-opts={}", self.config.build_env.codename));
-            cmd_args.push("--piuparts-opts=-m".to_string());
-            // TODO supply through config
-            cmd_args.push(format!("--piuparts-opts={}", "http://deb.debian.org/debian".to_string()));
-
-        } else {
-            cmd_args.push("--no-run-piuparts".to_string());
-        }
         println!(
             "Building package by invoking: sbuild {}",
             cmd_args.join(" ")
         );
 
-        let mut child = Command::new("sbuild")
+        let mut cmd = Command::new("sbuild")
             .current_dir(self.build_files_dir.clone())
             .args(&cmd_args)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()?;
+        run_process(&mut cmd)?;
 
-        if let Some(stdout) = child.stdout.take() {
-            let reader = BufReader::new(stdout);
+        if let Some(true) = self.config.build_env.run_piuparts {
+            println!(
+                "Running piuparts command with elevated privileges..",
+            );
+            println!(
+                "Piuparts must run as root user through sudo, please provide your password."
+            );
+            let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
+            let deb_file_name = format!("{}_{}-{}_{}.deb",
+                                                self.config.package_fields.package_name,
+                                                self.config.package_fields.version_number,
+                                                self.config.package_fields.revision_number,
+                                                self.config.build_env.arch);
+            let deb_name = deb_dir.join(deb_file_name);
+            let mut cmd = Command::new("sudo")
+                .current_dir(deb_dir)
+                .arg("piuparts".to_string())
+                .arg("-d".to_string())
+                .arg(&self.config.build_env.codename)
+                .arg("-m".to_string())
+                .arg("http://deb.debian.org/debian".to_string())
+                .arg("--bindmount=/dev".to_string())
+                .arg(deb_name)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
+            run_process(&mut cmd)?
+        };
+        Ok(())
+    }
+}
 
-            for line in reader.lines() {
-                let line = line?;
-                println!("{}", line);
-            }
+fn run_process(child: &mut Child) -> Result<()> {
+    if let Some(stdout) = child.stdout.take() {
+        let reader = BufReader::new(stdout);
+
+        for line in reader.lines() {
+            let line = line?;
+            println!("{}", line);
         }
-        io::stdout().flush()?;
+    }
+    io::stdout().flush()?;
 
-        let status = child.wait().map_err(|err| eyre!(err.to_string()))?;
-        if status.success() {
-            Ok(())
-        } else {
-            Err(eyre!("Sbuild exited with non-zero status code. Please see build output for potential causes."))
-        }
+    let status = child.wait().map_err(|err| eyre!(err.to_string()))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(eyre!("Sbuild exited with non-zero status code. Please see build output for potential causes."))
     }
 }
 
