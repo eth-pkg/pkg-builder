@@ -5,7 +5,7 @@ exec 2>&1
 set -e
 
 test_binary_in_path(){
-  ls -al /usr/lib/hello-world-dotnet/bin
+  output="$(which hello-world)"
   assertEquals "/usr/bin/hello-world" "$output"
 }
 

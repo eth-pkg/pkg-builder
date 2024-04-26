@@ -483,7 +483,7 @@ impl BackendBuildEnv for Sbuild {
         let lang_deps = self.get_test_deps_not_in_debian();
 
         for action in lang_deps.iter() {
-            cmd_args.push(format!("--chroot-setup-commands={}", action))
+            cmd_args.push(format!("--setup-commands={}", action))
         }
         cmd_args.push("--".to_string());
         cmd_args.push("qemu".to_string());

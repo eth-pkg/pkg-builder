@@ -5,12 +5,12 @@ exec 2>&1
 set -e
 
 test_binary_in_path(){
-  ls -al /usr/lib/hello-world-dotnet/bin
+  output="$(which hello-world)"
   assertEquals "/usr/bin/hello-world" "$output"
 }
 
 test_invocation_without_dotnet(){
-  output="$(hello-world)"
+  output="$(hello-world 2>&1 || true)"
   assertContains "You must install .NET to run this application." "$output"
 }
 
