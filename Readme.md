@@ -7,7 +7,7 @@ Pkg-builder simplifies the process of creating packages for Linux distributions.
 If you are using Debian, install sbuild, and various dependencies:
 
 ```bash
-sudo apt install libssl-dev pkg-config quilt debhelper tar wget vmdb2
+sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest vmdb2 qemu-system-x86_64
 sudo sbuild-adduser `whoami`
 
 # Install sbuild
