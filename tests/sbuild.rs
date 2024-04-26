@@ -343,4 +343,85 @@ mod tests {
         let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
         test_builds(&config_file, true, false);
     }
+
+    // autopkgtest
+
+    #[test]
+    #[ignore]
+    fn test_build_virtual_package_in_sbuild_env_autopkgtest() {
+        setup();
+        let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_rust_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_go_package_in_sbuild_env_autpkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_javascript_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_java_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_dotnet_package_in_sbuild_env_autopkgtest() {
+        setup();
+        let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_typescript_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_nim_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_gradle_java_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
 }

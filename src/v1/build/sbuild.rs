@@ -4,7 +4,7 @@ use eyre::{eyre, Result};
 use log::info;
 use rand::random;
 use std::io::{BufRead, BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
 
@@ -213,6 +213,31 @@ impl Sbuild {
         let cache_file = path.join(cache_file_name);
         cache_file.to_str().unwrap().to_string()
     }
+
+    pub fn get_deb_dir(&self) -> &Path {
+        let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
+        deb_dir
+    }
+    pub fn get_deb_name(&self) -> PathBuf {
+        let deb_dir = self.get_deb_dir();
+        let deb_file_name = format!("{}_{}-{}_{}.deb",
+                                    self.config.package_fields.package_name,
+                                    self.config.package_fields.version_number,
+                                    self.config.package_fields.revision_number,
+                                    self.config.build_env.arch);
+        let deb_name = deb_dir.join(deb_file_name);
+        deb_name
+    }
+    // hello-world_1.0.0-1.dsc
+    pub fn get_changes_file(&self) -> PathBuf {
+        let deb_dir = self.get_deb_dir();
+        let deb_file_name = format!("{}_{}-{}.dsc",
+                                    self.config.package_fields.package_name,
+                                    self.config.package_fields.version_number,
+                                    self.config.package_fields.revision_number);
+        let deb_name = deb_dir.join(deb_file_name);
+        deb_name
+    }
 }
 
 impl BackendBuildEnv for Sbuild {
@@ -273,16 +298,6 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
 
-        if let Some(true) = self.config.build_env.run_autopkgtest {
-            cmd_args.push("--run-autopkgtest".to_string());
-
-            cmd_args.push("--autopkgtest-root-args=".to_string());
-            cmd_args.push("--autopkgtest-opts=--".to_string());
-            cmd_args.push("--autopkgtest-opts=schroot".to_string());
-            cmd_args.push(format!("--autopkgtest-opts={}", self.get_cache_file()));
-        } else {
-            cmd_args.push("--no-run-autopkgtest".to_string());
-        }
 
         if let Some(true) = self.config.build_env.run_lintian {
             cmd_args.push("--run-lintian".to_string());
@@ -310,6 +325,9 @@ impl BackendBuildEnv for Sbuild {
         if let Some(true) = self.config.build_env.run_piuparts {
             self.run_piuparts()?;
         };
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+            self.run_autopkgtests()?;
+        }
         Ok(())
     }
 
@@ -318,15 +336,9 @@ impl BackendBuildEnv for Sbuild {
             "Running piuparts command with elevated privileges..",
         );
         println!(
-            "Piuparts must run as root user through sudo, please provide your password."
+            "Piuparts must run as root user through sudo, please provide your password, if prompted."
         );
-        let deb_dir = Path::new(&self.build_files_dir).parent().unwrap();
-        let deb_file_name = format!("{}_{}-{}_{}.deb",
-                                    self.config.package_fields.package_name,
-                                    self.config.package_fields.version_number,
-                                    self.config.package_fields.revision_number,
-                                    self.config.build_env.arch);
-        let deb_name = deb_dir.join(deb_file_name);
+
         let mut cmd_args = vec![
             "-d".to_string(),
             self.config.build_env.codename.to_string(),
@@ -334,7 +346,7 @@ impl BackendBuildEnv for Sbuild {
             "http://deb.debian.org/debian".to_string(),
             "--bindmount=/dev".to_string(),
             // TODO as parameter
-            "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg".to_string()
+            "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg".to_string(),
         ];
         let package_type = &self.config.package_type;
 
@@ -359,6 +371,14 @@ impl BackendBuildEnv for Sbuild {
                 }
             }
         }
+        let deb_dir = self.get_deb_dir();
+        let deb_name = self.get_deb_name();
+        println!(
+            "Testing package by invoking: piuparts with: sudo -S piuparts {} {}",
+            cmd_args.join(" "),
+            deb_name.to_str().unwrap()
+        );
+        println!("Note this command run inside of directory: {}", deb_dir.display());
 
         let mut cmd = Command::new("sudo")
             .current_dir(deb_dir)
@@ -374,10 +394,90 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn run_autopkgtests(&self) -> Result<()> {
-        todo!()
+        println!(
+            "Running autopkgtests command",
+        );
+
+        let image_name =  format!("autopkgtest-{}.img",  self.config.build_env.codename.to_string());
+        let mut cache_dir = self.cache_dir.clone();
+        if cache_dir.starts_with('~'){
+            cache_dir = shellexpand::tilde(&cache_dir).to_string()
+        }
+        let image_path = Path::new(&cache_dir).join(image_name.clone());
+        create_autopkgtest_image(image_path.clone(), self.config.build_env.codename.to_string())?;
+
+        let deb_dir = self.get_deb_dir();
+        let changes_file = self.get_changes_file();
+        let cmd_args = vec![
+            changes_file.to_str().unwrap().to_string(),
+            "--".to_string(),
+            "qemu".to_string(),
+            image_path.to_str().unwrap().to_string()
+        ];
+        // let package_type = &self.config.package_type;
+        //
+        // let lang_env = match package_type {
+        //     PackageType::Default(config) => Some(&config.language_env),
+        //     PackageType::Git(config) => Some(&config.language_env),
+        //     PackageType::Virtual => None,
+        // };
+        // if let Some(env) = lang_env {
+        //     match env {
+        //         LanguageEnv::Dotnet(_) => {
+        //             // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
+        //             // doesn't work as ca-certificates must be installed under chroot before adding repo
+        //             // chicken and egg problem
+        //             let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
+        //             cmd_args.push(format!("--extra-repo={}", ms_repo));
+        //             cmd_args.push("--do-not-verify-signatures".to_string());
+        //         }
+        //         _ => {
+        //             // no other package repositories supported
+        //             // might supply my own, but not for now
+        //         }
+        //     }
+        // }
+        println!(
+            "Testing package by invoking: autopkgtest {}",
+            cmd_args.join(" ")
+        );
+        println!("Note this command run inside of directory: {}", deb_dir.display());
+        let mut cmd = Command::new("autopkgtest")
+            .current_dir(deb_dir)
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
     }
 }
 
+fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>{
+
+    // do not recreate image if exists
+    if image_path.exists() {
+        return Ok(())
+    }
+    println!(
+        "autopkgtests environment does not exist. Creating it."
+    );
+    println!(
+        "please provide your password through sudo to as autopkgtest env creation requires it."
+    );
+    let cmd_args = vec![
+        codename.clone(),
+        image_path.to_str().unwrap().to_string(),
+    ];
+    let mut cmd = Command::new("sudo")
+        // for CI
+        .arg("-S")
+        .arg("autopkgtest-build-qemu")
+        .args(&cmd_args)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()?;
+    run_process(&mut cmd)
+}
 fn run_process(child: &mut Child) -> Result<()> {
     if let Some(stdout) = child.stdout.take() {
         let reader = BufReader::new(stdout);
