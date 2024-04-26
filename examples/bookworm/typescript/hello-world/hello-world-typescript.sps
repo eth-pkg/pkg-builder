@@ -1,4 +1,4 @@
-name = "hello-world"
+name = "hello-world-typescript"
 architecture = "any"
 summary = """Example Package
 This is a short description of the package. It should provide a brief summary
@@ -9,7 +9,15 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = []
+add_files = [
+  "src /usr/lib/hello-world-typescript",
+  "dist /usr/lib/hello-world-typescript",
+  "node_modules /usr/lib/hello-world-typescript",
+  "package.json /usr/lib/hello-world-typescript",
+  "package-lock.json /usr/lib/hello-world-typescript",
+  "debian/hello-world.sh /usr/lib/hello-world-typescript"
+  ]
+add_links=["/usr/lib/hello-world-typescript/hello-world.sh /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package

@@ -1,5 +1,0 @@
-# if you don't upload to debian this is not a bug
-hello-world: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
-# TODO fix these bugs
-hello-world: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/hello-world/node_modules/typescript/bin/tsc]
-hello-world: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/hello-world/node_modules/typescript/bin/tsserver]

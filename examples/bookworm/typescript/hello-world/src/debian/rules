@@ -6,9 +6,13 @@
 override_dh_dwz:
 
 override_dh_auto_install:
-	# This relies on make install script
-	# if there is no install script, you have define your own rules
-	dh_auto_install -- prefix=/usr
+
+override_dh_auto_build:
+	npm install --frozen-lockfile
+	mkdir -p dist
+	node_modules/typescript/bin/tsc
+	chmod +x debian/hello-world.sh
+
 
 override_dh_auto_clean:
 	# on ubuntu clean fails, before dependency installation
