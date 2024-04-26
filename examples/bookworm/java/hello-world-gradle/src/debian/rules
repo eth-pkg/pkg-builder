@@ -6,9 +6,12 @@
 override_dh_dwz:
 
 override_dh_auto_install:
-	# This relies on make install script
-	# if there is no install script, you have define your own rules
-	dh_auto_install -- prefix=/usr
+	
+override_dh_auto_build:
+	dh_auto_build
+	unzip app/build/distributions/app.zip -d .
+	ls -al app/bin
+	chmod +x app/bin/app 
 
 override_dh_auto_clean:
 	# on ubuntu clean fails, before dependency installation

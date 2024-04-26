@@ -1,4 +1,4 @@
-name = "hello-world"
+name = "hello-world-java-gradle"
 architecture = "any"
 summary = """Example Package
 This is a short description of the package. It should provide a brief summary
@@ -9,7 +9,11 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = []
+add_files = [
+  "app/lib /usr/lib/hello-world-java-gradle",
+  "app/bin /usr/lib/hello-world-java-gradle",
+]
+add_links=["/usr/lib/hello-world-java-gradle/bin/app /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package

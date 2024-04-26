@@ -1,18 +1,16 @@
 [package_fields]
-spec_file = "hello-world.sss"
-package_name = "hello-world"
+spec_file = "hello-world-java-gradle.sss"
+package_name = "hello-world-java-gradle"
 version_number = "1.0.0"
 revision_number = "1"
-tarball_url = "hello-world-1.0.0.tar.gz"
+tarball_url = "hello-world-java-gradle-1.0.0.tar.gz"
 git_source = ""
-# virtual | git | default
-package_type = "default"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
 # virtual | git | default
 package_type="default"
-tarball_url = "hello-world-1.0.0.tar.gz"
+tarball_url = "hello-world-java-gradle-1.0.0.tar.gz"
 tarball_hash = "9838986aeb5fbf1e24fc20da08772c2264b5e0ace8a09b423c39cdc8774b0c04"
 
 [package_type.language_env]
@@ -34,9 +32,9 @@ arch = "amd64"
 pkg_builder_version = "0.1"
 # TODO not used yet
 debcrafter_version = "latest"
-run_lintian = true
-run_piuparts = true
-run_autopkgtest = false
+run_lintian = false
+run_piuparts = false
+run_autopkgtest = true
 # package directory
 workdir = "~/.pkg-builder/packages"
 
