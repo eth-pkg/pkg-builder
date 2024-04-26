@@ -6,9 +6,7 @@
 override_dh_dwz:
 
 override_dh_auto_install:
-	# This relies on make install script
-	# if there is no install script, you have define your own rules
-	dh_auto_install -- prefix=/usr
+    # use add_files from .sps file
 
 override_dh_auto_clean:
 	# on ubuntu clean fails, before dependency installation

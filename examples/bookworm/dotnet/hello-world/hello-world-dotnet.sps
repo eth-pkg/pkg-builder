@@ -1,4 +1,4 @@
-name = "hello-world"
+name = "hello-world-dotnet"
 architecture = "any"
 summary = """Example Package
 This is a short description of the package. It should provide a brief summary
@@ -9,7 +9,8 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = []
+add_files = ["bin /usr/lib/hello-world-dotnet"]
+add_links = ["/usr/lib/hello-world-dotnet/bin/hello_world /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package

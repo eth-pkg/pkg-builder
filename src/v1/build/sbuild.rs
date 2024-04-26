@@ -27,7 +27,7 @@ impl Sbuild {
         }
     }
 
-    fn get_additional_install(&self, lang_env: &LanguageEnv) -> Vec<String> {
+    fn get_build_deps_based_on_langenv(&self, lang_env: &LanguageEnv) -> Vec<String> {
         match lang_env {
             LanguageEnv::C => {
                 let lang_deps = vec![];
@@ -173,7 +173,7 @@ impl Sbuild {
             }
         }
     }
-    fn get_additional_deps(&self) -> Vec<String> {
+    fn get_build_deps_not_in_debian(&self) -> Vec<String> {
         let package_type = &self.config.package_type;
         let lang_env = match package_type {
             PackageType::Default(config) => Some(&config.language_env),
@@ -185,7 +185,69 @@ impl Sbuild {
                 vec![]
             }
             Some(lang_env) => {
-                self.get_additional_install(lang_env)
+                self.get_build_deps_based_on_langenv(lang_env)
+            }
+        }
+    }
+    fn get_test_deps_based_on_langenv(&self, lang_env: &LanguageEnv) -> Vec<String> {
+        match lang_env {
+            LanguageEnv::C => {
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Rust(_) => {
+                // rust compiles to binary, no need to install under test_bed
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Go(_) => {
+                // go compiles to binary, no need to install under test_bed
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::JavaScript(_) | LanguageEnv::TypeScript(_) => {
+                // do not install node, as we cannot depend on it, make the testbed install it
+                // let node_version = &config.go_version;
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Java(_) => {
+                // do not install jdk, or gradle, as we cannot depend on it, make the testbed install it
+                // let node_version = &config.go_version;
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Dotnet(_) => {
+                // add ms repo, but do not install dotnet, let test_bed add it as intall dependency
+                let install = vec![
+                    "apt install -y wget".to_string(),
+                    "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                    "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                    "apt-get update -y".to_string(),
+                    "apt remove -y wget".to_string(),
+                ];
+                install
+            }
+            LanguageEnv::Nim(_) => {
+                // nim compiles to binary, no need to install under test_bed
+                let lang_deps = vec![];
+                lang_deps
+            }
+        }
+    }
+    fn get_test_deps_not_in_debian(&self) -> Vec<String> {
+        let package_type = &self.config.package_type;
+        let lang_env = match package_type {
+            PackageType::Default(config) => Some(&config.language_env),
+            PackageType::Git(config) => Some(&config.language_env),
+            PackageType::Virtual => None,
+        };
+        match lang_env {
+            None => {
+                vec![]
+            }
+            Some(lang_env) => {
+                self.get_test_deps_based_on_langenv(lang_env)
             }
         }
     }
@@ -228,13 +290,15 @@ impl Sbuild {
         let deb_name = deb_dir.join(deb_file_name);
         deb_name
     }
-    // hello-world_1.0.0-1.dsc
+
+    //hello-world_1.0.0-1_amd64.changes
     pub fn get_changes_file(&self) -> PathBuf {
         let deb_dir = self.get_deb_dir();
-        let deb_file_name = format!("{}_{}-{}.dsc",
+        let deb_file_name = format!("{}_{}-{}_{}.changes",
                                     self.config.package_fields.package_name,
                                     self.config.package_fields.version_number,
-                                    self.config.package_fields.revision_number);
+                                    self.config.package_fields.revision_number,
+                                    self.config.build_env.arch);
         let deb_name = deb_dir.join(deb_file_name);
         deb_name
     }
@@ -292,7 +356,7 @@ impl BackendBuildEnv for Sbuild {
             "--chroot-mode=unshare".to_string(),
         ];
 
-        let lang_deps = self.get_additional_deps();
+        let lang_deps = self.get_build_deps_not_in_debian();
 
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
@@ -407,36 +471,23 @@ impl BackendBuildEnv for Sbuild {
         create_autopkgtest_image(image_path.clone(), self.config.build_env.codename.to_string())?;
 
         let deb_dir = self.get_deb_dir();
+      //  let deb_name = self.get_deb_name();
         let changes_file = self.get_changes_file();
-        let cmd_args = vec![
+        let mut cmd_args = vec![
             changes_file.to_str().unwrap().to_string(),
-            "--".to_string(),
-            "qemu".to_string(),
-            image_path.to_str().unwrap().to_string()
+            // this will not going rebuild the package, which we want to avoid
+            // as some packages can take an hour to build,
+            // we don't want to build for 2 hours
+            "--no-built-binaries".to_string(),
         ];
-        // let package_type = &self.config.package_type;
-        //
-        // let lang_env = match package_type {
-        //     PackageType::Default(config) => Some(&config.language_env),
-        //     PackageType::Git(config) => Some(&config.language_env),
-        //     PackageType::Virtual => None,
-        // };
-        // if let Some(env) = lang_env {
-        //     match env {
-        //         LanguageEnv::Dotnet(_) => {
-        //             // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
-        //             // doesn't work as ca-certificates must be installed under chroot before adding repo
-        //             // chicken and egg problem
-        //             let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
-        //             cmd_args.push(format!("--extra-repo={}", ms_repo));
-        //             cmd_args.push("--do-not-verify-signatures".to_string());
-        //         }
-        //         _ => {
-        //             // no other package repositories supported
-        //             // might supply my own, but not for now
-        //         }
-        //     }
-        // }
+        let lang_deps = self.get_test_deps_not_in_debian();
+
+        for action in lang_deps.iter() {
+            cmd_args.push(format!("--chroot-setup-commands={}", action))
+        }
+        cmd_args.push("--".to_string());
+        cmd_args.push("qemu".to_string());
+        cmd_args.push(image_path.to_str().unwrap().to_string());
         println!(
             "Testing package by invoking: autopkgtest {}",
             cmd_args.join(" ")

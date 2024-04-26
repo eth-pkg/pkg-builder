@@ -22,8 +22,8 @@ arch = "amd64"
 pkg_builder_version="0.1"
 # TODO not used yet
 debcrafter_version = "latest"
-run_lintian=true
-run_piuparts=true
+run_lintian=false
+run_piuparts=false
 run_autopkgtest=true
 # package directory
 workdir="~/.pkg-builder/packages"

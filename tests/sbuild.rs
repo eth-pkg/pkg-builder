@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_build_go_package_in_sbuild_env_autpkgtest() {
+    fn test_build_go_package_in_sbuild_env_autopkgtest() {
         setup();
 
         let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();

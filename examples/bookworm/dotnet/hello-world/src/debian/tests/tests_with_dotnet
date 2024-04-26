@@ -9,9 +9,9 @@ test_binary_in_path(){
   assertEquals "/usr/bin/hello-world" "$output"
 }
 
-test_invocation_without_dotnet(){
+test_invocation_with_dotnet(){
   output="$(hello-world)"
-  assertContains "You must install .NET to run this application." "$output"
+  assertContains "Hello, World!" "$output"
 }
 
 . shunit2
