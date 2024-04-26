@@ -1,4 +1,4 @@
-name = "hello-world"
+name = "hello-world-go"
 architecture = "any"
 summary = """Example Package
 This is a short description of the package. It should provide a brief summary
@@ -9,7 +9,8 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = []
+add_files = ["bin /usr/lib/hello-world-go"]
+add_links = ["/usr/lib/hello-world-go/bin/hello /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package

@@ -1,5 +1,0 @@
-# TODO this is a bug
-hello-world: statically-linked-binary [usr/bin/hello-world]
-
-# if you don't upload to debian this is not a bug
-hello-world: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
