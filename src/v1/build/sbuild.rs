@@ -407,7 +407,7 @@ impl BackendBuildEnv for Sbuild {
 
 
         println!(
-            "Testing package by invoking: lintian with: lintian {}",
+            "Testing package by invoking: lintian {}",
             cmd_args.join(" ")
         );
 
@@ -463,7 +463,7 @@ impl BackendBuildEnv for Sbuild {
         let deb_dir = self.get_deb_dir();
         let deb_name = self.get_deb_name();
         println!(
-            "Testing package by invoking: piuparts with: sudo -S piuparts {} {}",
+            "Testing package by invoking: sudo -S piuparts {} {}",
             cmd_args.join(" "),
             deb_name.to_str().unwrap()
         );
