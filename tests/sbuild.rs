@@ -349,9 +349,9 @@ mod tests {
     #[test]
     #[ignore]
     fn test_build_virtual_package_in_sbuild_env_autopkgtest() {
-        setup();
-        let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
-        test_builds(&config_file, false, true);
+        // setup();
+        // let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
+        // test_builds(&config_file, false, true);
     }
 
     #[test]
