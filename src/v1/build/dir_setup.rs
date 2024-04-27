@@ -2,13 +2,10 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
 
-use crate::v1::build::sbuild::Sbuild;
-use crate::v1::debcrafter_helper;
-use crate::v1::packager::{BackendBuildEnv, Packager};
 
 use eyre::{eyre, Result};
 
-use crate::v1::pkg_config::{PackageType, PkgConfig, SubModule};
+use crate::v1::pkg_config::{SubModule};
 use dirs::home_dir;
 use log::info;
 use log::warn;
@@ -19,135 +16,9 @@ use std::path::PathBuf;
 use std::process::Command;
 use sha2::{Digest, Sha256, Sha512};
 use tempfile::tempdir;
+use crate::v1::build::debcrafter_helper;
 
-pub struct BookwormPackager {
-    config: PkgConfig,
-    source_to_patch_from_path: String,
-    debian_artifacts_dir: String,
-    debian_orig_tarball_path: String,
-    build_files_dir: String,
-    config_root: String,
-}
-
-impl Packager for BookwormPackager {
-    type BuildEnv = Sbuild;
-
-    fn new(config: PkgConfig, config_root: String) -> Self {
-        let package_fields = config.package_fields.clone();
-        let config_root_path = PathBuf::from(&config_root);
-        let source_to_patch_from_path = config_root_path.join("src").to_str().unwrap().to_string();
-        let workdir = config
-            .build_env
-            .workdir
-            .clone()
-            .unwrap_or("~/.pkg-builder/packages/bookworm".to_string());
-        let workdir = expand_path(&workdir, None);
-        let debian_artifacts_dir = get_build_artifacts_dir(&package_fields.package_name, &workdir);
-        let debian_orig_tarball_path = get_tarball_path(
-            &package_fields.package_name,
-            &package_fields.version_number,
-            &debian_artifacts_dir,
-        );
-        let build_files_dir = get_build_files_dir(
-            &package_fields.package_name,
-            &package_fields.version_number,
-            &debian_artifacts_dir,
-        );
-        let mut updated_config = BookwormPackager {
-            config,
-            source_to_patch_from_path,
-            build_files_dir,
-            debian_artifacts_dir,
-            debian_orig_tarball_path,
-            config_root,
-        };
-        updated_config.config.build_env.workdir = Some(workdir);
-        let spec_file = package_fields.spec_file;
-        let spec_file_canonical = config_root_path.join(spec_file);
-        updated_config.config.package_fields.spec_file =
-            spec_file_canonical.to_str().unwrap().to_string();
-        updated_config
-    }
-
-    fn package(&self) -> Result<()> {
-        let pre_build: Result<()> = match &self.config.package_type {
-            PackageType::Default(config) => {
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
-                download_source(
-                    &self.debian_orig_tarball_path,
-                    &config.tarball_url,
-                    &self.config_root,
-                )?;
-                verify_hash(&self.debian_orig_tarball_path, config.tarball_hash.clone())?;
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
-                Ok(())
-            }
-            PackageType::Git(config) => {
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
-                download_git(
-                    &self.debian_artifacts_dir,
-                    &self.debian_orig_tarball_path,
-                    &config.git_url,
-                    &config.git_tag,
-                    &config.submodules,
-                )?;
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
-                Ok(())
-            }
-            PackageType::Virtual => {
-                info!("creating virtual package");
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
-                create_empty_tar(&self.debian_artifacts_dir, &self.debian_orig_tarball_path)?;
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
-                Ok(())
-            }
-        };
-        pre_build?;
-        let build_env = self.get_build_env().unwrap();
-        build_env.package()?;
-        Ok(())
-    }
-
-    fn get_build_env(&self) -> Result<Self::BuildEnv> {
-        let backend_build_env = Sbuild::new(self.config.clone(), self.build_files_dir.clone());
-        Ok(backend_build_env)
-    }
-}
-
-fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
+pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
     if fs::metadata(build_artifacts_dir).is_ok() {
         info!("Remove previous package folder {}", &build_artifacts_dir);
         fs::remove_dir_all(build_artifacts_dir)?;
@@ -157,7 +28,7 @@ fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
     Ok(())
 }
 
-fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> Result<()> {
+pub fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> Result<()> {
     info!("Downloading source {}", tarball_path);
     let is_web = tarball_url.starts_with("http");
     let tarball_url = get_tarball_url(tarball_url, config_root);
@@ -182,7 +53,7 @@ fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> 
     Ok(())
 }
 
-fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Result<()> {
+pub fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Result<()> {
     // DO not use git2, it has very little git supported functionality
     // Initialize all submodules if they are not already initialized
     // Update submodules to specific commits
@@ -205,7 +76,7 @@ fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Resu
     Ok(())
 }
 
-fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
     let output = Command::new("git")
         .args(&["clone", "--depth", "1", "--branch", tag_version, git_url, path])
         .output()
@@ -236,7 +107,7 @@ fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_subm
     Ok(())
 }
 
-fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
     let temporary_dir = tempdir()?;
     let path = temporary_dir.path();
     //let path = Path::new("/tmp/nimbus");
@@ -260,7 +131,7 @@ fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, ta
     Ok(())
 }
 
-fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()> {
+pub fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()> {
     info!("Creating empty .tar.gz for virtual package");
     let output = Command::new("tar")
         .args(["czvf", tarball_path, "--files-from", "/dev/null"])
@@ -273,7 +144,7 @@ fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result<()>
     Ok(())
 }
 
-fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
+pub fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha512::new();
     io::copy(&mut reader, &mut hasher)?;
     let digest_bytes = hasher.finalize();
@@ -282,7 +153,7 @@ fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     Ok(hex_digest)
 }
 
-fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
+pub fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha256::new();
     io::copy(&mut reader, &mut hasher)?;
     let digest_bytes = hasher.finalize();
@@ -291,7 +162,7 @@ fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
     Ok(hex_digest)
 }
 
-fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
+pub fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
     let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."))?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read tarball."))?;
@@ -312,7 +183,7 @@ fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Resul
     Err(eyre!("Hashes do not match."))
 }
 
-fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<()> {
+pub fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<()> {
     match expected_checksum {
         Some(tarball_hash) => {
             match verify_tarball_checksum(tarball_path, &tarball_hash) {
@@ -325,7 +196,7 @@ fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<
     }
 }
 
-fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
+pub fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     info!("Extracting source {}", &build_files_dir);
     fs::create_dir_all(build_files_dir)?;
 
@@ -348,7 +219,7 @@ fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     Ok(())
 }
 
-fn create_debian_dir(
+pub fn create_debian_dir(
     build_files_dir: &String,
     debcrafter_version: &String,
     spec_file: &str,
@@ -371,7 +242,7 @@ fn create_debian_dir(
     Ok(())
 }
 
-fn patch_quilt(build_files_dir: &String) -> Result<()> {
+pub fn patch_quilt(build_files_dir: &String) -> Result<()> {
     let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
     info!(
         "Setting up quilt format for patching. Debian source format path: {}",
@@ -401,7 +272,7 @@ fn patch_quilt(build_files_dir: &String) -> Result<()> {
     Ok(())
 }
 
-fn patch_pc_dir(build_files_dir: &String) -> Result<()> {
+pub fn patch_pc_dir(build_files_dir: &String) -> Result<()> {
     let pc_version_path = format!("{}/.pc/.version", &build_files_dir);
     info!("Creating necessary directories for patching");
     fs::create_dir_all(format!("{}/.pc", &build_files_dir))?;
@@ -410,7 +281,7 @@ fn patch_pc_dir(build_files_dir: &String) -> Result<()> {
     Ok(())
 }
 
-fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Result<()> {
+pub fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Result<()> {
     let debian_control_path = format!("{}/debian/control", build_files_dir);
     info!(
         "Adding Standards-Version to the control file. Debian control path: {}",
@@ -450,7 +321,7 @@ fn patch_standards_version(build_files_dir: &String, homepage: &String) -> Resul
     Ok(())
 }
 
-fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
+pub fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     let src_dir_path = Path::new(src_dir);
     if src_dir_path.exists() {
         copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
@@ -459,7 +330,7 @@ fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     Ok(())
 }
 
-fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
+pub fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     info!(
         "Adding executable permission for {}/debian/rules",
         build_files_dir
@@ -473,7 +344,7 @@ fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     Ok(())
 }
 
-fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<()> {
+pub fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -> Result<()> {
     // Patch quilt
     patch_quilt(build_files_dir)?;
 
@@ -492,7 +363,7 @@ fn patch_source(build_files_dir: &String, homepage: &String, src_dir: &String) -
     Ok(())
 }
 
-fn setup_sbuild() -> Result<()> {
+pub fn setup_sbuild() -> Result<()> {
     let home_dir = home_dir().expect("Home dir is empty");
     let dest_path = home_dir.join(".sbuildrc");
     let content = include_str!(".sbuildrc");
@@ -504,7 +375,7 @@ fn setup_sbuild() -> Result<()> {
     Ok(())
 }
 
-fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
+pub fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
     if !dest_dir.exists() {
         fs::create_dir_all(dest_dir)?;
     }
@@ -526,7 +397,7 @@ fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::E
     Ok(())
 }
 
-fn components_to_strip(tar_gz_file: String) -> Result<usize, io::Error> {
+pub fn components_to_strip(tar_gz_file: String) -> Result<usize, io::Error> {
     let output = Command::new("tar")
         .arg("--list")
         .arg("-z")
@@ -544,7 +415,7 @@ fn components_to_strip(tar_gz_file: String) -> Result<usize, io::Error> {
     Ok(components_to_strip)
 }
 
-fn longest_common_prefix(strings: &[&str]) -> String {
+pub fn longest_common_prefix(strings: &[&str]) -> String {
     if strings.is_empty() {
         return String::new();
     }
@@ -638,6 +509,7 @@ mod tests {
     // use std::sync::Once;
     // use env_logger::Env;
     use tempfile::tempdir;
+    use crate::v1::pkg_config::{PackageType, PkgConfig};
 
     // static INIT: Once = Once::new();
 

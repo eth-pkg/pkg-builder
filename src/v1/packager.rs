@@ -1,11 +1,9 @@
 use eyre::{eyre, Result};
+use crate::v1::build::sbuild_packager::SbuildPackager;
 
 
 use crate::v1::pkg_config::PkgConfig;
 
-use super::distribution::{
-    debian::bookworm::BookwormPackager,
-};
 
 pub trait Packager {
     type BuildEnv: BackendBuildEnv;
@@ -39,8 +37,8 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-
-                let packager = BookwormPackager::new(config, self.config_root.clone());
+            
+                let packager = SbuildPackager::new(config, self.config_root.clone());
                 packager.package()?;
             }
             "jammy jellyfish" | "ubuntu 22.04" => todo!(),
@@ -59,7 +57,7 @@ impl DistributionPackager {
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
 
-                let packager = BookwormPackager::new(config, self.config_root.clone());
+                let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.run_piuparts()?;
             }
@@ -79,7 +77,7 @@ impl DistributionPackager {
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
 
-                let packager = BookwormPackager::new(config, self.config_root.clone());
+                let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.run_autopkgtests()?;
             }
@@ -98,7 +96,7 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-                let packager = BookwormPackager::new(config, self.config_root.clone());
+                let packager = SbuildPackager::new(config, self.config_root.clone());
 
                 let build_env = packager.get_build_env()?;
                 build_env.clean()?;
@@ -118,7 +116,7 @@ impl DistributionPackager {
 
         match self.config.build_env.codename.clone().as_str() {
             "bookworm" | "debian 12" => {
-                let packager = BookwormPackager::new(config, self.config_root.clone());
+                let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.create()?;
             }

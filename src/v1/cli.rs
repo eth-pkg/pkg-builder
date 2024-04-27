@@ -41,7 +41,7 @@ pub fn run_cli() -> Result<()> {
                 config.build_env.run_piuparts = Some(run_piuparts);
             }
             if let Some(run_autopkgttests) = command.run_autopkgtests {
-                config.build_env.run_piuparts = Some(run_autopkgttests);
+                config.build_env.run_autopkgtest = Some(run_autopkgttests);
             }
             let distribution = get_distribution(config, config_file)?;
             distribution.package()?;
