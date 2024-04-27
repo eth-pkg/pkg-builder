@@ -7,6 +7,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
+use std::fs::create_dir_all;
 
 pub struct Sbuild {
     config: PkgConfig,
@@ -539,6 +540,7 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
     println!(
         "please provide your password through sudo to as autopkgtest env creation requires it."
     );
+    create_dir_all(image_path.parent().unwrap())?;
     let cmd_args = vec![
         codename.clone(),
         image_path.to_str().unwrap().to_string(),
