@@ -63,8 +63,6 @@ impl Sbuild {
                     "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
                     "ln -s /usr/local/go/bin/go /usr/bin/go".to_string(),
                     "go version".to_string(),
-                    // dynamically link to go shared libs, not statically, required in debian
-                    "go install -buildmode=shared std".to_string(),
                     // add write permission, this is a chroot env, with one user, should be fine
                     "chmod -R a+rwx /usr/local/go/pkg".to_string(),
                     "apt remove -y curl".to_string(),
