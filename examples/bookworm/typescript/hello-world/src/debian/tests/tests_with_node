@@ -21,7 +21,7 @@ test_binary_in_path(){
 }
 
 test_invocation(){
-  output="$(hello_world)"
+  output="$(hello-world)"
   assertEquals "Hello, World!" "$output"
 }
 

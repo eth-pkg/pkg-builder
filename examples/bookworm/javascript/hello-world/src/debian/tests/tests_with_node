@@ -17,11 +17,11 @@ npm --version
 
 test_binary_in_path(){
   output="$(which hello-world)"
-  assertEquals "/usr/bin/hello_world" "$output"
+  assertEquals "/usr/bin/hello-world" "$output"
 }
 
 test_invocation(){
-  output="$(hello_world)"
+  output="$(hello-world)"
   assertEquals "Hello, World!" "$output"
 }
 
