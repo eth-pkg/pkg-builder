@@ -21,6 +21,7 @@ pub trait BackendBuildEnv {
     fn clean(&self) -> Result<()>;
     fn create(&self) -> Result<()>;
     fn package(&self) -> Result<()>;
+    fn run_lintian(&self) -> Result<()>;
     fn run_piuparts(&self) -> Result<()>;
     fn run_autopkgtests(&self) -> Result<()>;
 }
@@ -40,6 +41,26 @@ impl DistributionPackager {
             
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 packager.package()?;
+            }
+            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
+            invalid_codename => {
+                return Err(eyre!(format!(
+                    "Invalid codename '{}' specified",
+                    invalid_codename
+                )));
+            }
+        }
+        Ok(())
+    }
+    pub fn run_lintian(&self) -> Result<()> {
+        let config = self.config.clone();
+
+        match self.config.build_env.codename.clone().as_str() {
+            "bookworm" | "debian 12" => {
+
+                let packager = SbuildPackager::new(config, self.config_root.clone());
+                let build_env = packager.get_build_env()?;
+                build_env.run_lintian()?;
             }
             "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {

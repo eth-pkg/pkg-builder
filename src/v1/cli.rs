@@ -22,6 +22,12 @@ pub fn run_cli() -> Result<()> {
     let args = PkgBuilderArgs::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     match args.action {
+        ActionType::Lintian(command) => {
+            let config_file = command.config_file;
+            let config = get_config(config_file.clone())?;
+            let distribution = get_distribution(config, config_file)?;
+            distribution.run_lintian()?;
+        }
         ActionType::Piuparts(command) => {
             let config_file = command.config_file;
             let config = get_config(config_file.clone())?;
@@ -42,6 +48,9 @@ pub fn run_cli() -> Result<()> {
             }
             if let Some(run_autopkgttests) = command.run_autopkgtests {
                 config.build_env.run_autopkgtest = Some(run_autopkgttests);
+            }
+            if let Some(run_lintian) = command.run_lintian {
+                config.build_env.run_lintian = Some(run_lintian);
             }
             let distribution = get_distribution(config, config_file)?;
             distribution.package()?;

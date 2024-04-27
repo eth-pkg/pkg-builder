@@ -14,7 +14,8 @@ pub enum ActionType {
     /// clean, delete, create buildenv for package, you must run with sudo
     BuildEnv(BuildEnvCommand),
     Piuparts(DefaultCommand),
-    Autopkgtest(DefaultCommand)
+    Autopkgtest(DefaultCommand),
+    Lintian(DefaultCommand)
 }
 
 #[derive(Debug, Args)]
@@ -31,6 +32,7 @@ pub struct PackageCommand {
     pub run_piuparts: Option<bool>,
     /// overrides config value
     pub run_autopkgtests: Option<bool>,
+    pub run_lintian: Option<bool>,
 }
 
 #[derive(Debug, Args)]

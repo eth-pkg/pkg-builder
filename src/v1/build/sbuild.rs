@@ -362,16 +362,9 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
 
-
-        if let Some(true) = self.config.build_env.run_lintian {
-            cmd_args.push("--run-lintian".to_string());
-            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
-            cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
-            cmd_args.push("--lintian-opts=-i".to_string());
-            cmd_args.push("--lintian-opts=--I".to_string());
-        } else {
-            cmd_args.push("--no-run-lintian".to_string());
-        }
+        cmd_args.push("--no-run-lintian".to_string());
+        cmd_args.push("--no-run-piuparts".to_string());
+        cmd_args.push("--no-run-autopkgtest".to_string());
 
         println!(
             "Building package by invoking: sbuild {}",
@@ -386,6 +379,9 @@ impl BackendBuildEnv for Sbuild {
             .spawn()?;
         run_process(&mut cmd)?;
 
+        if let Some(true) = self.config.build_env.run_lintian {
+            self.run_lintian()?;
+        };
         if let Some(true) = self.config.build_env.run_piuparts {
             self.run_piuparts()?;
         };
@@ -393,6 +389,36 @@ impl BackendBuildEnv for Sbuild {
             self.run_autopkgtests()?;
         }
         Ok(())
+    }
+
+    fn run_lintian(&self) -> Result<()> {
+        println!(
+            "Running lintian..",
+        );
+        // let deb_dir = self.get_deb_dir();
+        let changes_file = self.get_changes_file();
+        let changes_file = changes_file.to_str().unwrap();
+        let cmd_args = vec![
+            "--suppress-tags".to_string(),
+            "bad-distribution-in-changes-file".to_string(),
+            "-i".to_string(),
+            "--I".to_string(),
+            changes_file.to_string(),
+        ];
+
+
+        println!(
+            "Testing package by invoking: lintian with: lintian {}",
+            cmd_args.join(" ")
+        );
+
+        let mut cmd = Command::new("lintian")
+            // for CI
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
     }
 
     fn run_piuparts(&self) -> Result<()> {
@@ -462,16 +488,16 @@ impl BackendBuildEnv for Sbuild {
             "Running autopkgtests command",
         );
 
-        let image_name =  format!("autopkgtest-{}.img",  self.config.build_env.codename.to_string());
+        let image_name = format!("autopkgtest-{}.img", self.config.build_env.codename.to_string());
         let mut cache_dir = self.cache_dir.clone();
-        if cache_dir.starts_with('~'){
+        if cache_dir.starts_with('~') {
             cache_dir = shellexpand::tilde(&cache_dir).to_string()
         }
         let image_path = Path::new(&cache_dir).join(image_name.clone());
         create_autopkgtest_image(image_path.clone(), self.config.build_env.codename.to_string())?;
 
         let deb_dir = self.get_deb_dir();
-      //  let deb_name = self.get_deb_name();
+        //  let deb_name = self.get_deb_name();
         let changes_file = self.get_changes_file();
         let mut cmd_args = vec![
             changes_file.to_str().unwrap().to_string(),
@@ -503,11 +529,11 @@ impl BackendBuildEnv for Sbuild {
     }
 }
 
-fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>{
+fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()> {
 
     // do not recreate image if exists
     if image_path.exists() {
-        return Ok(())
+        return Ok(());
     }
     println!(
         "autopkgtests environment does not exist. Creating it."
@@ -529,6 +555,7 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
         .spawn()?;
     run_process(&mut cmd)
 }
+
 fn run_process(child: &mut Child) -> Result<()> {
     if let Some(stdout) = child.stdout.take() {
         let reader = BufReader::new(stdout);
