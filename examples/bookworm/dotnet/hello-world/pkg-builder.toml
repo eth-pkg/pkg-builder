@@ -28,12 +28,6 @@ run_autopkgtest=true
 # package directory
 workdir="~/.pkg-builder/packages"
 
-[cli_options]
-# not used
-is_ci=false
-log="info"
-log_to="file"
-reuse_previous_build=false
 
 [verify]
 # if tarball_url is specified

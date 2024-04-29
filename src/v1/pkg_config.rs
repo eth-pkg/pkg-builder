@@ -4,7 +4,7 @@ use eyre::{eyre, Report, Result};
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
-fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+pub fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
     where
         T: FromStr,
         T::Err: std::fmt::Display,
@@ -471,27 +471,12 @@ impl Validation for BuildEnv {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
-pub struct CliOptions {
-    #[serde(deserialize_with = "deserialize_option_empty_string")]
-    pub log: Option<String>,
-    #[serde(deserialize_with = "deserialize_option_empty_string")]
-    pub log_to: Option<String>,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
-pub struct Verify {
-    #[serde(deserialize_with = "deserialize_option_empty_string")]
-    pub bin_bash: Option<String>,
-}
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
     pub build_env: BuildEnv,
-    pub cli_options: Option<CliOptions>,
-    pub verify: Option<Verify>,
 }
 
 impl Validation for PkgConfig {
@@ -580,14 +565,6 @@ run_lintian=false
 run_piuparts=false
 run_autopkgtest=false
 workdir="~/.pkg-builder/packages"
-
-[cli_options]
-is_ci=false
-log="info"
-log_to="file"
-
-[verify]
-bin_bash=""
 "#;
         let config = PkgConfig {
             package_fields: PackageFields {

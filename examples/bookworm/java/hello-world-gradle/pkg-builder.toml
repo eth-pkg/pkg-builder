@@ -3,8 +3,6 @@ spec_file = "hello-world-java-gradle.sss"
 package_name = "hello-world-java-gradle"
 version_number = "1.0.0"
 revision_number = "1"
-tarball_url = "hello-world-java-gradle-1.0.0.tar.gz"
-git_source = ""
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
@@ -28,27 +26,10 @@ gradle_binary_checksum="544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2
 [build_env]
 codename = "bookworm"
 arch = "amd64"
-# TODO not used yet
 pkg_builder_version = "0.1"
-# TODO not used yet
 debcrafter_version = "latest"
 run_lintian = true
 run_piuparts = true
 run_autopkgtest = true
 # package directory
 workdir = "~/.pkg-builder/packages"
-
-[cli_options]
-# not used
-is_ci = false
-log = "info"
-log_to = "file"
-reuse_previous_build = false
-
-[verify]
-# if tarball_url is specified
-tarball_hash = ""
-# if git_source is specified and package_is_git
-git_commit = ""
-# output hash
-bin_bash = ""

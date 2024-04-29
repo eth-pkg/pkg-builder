@@ -1,0 +1,11 @@
+[package_type]
+# nothing here
+
+[build_env]
+codename="bookworm"
+arch = "amd64"
+pkg_builder_version="0.1"
+debcrafter_version = "latest"
+
+[verify]
+package_hash=""

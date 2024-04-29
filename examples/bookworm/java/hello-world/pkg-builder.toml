@@ -3,8 +3,6 @@ spec_file = "hello-world-java.sss"
 package_name = "hello-world-java"
 version_number = "1.0.0"
 revision_number = "1"
-tarball_url = "hello-world-java-1.0.0.tar.gz"
-git_source = ""
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
@@ -23,9 +21,7 @@ jdk_binary_checksum="e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0
 [build_env]
 codename = "bookworm"
 arch = "amd64"
-# TODO not used yet
 pkg_builder_version = "0.1"
-# TODO not used yet
 debcrafter_version = "latest"
 run_lintian = true
 run_piuparts = true
