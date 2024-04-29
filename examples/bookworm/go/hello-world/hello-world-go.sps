@@ -10,7 +10,7 @@ provides = []
 suggests = []
 depends = []
 add_files = ["bin /usr/lib/hello-world-go"]
-add_links = ["/usr/lib/hello-world-go/bin/hello /usr/bin/hello-world"]
+add_links = ["/usr/lib/hello-world-go/bin/hello-world /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package
