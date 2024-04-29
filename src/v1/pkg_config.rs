@@ -595,12 +595,6 @@ workdir="~/.pkg-builder/packages"
                 run_autopkgtest: Some(false),
                 workdir: Some("~/.pkg-builder/packages".to_string()),
             },
-
-            cli_options: Some(CliOptions {
-                log: Some("info".to_string()),
-                log_to: Some("file".to_string()),
-            }),
-            verify: Some(Verify { bin_bash: None }),
         };
         assert_eq!(parse(config_str).unwrap(), config);
     }
