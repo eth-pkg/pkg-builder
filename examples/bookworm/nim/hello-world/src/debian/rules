@@ -1,9 +1,15 @@
 #!/usr/bin/make -f
+export NIM=nim
+export NIMFLAGS= -d:nodebug -d:release
+
 
 %:
 	dh $@
 
 override_dh_dwz:
+
+override_dh_auto_build:
+	$(NIM) $(NIMFLAGS) c -o:dist/hello src/hello.nim
 
 override_dh_auto_install:
 	

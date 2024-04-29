@@ -14,8 +14,8 @@ debcrafter_version = "latest"
 
 [verify]
 package_hash=[
-    { hash="0c7c91a4793031eba8b39a037a328a65eb044289", name= "hello-world-c_1.0.0-1.dsc"},
-    { hash="eef991395fabb27016cc1a2e37cbaa04fd869de8", name= "hello-world-c_1.0.0.orig.tar.gz"},
-    { hash="ef187dd59a4cf750c7c36a7294b2ba10864f9184", name= "hello-world-c_1.0.0-1.debian.tar.xz"},
-    { hash="0dc81b3d2be7a8113d6a7505527dca3162c576e6", name= "hello-world-c_1.0.0-1_amd64.deb"},
+    { hash="d117834a4fee6efeeb3375c59cf7cf486c0611f5", name= "hello-world-go_1.0.0-1.dsc"},
+    { hash="e86b15349d902a2fabe356e386b034ed9e5a10c4", name= "hello-world-go_1.0.0.orig.tar.gz"},
+    { hash="17655a74b5837c6947c291bf990b0cc5a2cdcd9f", name= "hello-world-go_1.0.0-1.debian.tar.xz"},
+    { hash="b4c90e2d69d613726eacee8350e5b4ca50756267", name= "hello-world-go_1.0.0-1_amd64.deb"},
 ]

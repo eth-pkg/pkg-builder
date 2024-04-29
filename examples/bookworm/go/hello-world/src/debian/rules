@@ -1,9 +1,19 @@
 #!/usr/bin/make -f
+export GO_FLAGS += -trimpath -buildvcs=false
+export GO_FLAGS += -ldflags="-s -w -buildid="
+export GO_FLAGS += -p 1
+export CGO_FLAGS += -O
+export CGO_FLAGS += -D__BLST_PORTABLE__
+export CGO_FLAGS += -fPIC -D_FORTIFY_SOURCE=2
 
 %:
 	dh $@
 
 override_dh_dwz:
+
+override_dh_auto_build:
+	CGO_FLAGS="$(CGO_FLAGS)" go build -C src $(GO_FLAGS) -o ../bin/hello-world cmd/hello/main.go
+
 
 
 override_dh_auto_install:

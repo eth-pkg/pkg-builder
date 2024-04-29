@@ -14,8 +14,8 @@ debcrafter_version = "latest"
 
 [verify]
 package_hash=[
-    { hash="22ae0aaf484a1711a5aad4c8b95fd3d845b0bea8", name= "hello-world-nim_1.0.0-1.dsc"},
+    { hash="2ddfa78bfc6eac353ade198bd04f04e0ed904956", name= "hello-world-nim_1.0.0-1.dsc"},
     { hash="a1b9eb72ce3b72094e6d815ff70208e7a88553cc", name= "hello-world-nim_1.0.0.orig.tar.gz"},
-    { hash="e8ada2d0a33ba951e636996bcdb440aa723503d4", name= "hello-world-nim_1.0.0-1.debian.tar.xz"},
-    { hash="2a31f9266dd3d54093682aee5ac2cc08e3eed149", name= "hello-world-nim_1.0.0-1_amd64.deb"},
+    { hash="5660085ae5c6e7a448720b9f50db87ea0d9b547e", name= "hello-world-nim_1.0.0-1.debian.tar.xz"},
+    { hash="9dd19e109109500136b7e410decb24f9a13b8e84", name= "hello-world-nim_1.0.0-1_amd64.deb"},
 ]
