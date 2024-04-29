@@ -9,8 +9,8 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = ["target/release /usr/lib/hello-world-rust"]
-add_links = ["/usr/lib/hello-world-rust/release/hello_world /usr/bin/hello-world"]
+add_files = ["target/release/hello_world /usr/lib/hello-world-rust/bin"]
+add_links = ["/usr/lib/hello-world-rust/bin/hello_world /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
 Example Package

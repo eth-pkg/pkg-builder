@@ -8,7 +8,7 @@ override_dh_dwz:
 override_dh_auto_install:
 
 override_dh_auto_build:
-	dh_auto_build 
+	cargo build --release
 
 override_dh_auto_clean:
 	# on ubuntu clean fails, before dependency installation

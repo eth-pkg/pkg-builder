@@ -31,8 +31,8 @@ debcrafter_version = "latest"
 
 [verify]
 package_hash=[
-    { hash="1311291966f8d705a0f37fc9f560987c67d5ffe6", name= "hello-world-rust_1.0.0-1.dsc"},
+    { hash="3a2d865359b67bda3486214ccea167e6885e89fd", name= "hello-world-rust_1.0.0-1.dsc"},
     { hash="a9c7bea89015e52a5b4e24544873ec73a0c92af2", name= "hello-world-rust_1.0.0.orig.tar.gz"},
-    { hash="00b8c558300394eeeb2dcd5c43446402a168c8c5", name= "hello-world-rust_1.0.0-1.debian.tar.xz"},
-    { hash="113bea7a10246e72239d48c93a40ac73351dab86", name= "hello-world-rust_1.0.0-1_amd64.deb"},
+    { hash="2c302b1c732be128852d54d2fc171ee4dc5a9d97", name= "hello-world-rust_1.0.0-1.debian.tar.xz"},
+    { hash="5fc16c6255a4d5b60498db482cf8f7ce7b2c148b", name= "hello-world-rust_1.0.0-1_amd64.deb"},
 ]
