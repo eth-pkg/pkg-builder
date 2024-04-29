@@ -93,7 +93,7 @@ jobs:
       
       - name: verify
         run: |
-          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_verify --ignored
+          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_verify -- --ignored
   
   
 
