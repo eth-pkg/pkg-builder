@@ -15,7 +15,19 @@ pub enum ActionType {
     BuildEnv(BuildEnvCommand),
     Piuparts(DefaultCommand),
     Autopkgtest(DefaultCommand),
-    Lintian(DefaultCommand)
+    Lintian(DefaultCommand),
+
+    // Verify
+    Verify(VerifyConfig)
+}
+
+#[derive(Debug, Args)]
+pub struct VerifyConfig {
+    /// location of pkg-builder config_file
+    pub config_file: String,
+
+    /// location of pkg-builder verify_config_file
+    pub verify_config_file: String,
 }
 
 #[derive(Debug, Args)]

@@ -1,13 +1,15 @@
 use crate::v1::packager::BackendBuildEnv;
 use crate::v1::pkg_config::{LanguageEnv, PackageType, PkgConfig};
-use eyre::{eyre, Result};
+use eyre::{eyre, Report, Result};
 use log::info;
 use rand::random;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
 use std::fs::create_dir_all;
+use crate::v1::pkg_config_verify::PkgVerifyConfig;
+use sha1::{Digest, Sha1}; // Import from the sha1 crate
 
 pub struct Sbuild {
     config: PkgConfig,
@@ -390,6 +392,39 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
+    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<()> {
+
+        let output_dir = Path::new(&self.build_files_dir).parent().unwrap();
+        let package_hash = verify_config.verify.package_hash;
+        let mut errors: Vec<Report> = vec![];
+        for output in package_hash.iter() {
+            let file = output_dir.join(output.name.clone());
+            if !file.exists(){
+                return Err(eyre!(format!("File to be verified does not exist {}", output.name)))
+            }
+            let mut file = fs::File::open(file).map_err(|_| eyre!("Could not open file."))?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read file."))?;
+            let actual_sha1 = calculate_sha1(&*buffer.clone()).unwrap_or_default();
+            if actual_sha1 != output.hash {
+                errors.push(eyre!(format!("file {} actual sha256 {}", output.name,  &actual_sha1)));
+            }
+        }
+        let result = if errors.is_empty() {
+            println!("Verify is successful!");
+            // TODO verify inputs against outputs
+            Ok(())
+        } else {
+            let mut combined_report = errors.pop().unwrap_or_else(|| eyre::Report::msg("No errors found"));
+
+            for report in errors.into_iter() {
+                combined_report = combined_report.wrap_err(report);
+            }
+            Err(combined_report)
+        };
+        result
+    }
+
     fn run_lintian(&self) -> Result<()> {
         println!(
             "Running lintian..",
@@ -528,6 +563,14 @@ impl BackendBuildEnv for Sbuild {
     }
 }
 
+pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
+    let mut hasher = Sha1::new();
+    io::copy(&mut reader, &mut hasher)?;
+    let digest_bytes = hasher.finalize();
+    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+
+    Ok(hex_digest)
+}
 fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()> {
 
     // do not recreate image if exists

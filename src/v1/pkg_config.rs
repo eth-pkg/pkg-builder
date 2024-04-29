@@ -3,6 +3,7 @@ use std::path::Path;
 use eyre::{eyre, Report, Result};
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
+use serde::de::DeserializeOwned;
 
 pub fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
     where
@@ -18,11 +19,11 @@ pub fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Opt
     }
 }
 
-trait Validation {
+pub trait Validation {
     fn validate(&self) -> Result<(), Vec<Report>>;
 }
 
-fn validate_not_empty(name: &str, value: &str) -> Result<()> {
+pub fn validate_not_empty(name: &str, value: &str) -> Result<()> {
     if value.trim().is_empty() {
         return Err(eyre!("field: {} cannot be empty", name));
     }
@@ -505,25 +506,34 @@ impl Validation for PkgConfig {
     }
 }
 
-pub fn parse(config_str: &str) -> Result<PkgConfig> {
-    let configuration = toml::from_str::<PkgConfig>(config_str)?;
+pub fn parse<T>(config_str: &str) -> Result<T>
+    where
+        T: Validation + DeserializeOwned,
+{
+    let configuration = toml::from_str::<T>(config_str)?;
     configuration
         .validate()
         .map_err(|errors| eyre!("Validation failed: {:?}", errors))?;
     Ok(configuration)
 }
 
-pub fn read_config(path: &Path) -> Result<PkgConfig> {
+pub fn read_config<T>(path: &Path) -> Result<T>
+    where
+        T: Validation + DeserializeOwned,
+{
     let toml_content = fs::read_to_string(path)?;
 
-    let config: PkgConfig =
+    let config: T =
         parse(&toml_content)?;
 
 
     Ok(config)
 }
 
-pub fn get_config(config_file: String) -> Result<PkgConfig> {
+pub fn get_config<T>(config_file: String) -> Result<T>
+    where
+        T: Validation + DeserializeOwned,
+{
     let path = Path::new(&config_file);
     read_config(path)
 }
@@ -596,7 +606,7 @@ workdir="~/.pkg-builder/packages"
                 workdir: Some("~/.pkg-builder/packages".to_string()),
             },
         };
-        assert_eq!(parse(config_str).unwrap(), config);
+        assert_eq!(parse::<PkgConfig>(config_str).unwrap(), config);
     }
 
     #[test]

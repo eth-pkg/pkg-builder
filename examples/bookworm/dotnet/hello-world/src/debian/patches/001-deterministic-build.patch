@@ -1,0 +1,11 @@
+--- a/src/hello_world.csproj
++++ b/src/hello_world.csproj
+@@ -5,6 +5,8 @@
+     <TargetFramework>net8.0</TargetFramework>
+     <ImplicitUsings>enable</ImplicitUsings>
+     <Nullable>enable</Nullable>
++    <Deterministic>true</Deterministic>
++    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+   </PropertyGroup>
+ 
+ </Project>

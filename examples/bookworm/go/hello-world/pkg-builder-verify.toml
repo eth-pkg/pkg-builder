@@ -13,4 +13,9 @@ pkg_builder_version="0.1"
 debcrafter_version = "latest"
 
 [verify]
-package_hash=""
+package_hash=[
+    { hash="0c7c91a4793031eba8b39a037a328a65eb044289", name= "hello-world-c_1.0.0-1.dsc"},
+    { hash="eef991395fabb27016cc1a2e37cbaa04fd869de8", name= "hello-world-c_1.0.0.orig.tar.gz"},
+    { hash="ef187dd59a4cf750c7c36a7294b2ba10864f9184", name= "hello-world-c_1.0.0-1.debian.tar.xz"},
+    { hash="0dc81b3d2be7a8113d6a7505527dca3162c576e6", name= "hello-world-c_1.0.0-1_amd64.deb"},
+]

@@ -9,22 +9,26 @@ Checkout source that you need to modify, you specify version number if needed
    # Assuming that your downloaded source already setup with in <DIR_TO_YOUR_PACKAGE_FILES>
    pkg-builder package <YOUR_PACKAGE>/pkg-builder.toml
    cd .pkg-builder/packages/<YOUR_PACKAGE>/<YOUR_PACKAGE>-<PACKAGE_VERSION_WITHOUT_REVISION>
-   ln -s debian/patches patches # create link so series file if not exist yet
-   dquilt push -a # apply existing patches
+   quilt push -a # apply existing patches
    
-   dquilt new your_patch_name.patch
-   dquilt add <FILE_YOU_WISH_TO_MODIY>
+   quilt new your_patch_name.patch
+   quilt add <FILE_YOU_WISH_TO_MODIY>
    ... do your changes 
    ... vim <FILE_YOU_WISH_TO_MODIY>
    ... 
    
-   dquilt refresh # this will save the modified patches under /debian/patches
+   quilt refresh # this will save the modified patches under /debian/patches
    ```
 
 Copy the patched source to the folder, so you can build package from it.
    ```bash
-   cp -R .pc <DIR_TO_YOUR_PACKAGE_FILES>/<YOUR_PACKAGE>/src/debian 
-   cp -R debian/patches <DIR_TO_YOUR_PACKAGE_FILES>/<YOUR_PACKAGE>/src/debian 
+   rm .pc/.quilt_patches
+   rm .pc/.quilt_series
+   rm .pc/.version
+   rm .pc/applied-patches
+   cp -R .pc <DIR_TO_YOUR_PACKAGE_FILES>/<YOUR_PACKAGE>/src 
+   cp -R patches <DIR_TO_YOUR_PACKAGE_FILES>/<YOUR_PACKAGE>/src/debian 
+   
    ```
 
 ## Lintian errors 

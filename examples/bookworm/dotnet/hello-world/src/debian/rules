@@ -1,9 +1,15 @@
 #!/usr/bin/make -f
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 %:
 	dh $@
 
 override_dh_dwz:
+
+override_dh_auto_build:
+	mkdir -p bin
+	dotnet build src/hello_world.csproj -o bin --artifacts-path obj
+	md5sum bin/*
 
 override_dh_auto_install:
     # use add_files from .sps file

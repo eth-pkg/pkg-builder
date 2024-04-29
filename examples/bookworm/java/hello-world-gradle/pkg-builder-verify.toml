@@ -1,5 +1,5 @@
 [package_type.language_env]
-language_env = "java"
+language_env = "java-gradle"
 is_oracle=true
 jdk_version="17.0"
 jdk_binary_checksum="e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1"
@@ -15,4 +15,9 @@ pkg_builder_version = "0.1"
 debcrafter_version = "latest"
 
 [verify]
-package_hash=""
+package_hash=[
+    { hash="da1dedce498c2bc21610e4da2d92480fbb6321e3", name= "hello-world-java-gradle_1.0.0-1.dsc"},
+    { hash="eef991395fabb27016cc1a2e37cbaa04fd869de8", name= "hello-world-java-gradle_1.0.0.orig.tar.gz"},
+    { hash="ef187dd59a4cf750c7c36a7294b2ba10864f9184", name= "hello-world-java-gradle_1.0.0-1.debian.tar.xz"},
+    { hash="c38754817f9de32525893f29a44b0c3d95c20c41", name= "hello-world-java-gradle_1.0.0-1_amd64.deb"},
+]

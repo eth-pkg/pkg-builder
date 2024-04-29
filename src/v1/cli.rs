@@ -5,6 +5,7 @@ use clap::Parser;
 use env_logger::Env;
 use eyre::{Result};
 use std::{fs, path::Path};
+use crate::v1::pkg_config_verify::PkgVerifyConfig;
 
 
 pub fn get_distribution(config: PkgConfig, config_file_path: String) -> Result<DistributionPackager> {
@@ -22,6 +23,14 @@ pub fn run_cli() -> Result<()> {
     let args = PkgBuilderArgs::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     match args.action {
+        ActionType::Verify(command) => {
+            let config_file = command.config_file;
+            let config = get_config(config_file.clone())?;
+            let distribution = get_distribution(config, config_file)?;
+            let verify_config_file = command.verify_config_file;
+            let verify_config_file = get_config::<PkgVerifyConfig>(verify_config_file.clone())?;
+            distribution.verify(verify_config_file)?;
+        }
         ActionType::Lintian(command) => {
             let config_file = command.config_file;
             let config = get_config(config_file.clone())?;
@@ -42,7 +51,7 @@ pub fn run_cli() -> Result<()> {
         }
         ActionType::Package(command) => {
             let config_file = command.config_file;
-            let mut config = get_config(config_file.clone())?;
+            let mut config = get_config::<PkgConfig>(config_file.clone())?;
             if let Some(run_piuparts) = command.run_piuparts {
                 config.build_env.run_piuparts = Some(run_piuparts);
             }

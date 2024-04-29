@@ -16,7 +16,10 @@ pkg_builder_version="0.1"
 debcrafter_version = "latest"
 
 [verify]
-package_hash=""
+package_hash=[
+    {"name"= "hello-world_1.0.0-1.dsc", hash="8d554d62f710de2c7865df51a4fa67c708719e0807cf04aafd10669feb10e4b2"},
+    {"name"= "hello-world_1.0.0-1_amd64.deb", hash="bac691148118516d1689857952ab52cd4e9baa15ceb0f334c6c20bc692b74476"},
+]
 
 
 
