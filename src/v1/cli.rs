@@ -64,7 +64,7 @@ pub fn run_cli() -> Result<()> {
             let distribution = get_distribution(config, config_file)?;
             distribution.package()?;
         }
-        ActionType::BuildEnv(build_env_action) => {
+        ActionType::Env(build_env_action) => {
             match build_env_action.build_env_sub_command {
                 BuildEnvSubCommand::Create(sub_command) => {
                     let config_file = sub_command.config_file;
