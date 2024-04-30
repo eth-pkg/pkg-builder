@@ -33,6 +33,10 @@ pub struct VerifyConfig {
     /// location of pkg-builder verify_config_file
     #[clap(long)]
     pub verify_config_file: String,
+
+    /// if given it won't repackage it
+    #[clap(long)]
+    pub no_package: Option<bool>,
 }
 
 #[derive(Debug, Args)]

@@ -29,7 +29,8 @@ pub fn run_cli() -> Result<()> {
             let distribution = get_distribution(config, config_file)?;
             let verify_config_file = command.verify_config_file;
             let verify_config_file = get_config::<PkgVerifyConfig>(verify_config_file.clone())?;
-            distribution.verify(verify_config_file)?;
+            let no_package = command.no_package.unwrap_or_default();
+            distribution.verify(verify_config_file, !no_package)?;
         }
         ActionType::Lintian(command) => {
             let config_file = command.config_file;
