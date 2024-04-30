@@ -407,7 +407,7 @@ impl BackendBuildEnv for Sbuild {
             file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read file."))?;
             let actual_sha1 = calculate_sha1(&*buffer.clone()).unwrap_or_default();
             if actual_sha1 != output.hash {
-                errors.push(eyre!(format!("file {} actual sha256 {}", output.name,  &actual_sha1)));
+                errors.push(eyre!(format!("file {} actual sha1 is {}", output.name,  &actual_sha1)));
             }
         }
         let result = if errors.is_empty() {
