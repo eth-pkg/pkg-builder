@@ -1,0 +1,5 @@
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/bin/hello_world
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/bin/hello_world.dll
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/bin/hello_world.deps.json
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/bin/hello_world.runtimeconfig.json
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/bin/hello_world.pdb

@@ -1,0 +1,14 @@
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/bin/hello_world/releasenosymbols/hello_world
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/bin/hello_world/releasenosymbols/hello_world.deps.json
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/bin/hello_world/releasenosymbols/hello_world.runtimeconfig.json
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/bin/hello_world/releasenosymbols/hello_world.dll
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/bin/hello_world/releasenosymbols/hello_world.pdb
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.GeneratedMSBuildEditorConfig.editorconfig
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.AssemblyInfoInputs.cache
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.AssemblyInfo.cs
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.csproj.CoreCompileInputs.cache
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.dll
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/refint/hello_world.dll
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.pdb
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/hello_world.genruntimeconfig.cache
+/build/hello-world-dotnet-kigeXQ/hello-world-dotnet-1.0.0/obj/obj/hello_world/releasenosymbols/ref/hello_world.dll

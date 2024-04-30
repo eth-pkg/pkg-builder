@@ -13,9 +13,9 @@ debcrafter_version = "latest"
 
 [verify]
 package_hash=[
-    { hash="438f14433b15ead82f82aeac83ed4a2bc533d161", name= "hello-world-dotnet_1.0.0-1.dsc"},
+    { hash="e14e071120bf05901773d99ac8edb5ae47ceb99f", name= "hello-world-dotnet_1.0.0-1.dsc"},
     { hash="0ef2133c3ffe3239f70afcee13ce171a77ed7437", name= "hello-world-dotnet_1.0.0.orig.tar.gz"},
-    { hash="4e2fa2d357b6c2d281514521b9c476fcccfa7cbb", name= "hello-world-dotnet_1.0.0-1.debian.tar.xz"},
+    { hash="fa77712becc42996b7b46153697d2b89d03075f1", name= "hello-world-dotnet_1.0.0-1.debian.tar.xz"},
 #    { hash="6201935f6ce8c21980f8a3197503f2fbe20c0828", name= "hello-world-dotnet_1.0.0-1_amd64.buildinfo"},
-    { hash="f981f2bd0430714efd3c492832cb21d29193eeac", name= "hello-world-dotnet_1.0.0-1_amd64.deb"},
+    { hash="f7f59174222389ce6927dd86b0c6d1f3de4594ef", name= "hello-world-dotnet_1.0.0-1_amd64.deb"},
 ]

@@ -9,7 +9,10 @@ recommends = []
 provides = []
 suggests = []
 depends = []
-add_files = ["bin /usr/lib/hello-world-dotnet"]
+add_files = ["bin /usr/lib/hello-world-dotnet",
+    # you will need obj first time building
+   "obj /usr/lib/hello-world-dotnet"
+]
 add_links = ["/usr/lib/hello-world-dotnet/bin/hello_world /usr/bin/hello-world"]
 add_manpages = []
 long_doc = """
