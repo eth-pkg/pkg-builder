@@ -25,8 +25,8 @@ jobs:
           sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts
           sudo apt-get -y install pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
       - name: Build
         run: cargo build --verbose
@@ -62,8 +62,8 @@ jobs:
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
           # change this into actually built version and cache it
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
 
       - name: Build
