@@ -118,7 +118,8 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
             let file_path = entry.path();
 
             if file_type.is_dir() {
-                stack.push(file_path);
+                stack.push(file_path.clone());
+                filetime::set_file_mtime(&file_path, timestamp)?;
             } else if file_type.is_file() {
                 filetime::set_file_mtime(&file_path, timestamp)?;
             }
@@ -150,7 +151,7 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
             "--numeric-owner",
             // does not work
             // "--mtime='2019-01-01 00:00'",
-          //  "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+            //  "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
             "-czvf", tarball_path, "-C", path.to_str().unwrap(), ".",
         ])
         .current_dir(build_artifacts_dir)
