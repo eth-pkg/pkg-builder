@@ -16,7 +16,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use filetime::FileTime;
 use sha2::{Digest, Sha256, Sha512};
-use tempfile::tempdir;
 use crate::v1::build::debcrafter_helper;
 
 pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
@@ -109,6 +108,9 @@ pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_
 }
 
 fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Result<()> {
+    filetime::set_file_mtime(&dir_path, timestamp)?;
+    filetime::set_file_atime(&dir_path, timestamp)?;
+
     let mut stack = vec![PathBuf::from(dir_path.as_ref())];
 
     while let Some(current) = stack.pop() {
@@ -118,10 +120,14 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
             let file_path = entry.path();
 
             if file_type.is_dir() {
-                stack.push(file_path.clone());
+                stack.push(file_path.clone()); // Push directory onto stack for processing
                 filetime::set_file_mtime(&file_path, timestamp)?;
+                filetime::set_file_atime(&file_path, timestamp)?;
             } else if file_type.is_file() {
                 filetime::set_file_mtime(&file_path, timestamp)?;
+                filetime::set_file_atime(&file_path, timestamp)?;
+            } else if file_type.is_symlink() {
+                filetime::set_symlink_file_times(&file_path, timestamp, timestamp)?;
             }
         }
     }
@@ -131,8 +137,13 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
 
 
 pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
-    let temporary_dir = tempdir()?;
-    let path = temporary_dir.path();
+    let path = "/tmp/package";
+    let path = Path::new(path);
+    if path.exists() {
+        fs::remove_dir_all(path)?;
+    }
+    fs::create_dir_all(&path)?;
+
     //let path = Path::new("/tmp/nimbus");
     clone_and_checkout_tag(git_url, tag_version, path.to_str().unwrap(), &git_submodules)?;
     // remove .git directory, no need to package it
@@ -151,8 +162,8 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
             "--numeric-owner",
             // does not work
             // "--mtime='2019-01-01 00:00'",
-            //  "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
-            "-czvf", tarball_path, "-C", path.to_str().unwrap(), ".",
+            "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+            "-czf", tarball_path, path.to_str().unwrap(),
         ])
         .current_dir(build_artifacts_dir)
         .output()?;
