@@ -438,7 +438,7 @@ mod tests {
 
         let config = get_config(verify_config_file.to_string()).expect("Could not read config_file");
 
-        let result = distribution.verify(config);
+        let result = distribution.verify(config, false);
         match result {
             Ok(_) => {
                 assert!(result.is_ok());
