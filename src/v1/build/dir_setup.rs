@@ -14,6 +14,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use filetime::FileTime;
 use sha2::{Digest, Sha256, Sha512};
 use tempfile::tempdir;
 use crate::v1::build::debcrafter_helper;
@@ -107,7 +108,26 @@ pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_
     Ok(())
 }
 
+fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Result<()> {
+    let mut stack = vec![PathBuf::from(dir_path.as_ref())];
 
+    while let Some(current) = stack.pop() {
+        for entry in fs::read_dir(&current)? {
+            let entry = entry?;
+            let file_type = entry.file_type()?;
+            let file_path = entry.path();
+
+            if file_type.is_dir() {
+                stack.push(file_path);
+            } else if file_type.is_file() {
+                filetime::set_file_mtime(&file_path, timestamp)?;
+                println!("Set creation time of {:?} to {:?}", file_path, timestamp);
+            }
+        }
+    }
+
+    Ok(())
+}
 
 
 pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
@@ -119,8 +139,8 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
     fs::remove_dir_all(path.join(".git"))?;
 
     // // Back in the path for reproducibility: January 1, 2022
-    // let timestamp = FileTime::from_unix_time(1640995200, 0);
-    // set_creation_time(path, timestamp)?;
+    let timestamp = FileTime::from_unix_time(1640995200, 0);
+    set_creation_time(path, timestamp)?;
 
     info!("Creating tar from git repo from {}", path.to_str().unwrap());
     let output = Command::new("tar")
@@ -129,8 +149,9 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
             "--owner=0",
             "--group=0",
             "--numeric-owner",
-            "--mtime=\"@0\"",
-            "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+            // does not work
+            // "--mtime='2019-01-01 00:00'",
+          //  "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
             "-czvf", tarball_path, "-C", path.to_str().unwrap(), ".",
         ])
         .current_dir(build_artifacts_dir)

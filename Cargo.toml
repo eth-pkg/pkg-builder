@@ -24,6 +24,7 @@ eyre = "0.6.12"
 sha2 = "0.11.0-pre.3"
 whoami = "1.5.1"
 sha1 = "0.11.0-pre.3"
+filetime = "0.2.23"
 
 [dev-dependencies]
 env_logger = "*"
