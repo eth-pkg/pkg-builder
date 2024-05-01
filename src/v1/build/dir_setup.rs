@@ -107,6 +107,9 @@ pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_
     Ok(())
 }
 
+
+
+
 pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
     let temporary_dir = tempdir()?;
     let path = temporary_dir.path();
@@ -115,9 +118,21 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
     // remove .git directory, no need to package it
     fs::remove_dir_all(path.join(".git"))?;
 
+    // // Back in the path for reproducibility: January 1, 2022
+    // let timestamp = FileTime::from_unix_time(1640995200, 0);
+    // set_creation_time(path, timestamp)?;
+
     info!("Creating tar from git repo from {}", path.to_str().unwrap());
     let output = Command::new("tar")
-        .args(&["czvf", tarball_path, "-C", path.to_str().unwrap(), "."])
+        .args(&[
+            "--sort=name",
+            "--owner=0",
+            "--group=0",
+            "--numeric-owner",
+            "--mtime=\"@0\"",
+            "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+            "-czvf", tarball_path, "-C", path.to_str().unwrap(), ".",
+        ])
         .current_dir(build_artifacts_dir)
         .output()?;
     if !output.status.success() {
