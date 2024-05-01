@@ -121,7 +121,6 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
                 stack.push(file_path);
             } else if file_type.is_file() {
                 filetime::set_file_mtime(&file_path, timestamp)?;
-                println!("Set creation time of {:?} to {:?}", file_path, timestamp);
             }
         }
     }
