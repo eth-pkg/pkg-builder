@@ -41,6 +41,7 @@ jobs:
       matrix:
         language:
           - virtual
+          - c
           - dotnet
           - go
           - java
@@ -48,7 +49,7 @@ jobs:
           - nim
           - rust
           - typescript
-          - gradle_java
+          - gradle-java
       fail-fast: false
     steps:
       - name: Checkout code
@@ -71,29 +72,22 @@ jobs:
 
       - name: package
         run: |
-          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+          pkg-builder package --run-piuparts false --run-autopkgtests false --run-lintian false examples/bookworm/${{maxtrix.language}}/pkg-builder.toml 
+
 
       - name: piuparts
         run: |
-          which cargo
-          sudo apt-get update
           # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
           # sudo apt-get install -y debian-archive-keyring
-          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
-          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_piuparts -- --ignored
+          ${HOME}/.local/bin/pkg-builder piuparts ${{maxtrix.language}}/pkg-builder.toml
 
       - name: autopkgtests
         run: |
-          which cargo
-          sudo apt-get update
-          # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-          # sudo apt-get install -y debian-archive-keyring
-          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
-          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_autopkgtest -- --ignored
-      
+          sudo cp -R ${HOME}/.pkg-builder /root
+          sudo ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{maxtrix.language}}/pkg-builder.toml
+
       - name: verify
         run: |
-          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_verify -- --ignored
-  
+          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{maxtrix.language}}/pkg-builder.toml  --verify-config-file examples/bookworm/${{maxtrix.language}}/pkg-builder-verify.toml  --no-package true 
   
 
