@@ -464,9 +464,11 @@ impl BackendBuildEnv for Sbuild {
         );
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
         let keyring = get_keyring(&self.config.build_env.codename)?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
         let mut cmd_args = vec![
             "-d".to_string(),
-            self.config.build_env.codename.to_string(),
+            codename.to_string(),
             "-m".to_string(),
             repo_url.to_string(),
             "--bindmount=/dev".to_string(),
@@ -630,9 +632,13 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
         "please provide your password through sudo to as autopkgtest env creation requires it."
     );
     create_dir_all(image_path.parent().unwrap())?;
+    let repo_url = get_repo_url(&codename)?;
+
+    let codename = normalize_codename(&codename)?;
     let cmd_args = vec![
-        codename.clone(),
+        codename.to_string(),
         image_path.to_str().unwrap().to_string(),
+        format!("--mirror={}", repo_url)
     ];
     let mut cmd = Command::new("sudo")
         // for CI

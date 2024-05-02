@@ -25,6 +25,9 @@ sudo mkdir /srv/chroot
 sudo chown :sbuild /srv/chroot 
 ```
 
+If you are building for ubuntu on bookworm you need to manually download the ubuntu-archive-keyring
+https://salsa.debian.org/debian/ubuntu-keyring/-/raw/master/keyrings/ubuntu-archive-keyring.gpg?ref_type=heads
+and copy it into `/usr/share/keyrings`
 
 ## Getting Started
 
