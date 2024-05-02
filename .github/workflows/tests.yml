@@ -49,7 +49,7 @@ jobs:
           - nim
           - rust
           - typescript
-          - gradle-java
+          - java-gradle
       fail-fast: false
     steps:
       - name: Checkout code
