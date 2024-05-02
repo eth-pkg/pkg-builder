@@ -76,6 +76,11 @@ pub fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> 
 }
 
 pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+    match Command::new("which").arg("git-lfs").output() {
+        Ok(_) => Ok(()),
+        Err(_) => Err(eyre!("git-lfs is not installed, please install it!")),
+    }?;
+
     let output = Command::new("git")
         .args(&["clone", "--depth", "1", "--branch", tag_version, git_url, path])
         .output()
