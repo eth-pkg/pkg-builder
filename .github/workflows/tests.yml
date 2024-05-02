@@ -72,22 +72,22 @@ jobs:
 
       - name: package
         run: |
-          pkg-builder package --run-piuparts false --run-autopkgtests false --run-lintian false examples/bookworm/${{maxtrix.language}}/pkg-builder.toml 
+          pkg-builder package --run-piuparts false --run-autopkgtests false --run-lintian false examples/bookworm/${{matrix.language}}/pkg-builder.toml 
 
 
       - name: piuparts
         run: |
           # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
           # sudo apt-get install -y debian-archive-keyring
-          ${HOME}/.local/bin/pkg-builder piuparts ${{maxtrix.language}}/pkg-builder.toml
+          ${HOME}/.local/bin/pkg-builder piuparts ${{matrix.language}}/pkg-builder.toml
 
       - name: autopkgtests
         run: |
           sudo cp -R ${HOME}/.pkg-builder /root
-          sudo ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{maxtrix.language}}/pkg-builder.toml
+          sudo ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{matrix.language}}/pkg-builder.toml
 
       - name: verify
         run: |
-          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{maxtrix.language}}/pkg-builder.toml  --verify-config-file examples/bookworm/${{maxtrix.language}}/pkg-builder-verify.toml  --no-package true 
+          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{matrix.language}}/pkg-builder.toml  --verify-config-file examples/bookworm/${{matrix.language}}/pkg-builder-verify.toml  --no-package true 
   
 
