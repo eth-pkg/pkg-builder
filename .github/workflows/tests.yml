@@ -68,7 +68,13 @@ jobs:
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
 
       - name: Build
-        run: cargo build --verbose
+        run: |
+          cargo build --verbose
+          mkdir -p ${HOME}/.local/bin 
+          mv target/release/pkg-builder ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/pkg-builder
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
 
       - name: package
         run: |
