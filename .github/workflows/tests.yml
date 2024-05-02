@@ -110,6 +110,6 @@ jobs:
 
       - name: verify
         run: |
-          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml  --verify-config-file examples/bookworm/${{matrix.language}}/pkg-builder-verify.toml  --no-package true 
+          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml  --verify-config-file examples/bookworm/${{matrix.language}}/hello-world/pkg-builder-verify.toml  --no-package true 
   
 
