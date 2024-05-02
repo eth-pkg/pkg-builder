@@ -1,0 +1,23 @@
+[package_type]
+tarball_hash = "c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7"
+
+[package_type.language_env]
+language_env = "java"
+is_oracle=true
+jdk_version="17.0"
+jdk_binary_checksum="e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1"
+
+[build_env]
+codename = "bookworm"
+arch = "amd64"
+pkg_builder_version = "0.1"
+debcrafter_version = "latest"
+
+
+[verify]
+package_hash=[
+    { hash="0c7c91a4793031eba8b39a037a328a65eb044289", name= "hello-world-java_1.0.0-1.dsc"},
+    { hash="8b017e7ea5f6653691e37d324faf40dc15b5cfd5", name= "hello-world-java_1.0.0.orig.tar.gz"},
+    { hash="f28d4c71c134183e7269bd622dc80a4049a37687", name= "hello-world-java_1.0.0-1.debian.tar.xz"},
+    { hash="0dc81b3d2be7a8113d6a7505527dca3162c576e6", name= "hello-world-java_1.0.0-1_amd64.deb"},
+]

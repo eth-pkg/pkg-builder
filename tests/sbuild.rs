@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use env_logger::Env;
-    use pkg_builder::v1::cli::{get_config, get_distribution};
-    use pkg_builder::v1::pkg_config::PkgConfig;
+    use pkg_builder::v1::pkg_config::{get_config, PkgConfig};
     use std::fs;
     use std::path::Path;
     use std::sync::Once;
+    use pkg_builder::v1::cli::get_distribution;
 
     static INIT: Once = Once::new();
     static CODENAME: &str = "bookworm";
@@ -23,7 +23,7 @@ mod tests {
             // cache file exists do not recreate it
             return;
         }
-        let mut config = get_config(config_file.clone()).expect("Could not read config_file");
+        let mut config = get_config::<PkgConfig>(config_file.clone()).expect("Could not read config_file");
         config.build_env.workdir = Some(BUILD_FILES_DIR.to_string());
         config.build_env.sbuild_cache_dir = Some(SBUILD_CACHE_DIR.to_string());
         let distribution =
@@ -35,7 +35,7 @@ mod tests {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                panic!("Could not clean build env: {}", err);
             }
         }
         let result = distribution.create_build_env();
@@ -44,15 +44,13 @@ mod tests {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                panic!("Could not create build env: {}", err);
             }
         }
     }
     fn setup() {
         INIT.call_once(|| {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-
-            setup_build_env();
         });
     }
 
@@ -124,21 +122,36 @@ mod tests {
         vec
     }
 
-    fn test_builds(config_file: &str) {
-        let mut config = get_config(config_file.to_string()).expect("Could not read config_file");
+    fn test_builds(config_file: &str, run_piuparts: bool, run_autopkgtest: bool) {
+        let mut config = get_config::<PkgConfig>(config_file.to_string()).expect("Could not read config_file");
         let work_dir = Path::new(BUILD_FILES_DIR).join("virtual");
         config.build_env.workdir = Some(work_dir.clone().to_str().unwrap().to_string());
         config.build_env.sbuild_cache_dir = Some(SBUILD_CACHE_DIR.to_string());
+        config.build_env.run_piuparts = Some(run_piuparts);
+        config.build_env.run_autopkgtest = Some(run_autopkgtest);
         let distribution = get_distribution(config.clone(), config_file.to_string())
             .expect("Could not get distribution");
 
-        let result = distribution.package();
+        let result = if run_piuparts {
+            distribution.run_piuparts()
+        } else if run_autopkgtest {
+            distribution.run_autopkgtests()
+        } else {
+            distribution.package()
+        };
         match result {
             Ok(_) => {
                 assert!(result.is_ok());
             }
             Err(err) => {
-                panic!("{}", err);
+                let action = if run_piuparts {
+                    "piuparts"
+                } else if run_autopkgtest {
+                    "autopkgtests"
+                } else {
+                    "package"
+                };
+                panic!("Could not {}: {}", action, err);
             }
         }
         // Read the contents of the directory
@@ -159,11 +172,9 @@ mod tests {
         let build_artificats_dir_path: &Path = build_artificats_dir.as_ref();
         assert!(build_artificats_dir_path.exists());
         // Check if the vectors are equal
-        assert_eq!(
-            expected_output.len(),
-            output.len(),
-            "Number of files does not match"
-        );
+        if expected_output.len() != output.len() {
+            panic!("Number of files does not match, expected:{:?}, received:{:?}", expected_output, output)
+        }
 
         for (idx, (expected, actual)) in expected_output.iter().zip(output.iter()).enumerate() {
             assert_eq!(
@@ -176,63 +187,356 @@ mod tests {
     #[test]
     fn test_build_virtual_package_in_sbuild_env() {
         setup();
+        setup_build_env();
         let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_rust_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_go_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_javascript_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_java_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_dotnet_package_in_sbuild_env() {
         setup();
-
+        setup_build_env();
         let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_typescript_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
     }
 
     #[test]
     fn test_build_nim_package_in_sbuild_env() {
         setup();
+        setup_build_env();
 
         let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
-        test_builds(&config_file);
+        test_builds(&config_file, false, false);
+    }
+
+    #[test]
+    fn test_build_gradle_java_package_in_sbuild_env() {
+        setup();
+        setup_build_env();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, false);
+    }
+
+    // piuparts, these must be run as root, only run on CI
+
+    #[test]
+    #[ignore]
+    fn test_build_virtual_package_in_sbuild_env_piuparts() {
+        setup();
+        let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_rust_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_go_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_javascript_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_java_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_dotnet_package_in_sbuild_env_piuparts() {
+        setup();
+        let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_typescript_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_nim_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_gradle_java_package_in_sbuild_env_piuparts() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        test_builds(&config_file, true, false);
+    }
+
+    // autopkgtest
+
+    #[test]
+    #[ignore]
+    fn test_build_virtual_package_in_sbuild_env_autopkgtest() {
+        // setup();
+        // let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
+        // test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_rust_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_go_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_javascript_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_java_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_dotnet_package_in_sbuild_env_autopkgtest() {
+        setup();
+        let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_typescript_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_nim_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_gradle_java_package_in_sbuild_env_autopkgtest() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        test_builds(&config_file, false, true);
+    }
+
+
+    // verify 
+    fn test_verify(config_file: &str, verify_config_file: &str) {
+        setup_build_env();
+        let mut config = get_config::<PkgConfig>(config_file.to_string()).expect("Could not read config_file");
+        let work_dir = Path::new(BUILD_FILES_DIR).join("virtual");
+        config.build_env.workdir = Some(work_dir.clone().to_str().unwrap().to_string());
+        config.build_env.sbuild_cache_dir = Some(SBUILD_CACHE_DIR.to_string());
+        let distribution = get_distribution(config.clone(), config_file.to_string())
+            .expect("Could not get distribution");
+
+        let config = get_config(verify_config_file.to_string()).expect("Could not read config_file");
+
+        let result = distribution.verify(config, false);
+        match result {
+            Ok(_) => {
+                assert!(result.is_ok());
+            }
+            Err(err) => {
+              
+                panic!("Could not verify: {}", err);
+            }
+        }
+      
+    }
+
+
+    #[test]
+    #[ignore]
+    fn test_build_virtual_package_in_sbuild_env_verify() {
+        setup();
+        let config_file = "examples/bookworm/virtual-package/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/virtual-package/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_rust_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/rust/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/rust/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_go_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/go/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/go/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_javascript_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/javascript/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/javascript/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_java_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/java/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_dotnet_package_in_sbuild_env_verify() {
+        setup();
+        let config_file = "examples/bookworm/dotnet/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/dotnet/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_typescript_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/typescript/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/typescript/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_nim_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/nim/hello-world/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/nim/hello-world/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_build_gradle_java_package_in_sbuild_env_verify() {
+        setup();
+
+        let config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder.toml".to_string();
+        let verify_config_file = "examples/bookworm/java/hello-world-gradle/pkg-builder-verify.toml".to_string();
+        test_verify(&config_file, &verify_config_file);
     }
 }

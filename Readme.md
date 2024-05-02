@@ -7,7 +7,7 @@ Pkg-builder simplifies the process of creating packages for Linux distributions.
 If you are using Debian, install sbuild, and various dependencies:
 
 ```bash
-sudo apt install libssl-dev pkg-config quilt debhelper tar wget
+sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest vmdb2 qemu-system-x86
 sudo sbuild-adduser `whoami`
 
 # Install sbuild
@@ -16,11 +16,11 @@ cd ~/<DIR>/sbuild
 # Install dependencies
 sudo apt-get install dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
 # Build the package
-dpkg-buildpackage -us -uc  
+dpkg-buildpackage -us -uc 
 # Install the newly built package 
 cd .. && sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
 
-# if chroot not exists create it, TODO other cases 
+# if chroot not exists create it
 sudo mkdir /srv/chroot 
 sudo chown :sbuild /srv/chroot 
 ```
@@ -32,8 +32,7 @@ sudo chown :sbuild /srv/chroot
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
 pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
@@ -44,8 +43,7 @@ This will build the package using the provided configuration file.
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
-pkg-builder pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
 
@@ -54,8 +52,7 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
 
@@ -64,8 +61,7 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/javascript/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/javascript/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/javascript/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```
 
@@ -74,8 +70,7 @@ pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/nim/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```
 
@@ -84,8 +79,7 @@ pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```
 
@@ -94,7 +88,36 @@ pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/java/hello-world/pkg-builder.toml
-pkg-builder build-env create examples/bookworm/java/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/java/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/java/hello-world/pkg-builder.toml
+```
+
+### Piuparts only 
+
+Assuming that you already packaged your source before as such 
+```bash
+cargo build 
+cargo install . 
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+you can run only piuparts 
+```bash
+pkg-builder piuparts examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+### Autopkgtest only
+
+Assuming that you already packaged your source before as such
+```bash
+cargo build 
+cargo install . 
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
+```
+
+you can run only piuparts
+```bash
+pkg-builder autopkgtests examples/bookworm/virtual-package/pkg-builder.toml
 ```

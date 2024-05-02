@@ -1,14 +1,18 @@
 #!/usr/bin/make -f
+export NIM=nim
+export NIMFLAGS= -d:nodebug -d:release
+
 
 %:
 	dh $@
 
 override_dh_dwz:
 
+override_dh_auto_build:
+	$(NIM) $(NIMFLAGS) c -o:dist/hello src/hello.nim
+
 override_dh_auto_install:
-	# This relies on make install script
-	# if there is no install script, you have define your own rules
-	dh_auto_install -- prefix=/usr
+	
 
 override_dh_auto_clean:
 	# on ubuntu clean fails, before dependency installation

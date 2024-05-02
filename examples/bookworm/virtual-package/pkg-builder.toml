@@ -15,23 +15,8 @@ arch = "amd64"
 pkg_builder_version="0.1"
 # TODO not used yet
 debcrafter_version = "latest"
-run_lintian=false
-run_piuparts=false
+run_lintian=true
+run_piuparts=true
 run_autopkgtest=false
 # package directory
 workdir="~/.pkg-builder/packages"
-
-[cli_options]
-# not used
-is_ci=false
-log="info"
-log_to="file"
-reuse_previous_build=false
-
-[verify]
-# if tarball_url is specified
-tarball_hash=""
-# if git_source is specified and package_is_git
-git_commit=""
-# output hash
-bin_bash=""

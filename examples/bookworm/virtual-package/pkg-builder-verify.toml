@@ -1,0 +1,16 @@
+[package_type]
+# nothing here
+
+[build_env]
+codename="bookworm"
+arch = "amd64"
+pkg_builder_version="0.1"
+debcrafter_version = "latest"
+
+[verify]
+package_hash=[
+    { hash="68a5d0126d982ef8f735e60737626f7cb07acb67", name= "test-virtual-package_1.0.0-1.dsc"},
+    { hash="b35f46d5fb424aee57b5d666e61b2eff83543aad", name= "test-virtual-package_1.0.0.orig.tar.gz"},
+    { hash="e1890ee0bc0c18b995b79deec7b0ae3693f1d43b", name= "test-virtual-package_1.0.0-1.debian.tar.xz"},
+    { hash="e5b4af1f4610db8d83b6d44522d888a3b87dfeed", name= "test-virtual-package_1.0.0-1_amd64.deb"},
+]

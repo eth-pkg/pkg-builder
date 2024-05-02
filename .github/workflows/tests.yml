@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Sbuild setup
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools
+          sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts
           sudo apt-get -y install pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
       - name: Build
         run: cargo build --verbose
@@ -48,24 +48,52 @@ jobs:
           - nim
           - rust
           - typescript
+          - gradle_java
+      fail-fast: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Sbuild setup
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools
+          sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts autopkgtest vmdb2 qemu-system-x86
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6/libsbuild-perl_0.85.6_all.deb
+          # change this into actually built version and cache it
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
+          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
 
       - name: Build
         run: cargo build --verbose
 
-      - name: Test ${{ matrix.language }} packaging
-        run: cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+      - name: package
+        run: |
+          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env
+
+      - name: piuparts
+        run: |
+          which cargo
+          sudo apt-get update
+          # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
+          # sudo apt-get install -y debian-archive-keyring
+          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
+          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_piuparts -- --ignored
+
+      - name: autopkgtests
+        run: |
+          which cargo
+          sudo apt-get update
+          # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
+          # sudo apt-get install -y debian-archive-keyring
+          sudo curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y
+          sudo /home/runner/.cargo/bin/cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_autopkgtest -- --ignored
+      
+      - name: verify
+        run: |
+          cargo test --verbose --test sbuild tests::test_build_${{ matrix.language }}_package_in_sbuild_env_verify -- --ignored
+  
+  
 

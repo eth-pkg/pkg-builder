@@ -1,0 +1,26 @@
+[package_type]
+# note that does not matter if this is git, and the git tag, in the end what we care about
+# if we can produce the same tarball from the same source
+tarball_hash=""
+
+
+[package_type.language_env]
+language_env = "nim"
+nim_version = "2.0.2"
+nim_version_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz"
+
+[build_env]
+codename="bookworm"
+arch = "amd64"
+pkg_builder_version="0.1"
+debcrafter_version = "latest"
+
+[verify]
+package_hash=[
+    {"name"= "hello-world_1.0.0-1.dsc", hash="8d554d62f710de2c7865df51a4fa67c708719e0807cf04aafd10669feb10e4b2"},
+    {"name"= "hello-world_1.0.0-1_amd64.deb", hash="bac691148118516d1689857952ab52cd4e9baa15ceb0f334c6c20bc692b74476"},
+]
+
+
+
+
