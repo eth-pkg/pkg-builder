@@ -2,7 +2,6 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
 
-
 use eyre::{eyre, Result};
 
 use crate::v1::pkg_config::{SubModule};
@@ -136,24 +135,22 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
 }
 
 
-pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
-    let path = "/tmp/package";
-    let path = Path::new(path);
+pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, package_name: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+    let path = Path::new(build_artifacts_dir).join(package_name);
     if path.exists() {
-        fs::remove_dir_all(path)?;
+        fs::remove_dir_all(path.clone())?;
     }
-    fs::create_dir_all(&path)?;
-
+    fs::create_dir_all(&path.clone())?;
     //let path = Path::new("/tmp/nimbus");
-    clone_and_checkout_tag(git_url, tag_version, path.to_str().unwrap(), &git_submodules)?;
+    clone_and_checkout_tag(git_url, tag_version, path.clone().to_str().unwrap(), &git_submodules)?;
     // remove .git directory, no need to package it
     fs::remove_dir_all(path.join(".git"))?;
 
     // // Back in the path for reproducibility: January 1, 2022
     let timestamp = FileTime::from_unix_time(1640995200, 0);
-    set_creation_time(path, timestamp)?;
+    set_creation_time(path.clone(), timestamp)?;
 
-    info!("Creating tar from git repo from {}", path.to_str().unwrap());
+    info!("Creating tar from git repo from {}", path.display());
     let output = Command::new("tar")
         .args(&[
             "--sort=name",
@@ -163,7 +160,7 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, git_url: &str
             // does not work
             // "--mtime='2019-01-01 00:00'",
             "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
-            "-czf", tarball_path, path.to_str().unwrap(),
+            "-czf", tarball_path, package_name,
         ])
         .current_dir(build_artifacts_dir)
         .output()?;

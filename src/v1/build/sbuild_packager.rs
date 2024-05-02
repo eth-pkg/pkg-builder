@@ -86,6 +86,7 @@ impl Packager for SbuildPackager {
                 download_git(
                     &self.debian_artifacts_dir,
                     &self.debian_orig_tarball_path,
+                    &self.config.package_fields.package_name,
                     &config.git_url,
                     &config.git_tag,
                     &config.submodules,

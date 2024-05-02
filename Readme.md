@@ -14,13 +14,13 @@ sudo sbuild-adduser `whoami`
 git clone https://github.com/eth-pkg/sbuild.git ~/<DIR>/sbuild 
 cd ~/<DIR>/sbuild  
 # Install dependencies
-sudo apt-get install dh-python dh-sequence-python3 libyaml-tiny-perl python3-all 
+sudo apt-get install dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
 # Build the package
-dpkg-buildpackage -us -uc  
+dpkg-buildpackage -us -uc 
 # Install the newly built package 
 cd .. && sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
 
-# if chroot not exists create it, TODO other cases 
+# if chroot not exists create it
 sudo mkdir /srv/chroot 
 sudo chown :sbuild /srv/chroot 
 ```
@@ -32,7 +32,7 @@ sudo chown :sbuild /srv/chroot
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
 pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
@@ -43,7 +43,7 @@ This will build the package using the provided configuration file.
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
 
@@ -52,7 +52,7 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/rust/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/rust/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```
 
@@ -61,7 +61,7 @@ pkg-builder package examples/bookworm/rust/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/javascript/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/javascript/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```
 
@@ -70,7 +70,7 @@ pkg-builder package examples/bookworm/javascript/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/nim/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/nim/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```
 
@@ -79,7 +79,7 @@ pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```
 
@@ -88,7 +88,7 @@ pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/java/hello-world/pkg-builder.toml
+pkg-builder env create examples/bookworm/java/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/java/hello-world/pkg-builder.toml
 ```
 
@@ -98,7 +98,7 @@ Assuming that you already packaged your source before as such
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
 pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
@@ -113,7 +113,7 @@ Assuming that you already packaged your source before as such
 ```bash
 cargo build 
 cargo install . 
-pkg-builder build-env create examples/bookworm/virtual-package/pkg-builder.toml
+pkg-builder env create examples/bookworm/virtual-package/pkg-builder.toml
 pkg-builder package examples/bookworm/virtual-package/pkg-builder.toml
 ```
 
