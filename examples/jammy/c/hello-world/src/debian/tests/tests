@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+exec 2>&1
+
+set -e
+
+test_binary_in_path(){
+  output="$(which hello_world)"
+  assertEquals "/usr/bin/hello_world" "$output"
+}
+
+test_invocation(){
+  output="$(hello_world)"
+  assertEquals "Hello, World!" "$output"
+}
+
+. shunit2

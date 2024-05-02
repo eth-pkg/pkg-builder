@@ -41,11 +41,10 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 packager.package()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -59,12 +58,11 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.run_lintian()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -78,12 +76,11 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.run_piuparts()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -97,12 +94,11 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.run_autopkgtests()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -116,13 +112,12 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
 
                 let build_env = packager.get_build_env()?;
                 build_env.clean()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -136,12 +131,11 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let packager = SbuildPackager::new(config, self.config_root.clone());
                 let build_env = packager.get_build_env()?;
                 build_env.create()?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",
@@ -156,7 +150,7 @@ impl DistributionPackager {
         let config = self.config.clone();
 
         match self.config.build_env.codename.clone().as_str() {
-            "bookworm" | "debian 12" => {
+            "bookworm" | "noble numbat" | "jammy jellyfish" => {
                 let mut config = config.clone();
                 config.build_env.run_autopkgtest = Some(false);
                 config.build_env.run_lintian = Some(false);
@@ -169,7 +163,6 @@ impl DistributionPackager {
                 // files to verify
                 build_env.verify(verify_config)?;
             }
-            "jammy jellyfish" | "ubuntu 22.04" => todo!(),
             invalid_codename => {
                 return Err(eyre!(format!(
                     "Invalid codename '{}' specified",

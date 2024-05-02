@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+exec 2>&1
+
+set -e
+
+cd /tmp
+curl https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb --output jdk-17_linux-x64_bin.deb
+dpkg -i jdk-17_linux-x64_bin.deb
+
+test_binary_in_path(){
+  output="$(which hello-world)"
+  assertEquals "/usr/bin/hello-world" "$output"
+}
+
+test_invocation(){
+  output="$(hello-world  || true)"
+  assertEquals "Hello World!" "$output"
+}
+
+. shunit2
