@@ -101,7 +101,7 @@ jobs:
         run: |
           # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
           # sudo apt-get install -y debian-archive-keyring
-          ${HOME}/.local/bin/pkg-builder piuparts ${{matrix.language}}/hello-world/pkg-builder.toml
+          ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml
 
       - name: autopkgtests
         run: |
