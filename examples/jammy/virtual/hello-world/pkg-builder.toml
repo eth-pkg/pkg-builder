@@ -1,0 +1,22 @@
+[package_fields]
+spec_file = "test-virtual-package.sss"
+package_name = "test-virtual-package"
+version_number = "1.0.0"
+revision_number = "1"
+homepage="https://github.com/eth-pkg/pkg-builder#examples"
+
+[package_type]
+package_type="virtual"
+
+[build_env]
+codename="jammy jellyfish"
+arch = "amd64"
+# TODO not used
+pkg_builder_version="0.1"
+# TODO not used yet
+debcrafter_version = "latest"
+run_lintian=true
+run_piuparts=true
+run_autopkgtest=false
+# package directory
+workdir="~/.pkg-builder/packages"

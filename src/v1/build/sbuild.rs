@@ -267,9 +267,11 @@ impl Sbuild {
             let path = path.to_str().unwrap().to_string();
             path
         };
+
+        let codename = normalize_codename(&self.config.build_env.codename).unwrap();
         let cache_file_name = format!(
             "{}-{}.tar.gz",
-            self.config.build_env.codename, self.config.build_env.arch
+            codename, self.config.build_env.arch
         )
             .to_string();
         let path = Path::new(&expanded_path);
@@ -325,18 +327,17 @@ impl BackendBuildEnv for Sbuild {
 
         let cache_file = self.get_cache_file();
         let cache_dir = Path::new(&cache_file).parent().unwrap();
-        fs::create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
+        create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
 
-        if self.config.build_env.codename != "bookworm" {
-            return Err(eyre!("Only bookworm supported at the moment!"));
-        }
+        let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
             .arg(cache_file)
-            .arg(&self.config.build_env.codename)
+            .arg(codename)
             .arg(temp_dir)
-            .arg("http://deb.debian.org/debian")
+            .arg(repo_url)
             .status();
 
         if let Err(err) = create_result {
@@ -393,14 +394,13 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn verify(&self, verify_config: PkgVerifyConfig) -> Result<()> {
-
         let output_dir = Path::new(&self.build_files_dir).parent().unwrap();
         let package_hash = verify_config.verify.package_hash;
         let mut errors: Vec<Report> = vec![];
         for output in package_hash.iter() {
             let file = output_dir.join(output.name.clone());
-            if !file.exists(){
-                return Err(eyre!(format!("File to be verified does not exist {}", output.name)))
+            if !file.exists() {
+                return Err(eyre!(format!("File to be verified does not exist {}", output.name)));
             }
             let mut file = fs::File::open(file).map_err(|_| eyre!("Could not open file."))?;
             let mut buffer = Vec::new();
@@ -462,15 +462,17 @@ impl BackendBuildEnv for Sbuild {
         println!(
             "Piuparts must run as root user through sudo, please provide your password, if prompted."
         );
+        let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
+        let keyring = get_keyring(&self.config.build_env.codename)?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
 
         let mut cmd_args = vec![
             "-d".to_string(),
-            self.config.build_env.codename.to_string(),
+            codename.to_string(),
             "-m".to_string(),
-            "http://deb.debian.org/debian".to_string(),
+            repo_url.to_string(),
             "--bindmount=/dev".to_string(),
-            // TODO as parameter
-            "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg".to_string(),
+            format!("--keyring={}", keyring),
         ];
         let package_type = &self.config.package_type;
 
@@ -563,6 +565,51 @@ impl BackendBuildEnv for Sbuild {
     }
 }
 
+pub fn normalize_codename(codename: &str) -> Result<&str> {
+    match codename {
+        "bookworm" => {
+            Ok("bookworm")
+        }
+        "noble numbat" => {
+            Ok("noble")
+        }
+        "jammy jellyfish" => {
+            Ok("jammy")
+        }
+        _ => {
+            Err(eyre!("Not supported distribution"))
+        }
+    }
+}
+
+pub fn get_keyring(codename: &str) -> Result<&str> {
+    match codename {
+        "bookworm" => {
+            Ok("/usr/share/keyrings/debian-archive-keyring.gpg")
+        }
+        "noble numbat" | "jammy jellyfish" => {
+            Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg")
+        }
+        _ => {
+            Err(eyre!("Not supported distribution"))
+        }
+    }
+}
+
+pub fn get_repo_url(codename: &str) -> Result<&str> {
+    match codename {
+        "bookworm" => {
+            Ok("http://deb.debian.org/debian")
+        }
+        "noble numbat" | "jammy jellyfish" => {
+            Ok("http://archive.ubuntu.com/ubuntu")
+        }
+        _ => {
+            Err(eyre!("Not supported distribution"))
+        }
+    }
+}
+
 pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
     let mut hasher = Sha1::new();
     io::copy(&mut reader, &mut hasher)?;
@@ -571,6 +618,7 @@ pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
 
     Ok(hex_digest)
 }
+
 fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()> {
 
     // do not recreate image if exists
@@ -584,9 +632,13 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
         "please provide your password through sudo to as autopkgtest env creation requires it."
     );
     create_dir_all(image_path.parent().unwrap())?;
+    let repo_url = get_repo_url(&codename)?;
+
+    let codename = normalize_codename(&codename)?;
     let cmd_args = vec![
-        codename.clone(),
+        codename.to_string(),
         image_path.to_str().unwrap().to_string(),
+        format!("--mirror={}", repo_url)
     ];
     let mut cmd = Command::new("sudo")
         // for CI
