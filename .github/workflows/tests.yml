@@ -263,7 +263,7 @@ jobs:
 
       - name: Create chroot env
         run: |
-          cd examples/jammy/${{matrix.language}}/hello-world
+          cd examples/noble/${{matrix.language}}/hello-world
           pkg-builder env create 
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
