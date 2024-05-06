@@ -267,6 +267,7 @@ jobs:
           sudo ${HOME}/.local/bin/pkg-builder env create 
           sudo systemctl restart schroot
           # First will fail, try again
+          sudo cat /etc/subuid
           ${HOME}/.local/bin/pkg-builder env create 
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
