@@ -188,6 +188,7 @@ impl Validation for JavaConfig {
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DotnetConfig {
     pub dotnet_version: String,
+    pub dotnet_full_version: String,
 }
 
 impl Validation for DotnetConfig {
@@ -197,7 +198,9 @@ impl Validation for DotnetConfig {
         if let Err(err) = validate_not_empty("dotnet_version", &self.dotnet_version) {
             errors.push(err);
         }
-
+        if let Err(err) = validate_not_empty("dotnet_full_version", &self.dotnet_version) {
+            errors.push(err);
+        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -706,7 +709,10 @@ workdir="~/.pkg-builder/packages"
         let config = DotnetConfig::default();
         match config.validate() {
             Err(validation_errors) => {
-                let expected_errors = ["field: dotnet_version cannot be empty"];
+                let expected_errors = [
+                    "field: dotnet_version cannot be empty",
+                    "field: dotnet_full_version cannot be empty"
+                ];
                 assert_eq!(
                     validation_errors.len(),
                     expected_errors.len(),

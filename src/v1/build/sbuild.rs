@@ -137,6 +137,7 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(config) => {
                 let dotnet_version = &config.dotnet_version;
+                let dotnet_full_version = &config.dotnet_full_version;
                 // TODO do not use MS repository as they upgrade between major versions
                 // this breaks backward compatibility
                 // reproducible builds should use pinned versions
@@ -145,7 +146,7 @@ impl Sbuild {
                     "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
                     "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
                     "apt-get update -y".to_string(),
-                    format!("apt-get install -y dotnet-sdk-{}", dotnet_version),
+                    format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
                     "dotnet --version".to_string(),
                     "apt remove -y wget".to_string(),
                 ];
@@ -367,6 +368,8 @@ impl BackendBuildEnv for Sbuild {
         cmd_args.push("--no-run-lintian".to_string());
         cmd_args.push("--no-run-piuparts".to_string());
         cmd_args.push("--no-run-autopkgtest".to_string());
+        cmd_args.push("--no-apt-upgrade".to_string());
+        cmd_args.push("--no-apt-distupgrade".to_string());
 
         println!(
             "Building package by invoking: sbuild {}",
