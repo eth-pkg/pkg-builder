@@ -109,6 +109,7 @@ jobs:
       - name: autopkgtest
         run: |
           sudo cp -R ${HOME}/.pkg-builder /root
+          apt list --installed autopkgtest
           cd examples/bookworm/${{matrix.language}}/hello-world
           sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
@@ -194,6 +195,7 @@ jobs:
 
       - name: autopkgtest
         run: |
+          apt list --installed autopkgtest
           sudo cp -R ${HOME}/.pkg-builder /root
           cd examples/jammy/${{matrix.language}}/hello-world
           sudo ${HOME}/.local/bin/pkg-builder autopkgtest
