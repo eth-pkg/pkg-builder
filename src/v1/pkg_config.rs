@@ -604,7 +604,7 @@ workdir="~/.pkg-builder/packages/jammy"
                 piuparts_version: "1.1.7".to_string(),
                 autopkgtest_version: "5.28".to_string(),
                 sbuild_version: "0.85.6".to_string(),
-                workdir: Some("~/.pkg-builder/packages".to_string()),
+                workdir: Some("~/.pkg-builder/packages/jammy".to_string()),
             },
         };
         assert_eq!(parse::<PkgConfig>(config_str).unwrap(), config);
