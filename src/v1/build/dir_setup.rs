@@ -494,8 +494,10 @@ pub fn longest_common_prefix(strings: &[&str]) -> String {
     prefix
 }
 
-pub fn get_build_artifacts_dir(package_name: &str, work_dir: &str) -> String {
-    let build_artifacts_dir = format!("{}/{}", work_dir, &package_name);
+pub fn get_build_artifacts_dir(package_name: &str, work_dir: &str,
+                               version_number: &str, revision_number: &str) -> String {
+    let build_artifacts_dir = format!("{}/{}-{}-{}", work_dir, &package_name,
+                                      version_number, revision_number);
     build_artifacts_dir
 }
 
