@@ -1,3 +1,7 @@
 # if you don't upload to debian this is not a bug
-hello-world-java: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
+hello-world-java: initial-upload-closes-no-bugs [usr/share/doc/hello-world-java/changelog.Debian.gz:1]
+hello-world-java: maintainer-script-ignores-errors [postrm]
+hello-world-java: mismatched-override initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1] [usr/share/lintian/overrides/hello-world-java:2]
+hello-world-java: no-manual-page [usr/bin/hello-world]
+hello-world-java: script-not-executable [usr/lib/hello-world-java/bin/hello.sh]
 

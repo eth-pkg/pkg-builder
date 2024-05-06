@@ -1,13 +1,14 @@
 use crate::v1::packager::BackendBuildEnv;
 use crate::v1::pkg_config::{LanguageEnv, PackageType, PkgConfig};
 use eyre::{eyre, Report, Result};
-use log::info;
+use log::{info, warn};
 use rand::random;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
 use std::fs::create_dir_all;
+use cargo_metadata::semver::Version;
 use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use sha1::{Digest, Sha1}; // Import from the sha1 crate
 
@@ -137,6 +138,7 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(config) => {
                 let dotnet_version = &config.dotnet_version;
+                let dotnet_full_version = &config.dotnet_full_version;
                 // TODO do not use MS repository as they upgrade between major versions
                 // this breaks backward compatibility
                 // reproducible builds should use pinned versions
@@ -145,7 +147,7 @@ impl Sbuild {
                     "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
                     "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
                     "apt-get update -y".to_string(),
-                    format!("apt-get install -y dotnet-sdk-{}", dotnet_version),
+                    format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
                     "dotnet --version".to_string(),
                     "apt remove -y wget".to_string(),
                 ];
@@ -346,9 +348,11 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
     fn package(&self) -> Result<()> {
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
         let mut cmd_args = vec![
             "-d".to_string(),
-            self.config.build_env.codename.to_string(),
+            codename.to_string(),
             "-A".to_string(),                    // build_arch_all
             "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
@@ -357,6 +361,8 @@ impl BackendBuildEnv for Sbuild {
             "-v".to_string(),                    // verbose
             "--chroot-mode=unshare".to_string(),
         ];
+
+
 
         let lang_deps = self.get_build_deps_not_in_debian();
 
@@ -367,8 +373,10 @@ impl BackendBuildEnv for Sbuild {
         cmd_args.push("--no-run-lintian".to_string());
         cmd_args.push("--no-run-piuparts".to_string());
         cmd_args.push("--no-run-autopkgtest".to_string());
+        cmd_args.push("--no-apt-upgrade".to_string());
+        cmd_args.push("--no-apt-distupgrade".to_string());
 
-        println!(
+        info!(
             "Building package by invoking: sbuild {}",
             cmd_args.join(" ")
         );
@@ -412,10 +420,9 @@ impl BackendBuildEnv for Sbuild {
         }
         let result = if errors.is_empty() {
             println!("Verify is successful!");
-            // TODO verify inputs against outputs
             Ok(())
         } else {
-            let mut combined_report = errors.pop().unwrap_or_else(|| eyre::Report::msg("No errors found"));
+            let mut combined_report = errors.pop().unwrap_or_else(|| Report::msg("No errors found"));
 
             for report in errors.into_iter() {
                 combined_report = combined_report.wrap_err(report);
@@ -426,22 +433,35 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn run_lintian(&self) -> Result<()> {
-        println!(
+        info!(
             "Running lintian..",
         );
+        check_lintian_version(self.config.build_env.lintian_version.clone())?;
         // let deb_dir = self.get_deb_dir();
         let changes_file = self.get_changes_file();
         let changes_file = changes_file.to_str().unwrap();
-        let cmd_args = vec![
+        let mut cmd_args = vec![
             "--suppress-tags".to_string(),
             "bad-distribution-in-changes-file".to_string(),
             "-i".to_string(),
             "--I".to_string(),
             changes_file.to_string(),
+            "--tag-display-limit=0".to_string(),
+            "--fail-on=warning".to_string(), // fail on warning
+            "--fail-on=error".to_string(), // fail on error
+            "--suppress-tags".to_string(), // overrides fails for this message
+            "debug-file-with-no-debug-symbols".to_string()
         ];
+        let codename = normalize_codename(&self.config.build_env.codename)?;
 
+        if codename == "jammy".to_string() || codename == "noble".to_string()  {
+            // changed a format of .deb packages on ubuntu, it's not a bug
+            // but some lintian will report as such
+            cmd_args.push("--suppress-tags".to_string());
+            cmd_args.push("malformed-deb-archive".to_string());
+        }
 
-        println!(
+        info!(
             "Testing package by invoking: lintian {}",
             cmd_args.join(" ")
         );
@@ -455,13 +475,16 @@ impl BackendBuildEnv for Sbuild {
         run_process(&mut cmd)
     }
 
+
     fn run_piuparts(&self) -> Result<()> {
-        println!(
+        info!(
             "Running piuparts command with elevated privileges..",
         );
-        println!(
+        info!(
             "Piuparts must run as root user through sudo, please provide your password, if prompted."
         );
+        check_piuparts_version(self.config.build_env.piuparts_version.clone())?;
+
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
         let keyring = get_keyring(&self.config.build_env.codename)?;
         let codename = normalize_codename(&self.config.build_env.codename)?;
@@ -499,12 +522,12 @@ impl BackendBuildEnv for Sbuild {
         }
         let deb_dir = self.get_deb_dir();
         let deb_name = self.get_deb_name();
-        println!(
+        info!(
             "Testing package by invoking: sudo -S piuparts {} {}",
             cmd_args.join(" "),
             deb_name.to_str().unwrap()
         );
-        println!("Note this command run inside of directory: {}", deb_dir.display());
+        info!("Note this command run inside of directory: {}", deb_dir.display());
 
         let mut cmd = Command::new("sudo")
             .current_dir(deb_dir)
@@ -520,9 +543,10 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn run_autopkgtests(&self) -> Result<()> {
-        println!(
+        info!(
             "Running autopkgtests command",
         );
+        check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
 
         let image_name = format!("autopkgtest-{}.img", self.config.build_env.codename.to_string());
         let mut cache_dir = self.cache_dir.clone();
@@ -550,11 +574,11 @@ impl BackendBuildEnv for Sbuild {
         cmd_args.push("--".to_string());
         cmd_args.push("qemu".to_string());
         cmd_args.push(image_path.to_str().unwrap().to_string());
-        println!(
+        info!(
             "Testing package by invoking: autopkgtest {}",
             cmd_args.join(" ")
         );
-        println!("Note this command run inside of directory: {}", deb_dir.display());
+        info!("Note this command run inside of directory: {}", deb_dir.display());
         let mut cmd = Command::new("autopkgtest")
             .current_dir(deb_dir)
             .args(&cmd_args)
@@ -562,6 +586,95 @@ impl BackendBuildEnv for Sbuild {
             .stderr(Stdio::inherit())
             .spawn()?;
         run_process(&mut cmd)
+    }
+}
+
+fn check_lintian_version(expected_version: String) -> Result<()> {
+    let output = Command::new("lintian")
+        .arg("--version")
+        .output()?;
+
+    if output.status.success() {
+        let output_str = String::from_utf8_lossy(&output.stdout).to_string()
+            .replace("Lintian v", "")
+            .replace("\n", "")
+            .trim()
+            .to_string();
+        warn_compare_versions(expected_version, &output_str, "lintian")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute lintian --version"))
+    }
+}
+
+fn check_piuparts_version(expected_version: String) -> Result<()> {
+    let output = Command::new("piuparts")
+        .arg("--version")
+        .output()?;
+
+    if output.status.success() {
+        let output_str = String::from_utf8_lossy(&output.stdout)
+            .to_string()
+            .replace("piuparts ", "")
+            .replace("\n", "")
+            .trim()
+            .to_string();
+        warn_compare_versions(expected_version, &output_str, "piuparts")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute piuparts --version"))
+    }
+}
+
+fn check_autopkgtest_version(expected_version: String) -> Result<()> {
+    let output = Command::new("apt")
+        .arg("list")
+        .arg("--installed")
+        .arg("autopkgtest")
+        .output()?;
+
+    //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
+    if output.status.success() {
+        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
+            .replace("Listing...", "")
+            .replace("\n", "")
+            .replace("autopkgtest/stable,now ", "")
+            .replace("autopkgtest/jammy-updates,now ", "")
+            .replace("autopkgtest/jammy,now ", "")
+            .replace("ubuntu3~22.04.1", "")
+            .trim()
+            .to_string();
+        if let Some(pos) = output_str.find("all ") {
+            output_str.truncate(pos);
+            output_str = output_str.trim().to_string();
+        }    
+        info!("autopkgtest version {}", output_str);
+        // append versions, to it looks like semver
+        let expected_version = format!("{}.0", expected_version);
+        let actual_version = format!("{}.0", output_str);
+        warn_compare_versions(expected_version, &actual_version, "autopkgtest")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute apt list --installed autopkgtest"))
+    }
+}
+
+pub fn warn_compare_versions(expected_version: String, actual_version: &str, program_name: &str) -> Result<()> {
+    let expected_version = Version::parse(&expected_version).unwrap();
+    let actual_version = Version::parse(actual_version).unwrap();
+    match expected_version.cmp(&actual_version) {
+        std::cmp::Ordering::Less => {
+            warn!("Warning: using newer versions than expected version.");
+            Ok(())
+        }
+        std::cmp::Ordering::Greater => {
+            warn!("Using older version of {}", program_name);
+            Ok(())
+        }
+        std::cmp::Ordering::Equal => {
+            info!("Versions match. Proceeding.");
+            Ok(())
+        }
     }
 }
 
@@ -625,10 +738,10 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
     if image_path.exists() {
         return Ok(());
     }
-    println!(
+    info!(
         "autopkgtests environment does not exist. Creating it."
     );
-    println!(
+    info!(
         "please provide your password through sudo to as autopkgtest env creation requires it."
     );
     create_dir_all(image_path.parent().unwrap())?;
@@ -638,7 +751,7 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
     let cmd_args = vec![
         codename.to_string(),
         image_path.to_str().unwrap().to_string(),
-        format!("--mirror={}", repo_url)
+        format!("--mirror={}", repo_url),
     ];
     let mut cmd = Command::new("sudo")
         // for CI
@@ -657,7 +770,7 @@ fn run_process(child: &mut Child) -> Result<()> {
 
         for line in reader.lines() {
             let line = line?;
-            println!("{}", line);
+            info!("{}", line);
         }
     }
     io::stdout().flush()?;
@@ -722,7 +835,7 @@ mod tests {
         pkg_config.build_env.arch = "amd64".to_string();
         let sbuild_cache = tempdir().unwrap();
         // create dir manually, as it doesn't exist
-        fs::create_dir_all(sbuild_cache.path()).expect("Could not create temporary directory for testing.");
+        create_dir_all(sbuild_cache.path()).expect("Could not create temporary directory for testing.");
         let sbuild_cache_dir = sbuild_cache.path().to_str().unwrap().to_string();
         pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir.clone());
         let build_env = Sbuild::new(pkg_config, build_files_dir);

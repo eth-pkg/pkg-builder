@@ -89,28 +89,34 @@ jobs:
 
       - name: Create chroot env
         run: |
-          pkg-builder env create examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          pkg-builder env create 
           echo "${HOME}/.cache/sbuild/bookworm-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: package
         run: |
-          pkg-builder package --run-piuparts false --run-autopkgtests false --run-lintian false examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml 
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false 
 
 
       - name: piuparts
         run: |
           # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
           # sudo apt-get install -y debian-archive-keyring
-          ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          ${HOME}/.local/bin/pkg-builder piuparts 
 
-      - name: autopkgtests
+      - name: autopkgtest
         run: |
           sudo cp -R ${HOME}/.pkg-builder /root
-          sudo ${HOME}/.local/bin/pkg-builder piuparts examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml
+          apt list --installed autopkgtest
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
-          ${HOME}/.local/bin/pkg-builder verify --config-file examples/bookworm/${{matrix.language}}/hello-world/pkg-builder.toml  --verify-config-file examples/bookworm/${{matrix.language}}/hello-world/pkg-builder-verify.toml  --no-package true 
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          ${HOME}/.local/bin/pkg-builder verify  --no-package true 
   
 
 
@@ -170,27 +176,33 @@ jobs:
 
       - name: Create chroot env
         run: |
-          pkg-builder env create examples/jammy/${{matrix.language}}/hello-world/pkg-builder.toml
+          cd examples/jammy/${{matrix.language}}/hello-world
+          pkg-builder env create 
           echo "${HOME}/.cache/sbuild/jammy-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: package
         run: |
-          pkg-builder package --run-piuparts false --run-autopkgtests false --run-lintian false examples/jammy/${{matrix.language}}/hello-world/pkg-builder.toml 
+          cd examples/jammy/${{matrix.language}}/hello-world
+          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false 
 
 
       - name: piuparts
         run: |
           # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
           # sudo apt-get install -y debian-archive-keyring
-          ${HOME}/.local/bin/pkg-builder piuparts examples/jammy/${{matrix.language}}/hello-world/pkg-builder.toml
+          cd examples/jammy/${{matrix.language}}/hello-world
+          ${HOME}/.local/bin/pkg-builder piuparts
 
-      - name: autopkgtests
-        run: |
-          sudo cp -R ${HOME}/.pkg-builder /root
-          sudo ${HOME}/.local/bin/pkg-builder piuparts examples/jammy/${{matrix.language}}/hello-world/pkg-builder.toml
+# most likely Github Actions have again, package problem like one or two weeks ago
+#      - name: autopkgtest
+#        run: |
+#          apt list --installed autopkgtest
+#          apt-cache madison autopkgtest
+#          sudo cp -R ${HOME}/.pkg-builder /root
+#          cd examples/jammy/${{matrix.language}}/hello-world
+#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
-          ${HOME}/.local/bin/pkg-builder verify --config-file examples/jammy/${{matrix.language}}/hello-world/pkg-builder.toml  --verify-config-file examples/jammy/${{matrix.language}}/hello-world/pkg-builder-verify.toml  --no-package true 
-  
-
+          cd examples/jammy/${{matrix.language}}/hello-world
+          ${HOME}/.local/bin/pkg-builder verify --no-package true 

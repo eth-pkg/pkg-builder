@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cargo_metadata",
  "clap",
@@ -1423,6 +1423,7 @@ dependencies = [
  "httpmock",
  "log",
  "rand",
+ "regex",
  "serde",
  "sha1",
  "sha2",

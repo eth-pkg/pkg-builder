@@ -1,5 +1,4 @@
-# TODO this is depends, most of the case it is not a bug
+hello-world-go: initial-upload-closes-no-bugs [usr/share/doc/hello-world-go/changelog.Debian.gz:1]
+hello-world-go: maintainer-script-ignores-errors [postrm]
+hello-world-go: no-manual-page [usr/bin/hello-world]
 hello-world-go: statically-linked-binary [usr/lib/hello-world-go/bin/hello-world]
-
-# if you don't upload to debian this is not a bug
-hello-world-go: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]

@@ -35,18 +35,17 @@ pub struct VerifyConfig {
 
 impl Validation for VerifyConfig {
     fn validate(&self) -> eyre::Result<(), Vec<Report>> {
-        if self.package_hash.is_empty(){
+        if self.package_hash.is_empty() {
             let err = vec![eyre!("package_hash cannot be empty")];
             Err(err)
-        }else {
+        } else {
             let mut errors = Vec::new();
-            for packagehash in self.package_hash.iter(){
-                if let Err(mut err) = packagehash.validate(){
-                    if !err.is_empty(){
+            for packagehash in self.package_hash.iter() {
+                if let Err(mut err) = packagehash.validate() {
+                    if !err.is_empty() {
                         errors.append(&mut err);
                     }
                 }
-
             }
             if errors.is_empty() {
                 Ok(())
@@ -64,6 +63,6 @@ pub struct PkgVerifyConfig {
 
 impl Validation for PkgVerifyConfig {
     fn validate(&self) -> eyre::Result<(), Vec<Report>> {
-        return self.verify.validate()
+        return self.verify.validate();
     }
 }

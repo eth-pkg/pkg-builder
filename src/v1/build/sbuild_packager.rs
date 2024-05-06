@@ -30,7 +30,7 @@ impl Packager for SbuildPackager {
             .clone()
             .unwrap_or(format!("~/.pkg-builder/packages/{}", config.build_env.codename));
         let workdir = expand_path(&workdir, None);
-        let debian_artifacts_dir = get_build_artifacts_dir(&package_fields.package_name, &workdir);
+        let debian_artifacts_dir = get_build_artifacts_dir(&package_fields.package_name, &workdir, &package_fields.version_number, &package_fields.revision_number);
         let debian_orig_tarball_path = get_tarball_path(
             &package_fields.package_name,
             &package_fields.version_number,

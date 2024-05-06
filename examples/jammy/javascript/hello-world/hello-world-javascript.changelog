@@ -1,4 +1,4 @@
-hello-world-javascript (1.0.0-1) bookworm; urgency=medium
+hello-world-javascript (1.0.0-1) jammy; urgency=medium
 
   * Initial packaging
 

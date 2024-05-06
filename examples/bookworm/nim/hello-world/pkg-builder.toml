@@ -20,10 +20,14 @@ nim_version_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.1"
-debcrafter_version = "latest"
+pkg_builder_version="0.2.0"
+debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true
 run_autopkgtest=true
+lintian_version="2.116.3"
+piuparts_version="1.1.7"
+autopkgtest_version="5.28"
+sbuild_version="0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages"
+workdir="~/.pkg-builder/packages/bookworm"

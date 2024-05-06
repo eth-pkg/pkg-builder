@@ -1,3 +1,9 @@
 # if you don't upload to debian this is not a bug
-hello-world-java-gradle: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
-
+hello-world-java-gradle: initial-upload-closes-no-bugs [usr/share/doc/hello-world-java-gradle/changelog.Debian.gz:1]
+hello-world-java-gradle: maintainer-script-ignores-errors [postrm]
+hello-world-java-gradle: mismatched-override initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1] [usr/share/lintian/overrides/hello-world-java-gradle:2]
+hello-world-java-gradle: no-manual-page [usr/bin/hello-world]
+hello-world-java-gradle: script-not-executable [usr/lib/hello-world-java-gradle/bin/hello.sh]
+hello-world-java-gradle: jar-not-in-usr-share *
+hello-world-java-gradle: codeless-jar [usr/lib/hello-world-java-gradle/lib/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar]
+hello-world-java-gradle: executable-not-elf-or-script [usr/lib/hello-world-java-gradle/bin/app.bat]

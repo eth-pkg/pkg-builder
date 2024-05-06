@@ -21,18 +21,24 @@ pub enum ActionType {
     Lintian(DefaultCommand),
 
     /// Verify package against hashes, it also rebuilds the package
-    Verify(VerifyConfig)
+    Verify(VerifyConfig),
+    // pkg-builder version
+    Version
 }
 
 #[derive(Debug, Args)]
 pub struct VerifyConfig {
-    /// location of pkg-builder config_file
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder.toml is located
+    /// if not given current directory is searched for pkg-builder.toml
     #[clap(long)]
-    pub config_file: String,
+    pub config: Option<String>,
 
-    /// location of pkg-builder verify_config_file
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder-verify.toml is located
+    /// if not given current directory is searched for pkg-builder-verify.toml
     #[clap(long)]
-    pub verify_config_file: String,
+    pub verify_config: Option<String>,
 
     /// if given it won't repackage it
     #[clap(long)]
@@ -41,14 +47,18 @@ pub struct VerifyConfig {
 
 #[derive(Debug, Args)]
 pub struct DefaultCommand {
-    /// location of pkg-builder config_file
-    pub config_file: String,
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder.toml is located
+    /// if not given current directory is searched for pkg-builder.toml
+    pub config: Option<String>,
 }
 
 #[derive(Debug, Args)]
 pub struct PackageCommand {
-    /// location of pkg-builder config_file
-    pub config_file: String,
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder.toml is located
+    /// if not given current directory is searched for pkg-builder.toml
+    pub config: Option<String>,
     /// overrides config value
     /// runs piuparts or not based on supplied value
     #[clap(long)]
@@ -56,7 +66,7 @@ pub struct PackageCommand {
     /// overrides config value
     /// runs autopkgtest or not based on supplied value
     #[clap(long)]
-    pub run_autopkgtests: Option<bool>,
+    pub run_autopkgtest: Option<bool>,
     #[clap(long)]
     /// runs lintian or not, based on value, overrides config value
     pub run_lintian: Option<bool>,
@@ -77,11 +87,15 @@ pub enum BuildEnvSubCommand {
 
 #[derive(Debug, Args)]
 pub struct CreateBuildEnvCommand {
-    /// location of pkg-builder config_file
-    pub config_file: String,
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder.toml is located
+    /// if not given current directory is searched for pkg-builder.toml
+    pub config: Option<String>,
 }
 #[derive(Debug, Args)]
 pub struct CleanBuildEnvCommand {
-    /// location of pkg-builder config_file
-    pub config_file: String,
+    /// location of pkg-builder config_file, either full path
+    /// or directory to pkg-builder.toml is located
+    /// if not given current directory is searched for pkg-builder.toml
+    pub config: Option<String>,
 }

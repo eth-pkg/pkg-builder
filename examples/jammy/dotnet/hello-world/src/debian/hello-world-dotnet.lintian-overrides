@@ -1,2 +1,7 @@
 # if you don't upload to debian this is not a bug
-hello-world-dotnet: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
+hello-world-dotnet: mismatched-override initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1] [usr/share/lintian/overrides/hello-world-dotnet:2]
+# if you don't upload to debian this is not a bug
+hello-world-dotnet: initial-upload-closes-no-bugs [usr/share/doc/hello-world-dotnet/changelog.Debian.gz:1]
+hello-world-dotnet: maintainer-script-ignores-errors [postrm]
+hello-world-dotnet: no-manual-page [usr/bin/hello-world]
+

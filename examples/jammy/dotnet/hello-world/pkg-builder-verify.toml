@@ -1,21 +1,7 @@
-[package_type]
-tarball_hash = "f263892f5ed6cbcd82f31d60058eed359686d7e745c3da97fea917ee2f44867c4db9bd374f224e89e6efc7ffad4eadb244eefe7c95d25983f8a5a4086dadb78d"
-
-[package_type.language_env]
-language_env = "dotnet"
-dotnet_version = "8.0"
-
-[build_env]
-codename="bookworm"
-arch = "amd64"
-pkg_builder_version="0.1"
-debcrafter_version = "latest"
-
 [verify]
 package_hash=[
-    { hash="ca80b1f42b2c2c851e091bea839b3e89a6e6976e", name= "hello-world-dotnet_1.0.0-1.dsc"},
+    { hash="0b924a5ca583d74eefc8b491710ee6e948bb7626", name= "hello-world-dotnet_1.0.0-1.dsc"},
     { hash="0ef2133c3ffe3239f70afcee13ce171a77ed7437", name= "hello-world-dotnet_1.0.0.orig.tar.gz"},
-    { hash="7d300404b4dae76a5ef17e112263d71ac2b594bf", name= "hello-world-dotnet_1.0.0-1.debian.tar.xz"},
-#    { hash="6201935f6ce8c21980f8a3197503f2fbe20c0828", name= "hello-world-dotnet_1.0.0-1_amd64.buildinfo"},
-    { hash="ddeb193ff11dffc15995266395e38659afa5012d", name= "hello-world-dotnet_1.0.0-1_amd64.deb"},
+    { hash="9d1390c41862a928d8ab24f183e9705dc6814616", name= "hello-world-dotnet_1.0.0-1.debian.tar.xz"},
+    { hash="4f2f89637d848626528012977fa9ab9db69758b3", name= "hello-world-dotnet_1.0.0-1_amd64.deb"},
 ]

@@ -188,6 +188,7 @@ impl Validation for JavaConfig {
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DotnetConfig {
     pub dotnet_version: String,
+    pub dotnet_full_version: String,
 }
 
 impl Validation for DotnetConfig {
@@ -197,7 +198,9 @@ impl Validation for DotnetConfig {
         if let Err(err) = validate_not_empty("dotnet_version", &self.dotnet_version) {
             errors.push(err);
         }
-
+        if let Err(err) = validate_not_empty("dotnet_full_version", &self.dotnet_version) {
+            errors.push(err);
+        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -206,31 +209,6 @@ impl Validation for DotnetConfig {
     }
 }
 
-// #[derive(Debug, Deserialize, PartialEq, Clone)]
-// pub struct TypescriptConfig {
-//     pub node_version: String,
-//     pub yarn_version: String,
-// }
-//
-// impl Validation for TypescriptConfig {
-//     fn validate(&self) -> Result<(), Vec<Report>> {
-//         let mut errors = Vec::new();
-//
-//         if let Err(err) = validate_not_empty("node_version", &self.node_version) {
-//             errors.push(err);
-//         }
-//
-//         if let Err(err) = validate_not_empty("yarn_version", &self.yarn_version) {
-//             errors.push(err);
-//         }
-//
-//         if errors.is_empty() {
-//             Ok(())
-//         } else {
-//             Err(errors)
-//         }
-//     }
-// }
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct NimConfig {
     pub nim_version: String,
@@ -442,6 +420,10 @@ pub struct BuildEnv {
     pub run_lintian: Option<bool>,
     pub run_piuparts: Option<bool>,
     pub run_autopkgtest: Option<bool>,
+    pub lintian_version: String,
+    pub piuparts_version: String,
+    pub autopkgtest_version: String,
+    pub sbuild_version: String,
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub workdir: Option<String>,
 }
@@ -463,7 +445,18 @@ impl Validation for BuildEnv {
         if let Err(err) = validate_not_empty("debcrafter_version", &self.debcrafter_version) {
             errors.push(err);
         }
-
+        if let Err(err) = validate_not_empty("lintian_version", &self.lintian_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("piuparts_version", &self.piuparts_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("autopkgtest_version", &self.autopkgtest_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("sbuild_version", &self.sbuild_version) {
+            errors.push(err);
+        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -569,12 +562,16 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.1"
-debcrafter_version = "latest"
+pkg_builder_version="0.2.0"
+debcrafter_version = "2711b53"
 run_lintian=false
 run_piuparts=false
 run_autopkgtest=false
-workdir="~/.pkg-builder/packages"
+lintian_version="2.116.3"
+piuparts_version="1.1.7"
+autopkgtest_version="5.28"
+sbuild_version="0.85.6"
+workdir="~/.pkg-builder/packages/jammy"
 "#;
         let config = PkgConfig {
             package_fields: PackageFields {
@@ -596,14 +593,18 @@ workdir="~/.pkg-builder/packages"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.1".to_string(),
-                debcrafter_version: "latest".to_string(),
+                pkg_builder_version: "0.2.0".to_string(),
+                debcrafter_version: "2711b53".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
                 run_lintian: Some(false),
                 run_piuparts: Some(false),
                 run_autopkgtest: Some(false),
-                workdir: Some("~/.pkg-builder/packages".to_string()),
+                lintian_version: "2.116.3".to_string(),
+                piuparts_version: "1.1.7".to_string(),
+                autopkgtest_version: "5.28".to_string(),
+                sbuild_version: "0.85.6".to_string(),
+                workdir: Some("~/.pkg-builder/packages/jammy".to_string()),
             },
         };
         assert_eq!(parse::<PkgConfig>(config_str).unwrap(), config);
@@ -706,7 +707,10 @@ workdir="~/.pkg-builder/packages"
         let config = DotnetConfig::default();
         match config.validate() {
             Err(validation_errors) => {
-                let expected_errors = ["field: dotnet_version cannot be empty"];
+                let expected_errors = [
+                    "field: dotnet_version cannot be empty",
+                    "field: dotnet_full_version cannot be empty"
+                ];
                 assert_eq!(
                     validation_errors.len(),
                     expected_errors.len(),
@@ -869,6 +873,10 @@ workdir="~/.pkg-builder/packages"
                     "field: arch cannot be empty",
                     "field: pkg_builder_version cannot be empty",
                     "field: debcrafter_version cannot be empty",
+                    "field: lintian_version cannot be empty",
+                    "field: piuparts_version cannot be empty",
+                    "field: autopkgtest_version cannot be empty",
+                    "field: sbuild_version cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -898,6 +906,10 @@ workdir="~/.pkg-builder/packages"
                     "field: arch cannot be empty",
                     "field: pkg_builder_version cannot be empty",
                     "field: debcrafter_version cannot be empty",
+                    "field: lintian_version cannot be empty",
+                    "field: piuparts_version cannot be empty",
+                    "field: autopkgtest_version cannot be empty",
+                    "field: sbuild_version cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),

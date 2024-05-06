@@ -1,2 +1,5 @@
 # if you don't upload to debian this is not a bug
-hello-world-javascript: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
+hello-world-javascript: initial-upload-closes-no-bugs [usr/share/doc/hello-world-javascript/changelog.Debian.gz:1]
+hello-world-javascript: maintainer-script-ignores-errors [postrm]
+hello-world-javascript: no-manual-page [usr/bin/hello-world]
+hello-world-javascript: script-not-executable [usr/lib/hello-world-javascript/src/hello.sh]
