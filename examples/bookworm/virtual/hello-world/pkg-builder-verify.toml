@@ -1,12 +1,3 @@
-[package_type]
-# nothing here
-
-[build_env]
-codename="bookworm"
-arch = "amd64"
-pkg_builder_version="0.1"
-debcrafter_version = "latest"
-
 [verify]
 package_hash=[
     { hash="68a5d0126d982ef8f735e60737626f7cb07acb67", name= "test-virtual-package_1.0.0-1.dsc"},
