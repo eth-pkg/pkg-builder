@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="7ef20b62a50551d93c5c30ad4fd46926e4b465af", name= "hello-world-go_1.0.0-1.dsc"},
+    { hash="2ece6c60746a2e6ad5c4eeb5f5d8712a329ddf21", name= "hello-world-go_1.0.0-1.dsc"},
     { hash="e86b15349d902a2fabe356e386b034ed9e5a10c4", name= "hello-world-go_1.0.0.orig.tar.gz"},
-    { hash="80e513f525497d87ecca7094397d50a3f16104ab", name= "hello-world-go_1.0.0-1.debian.tar.xz"},
-    { hash="b131c02354e377089518ddb3e9a6293b44977014", name= "hello-world-go_1.0.0-1_amd64.deb"},
+    { hash="321065ed16dca91ba52a878639fc50414dc6e012", name= "hello-world-go_1.0.0-1.debian.tar.xz"},
+    { hash="9591c829f8ec31d9abb0bb80812034e006961cbb", name= "hello-world-go_1.0.0-1_amd64.deb"},
 ]
