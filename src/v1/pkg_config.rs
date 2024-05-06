@@ -209,31 +209,6 @@ impl Validation for DotnetConfig {
     }
 }
 
-// #[derive(Debug, Deserialize, PartialEq, Clone)]
-// pub struct TypescriptConfig {
-//     pub node_version: String,
-//     pub yarn_version: String,
-// }
-//
-// impl Validation for TypescriptConfig {
-//     fn validate(&self) -> Result<(), Vec<Report>> {
-//         let mut errors = Vec::new();
-//
-//         if let Err(err) = validate_not_empty("node_version", &self.node_version) {
-//             errors.push(err);
-//         }
-//
-//         if let Err(err) = validate_not_empty("yarn_version", &self.yarn_version) {
-//             errors.push(err);
-//         }
-//
-//         if errors.is_empty() {
-//             Ok(())
-//         } else {
-//             Err(errors)
-//         }
-//     }
-// }
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct NimConfig {
     pub nim_version: String,
@@ -445,6 +420,10 @@ pub struct BuildEnv {
     pub run_lintian: Option<bool>,
     pub run_piuparts: Option<bool>,
     pub run_autopkgtest: Option<bool>,
+    pub lintian_version: String,
+    pub piuparts_version: String,
+    pub autopkgtest_version: String,
+    pub sbuild_version: String,
     #[serde(deserialize_with = "deserialize_option_empty_string")]
     pub workdir: Option<String>,
 }
@@ -466,7 +445,18 @@ impl Validation for BuildEnv {
         if let Err(err) = validate_not_empty("debcrafter_version", &self.debcrafter_version) {
             errors.push(err);
         }
-
+        if let Err(err) = validate_not_empty("lintian_version", &self.lintian_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("piuparts_version", &self.piuparts_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("autopkgtest_version", &self.autopkgtest_version) {
+            errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("sbuild_version", &self.sbuild_version) {
+            errors.push(err);
+        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -572,11 +562,15 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.1"
-debcrafter_version = "latest"
+pkg_builder_version="0.2.0"
+debcrafter_version = "2711b53"
 run_lintian=false
 run_piuparts=false
 run_autopkgtest=false
+lintian_version="2.116.3"
+piuparts_version="1.1.7"
+autopkgtest_version="5.28"
+sbuild_version="0.85.6"
 workdir="~/.pkg-builder/packages"
 "#;
         let config = PkgConfig {
@@ -600,12 +594,16 @@ workdir="~/.pkg-builder/packages"
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
                 pkg_builder_version: "0.1".to_string(),
-                debcrafter_version: "latest".to_string(),
+                debcrafter_version: "2711b53".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
                 run_lintian: Some(false),
                 run_piuparts: Some(false),
                 run_autopkgtest: Some(false),
+                lintian_version: "v2.116.3".to_string(),
+                piuparts_version: "1.1.7".to_string(),
+                autopkgtest_version: "5.28".to_string(),
+                sbuild_version: "0.85.6".to_string(),
                 workdir: Some("~/.pkg-builder/packages".to_string()),
             },
         };

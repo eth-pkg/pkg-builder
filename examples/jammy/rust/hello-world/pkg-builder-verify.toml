@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="80891c0905c21d7e8a93e95172eb1560548a9bce", name= "hello-world-rust_1.0.0-1.dsc"},
+    { hash="ea6180501391bd8524d26b940f9ec719e1a5bb9d", name= "hello-world-rust_1.0.0-1.dsc"},
     { hash="a9c7bea89015e52a5b4e24544873ec73a0c92af2", name= "hello-world-rust_1.0.0.orig.tar.gz"},
-    { hash="0af0be78638af5e2564ea0edbad38b49f88ed8b8", name= "hello-world-rust_1.0.0-1.debian.tar.xz"},
-    { hash="e9ebac597e996f15f0460d6b4557e18119459437", name= "hello-world-rust_1.0.0-1_amd64.deb"},
+    { hash="34ab86d8f5f2c0836d3afc32bbc81d31b3b6887b", name= "hello-world-rust_1.0.0-1.debian.tar.xz"},
+    { hash="c919e4c71fd5a4a4a44476436ac4c3b0f80f9f77", name= "hello-world-rust_1.0.0-1_amd64.deb"},
 ]

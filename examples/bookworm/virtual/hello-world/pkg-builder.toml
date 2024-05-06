@@ -11,12 +11,14 @@ package_type="virtual"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-# TODO not used
-pkg_builder_version="0.1"
-# TODO not used yet
-debcrafter_version = "latest"
+pkg_builder_version="0.2.0"
+debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true
 run_autopkgtest=false
+lintian_version="2.116.3"
+piuparts_version="1.1.7"
+autopkgtest_version="5.28"
+sbuild_version="0.85.6"
 # package directory
 workdir="~/.pkg-builder/packages"

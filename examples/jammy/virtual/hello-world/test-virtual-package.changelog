@@ -1,4 +1,4 @@
-test-virtual-package (1.0.0-1) bookworm; urgency=medium
+test-virtual-package (1.0.0-1) jammy; urgency=medium
 
   * Initial packaging
 

@@ -21,7 +21,9 @@ pub enum ActionType {
     Lintian(DefaultCommand),
 
     /// Verify package against hashes, it also rebuilds the package
-    Verify(VerifyConfig)
+    Verify(VerifyConfig),
+    // pkg-builder version
+    Version
 }
 
 #[derive(Debug, Args)]
