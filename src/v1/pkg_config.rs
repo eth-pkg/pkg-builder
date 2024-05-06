@@ -593,7 +593,7 @@ workdir="~/.pkg-builder/packages"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.1".to_string(),
+                pkg_builder_version: "0.2.0".to_string(),
                 debcrafter_version: "2711b53".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
@@ -873,6 +873,10 @@ workdir="~/.pkg-builder/packages"
                     "field: arch cannot be empty",
                     "field: pkg_builder_version cannot be empty",
                     "field: debcrafter_version cannot be empty",
+                    "field: lintian_version cannot be empty",
+                    "field: piuparts_version cannot be empty",
+                    "field: autopkgtest_version cannot be empty",
+                    "field: sbuild_version cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -902,6 +906,10 @@ workdir="~/.pkg-builder/packages"
                     "field: arch cannot be empty",
                     "field: pkg_builder_version cannot be empty",
                     "field: debcrafter_version cannot be empty",
+                    "field: lintian_version cannot be empty",
+                    "field: piuparts_version cannot be empty",
+                    "field: autopkgtest_version cannot be empty",
+                    "field: sbuild_version cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
