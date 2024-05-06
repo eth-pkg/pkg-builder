@@ -635,17 +635,19 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
 
     //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
     if output.status.success() {
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string()
+        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
             .replace("Listing...", "")
             .replace("\n", "")
             .replace("autopkgtest/stable,now ", "")
-            .replace(" all [installed]", "")
             .replace("autopkgtest/jammy-updates,now ", "")
             .replace("autopkgtest/jammy,now ", "")
-            .replace(" all [installed,upgradable to: 5.32]", "")
             .replace("ubuntu3~22.04.1", "")
             .trim()
             .to_string();
+        if let Some(pos) = output_str.find("all ") {
+            output_str.truncate(pos);
+            output_str = output_str.trim().to_string();
+        }    
         info!("autopkgtest version {}", output_str);
         // append versions, to it looks like semver
         let expected_version = format!("{}.0", expected_version);
