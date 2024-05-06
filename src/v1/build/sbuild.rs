@@ -633,12 +633,15 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
         .arg("autopkgtest")
         .output()?;
 
+    //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
     if output.status.success() {
         let output_str = String::from_utf8_lossy(&output.stdout).to_string()
             .replace("Listing...", "")
             .replace("\n", "")
             .replace("autopkgtest/stable,now ", "")
             .replace(" all [installed]", "")
+            .replace("autopkgtest/jammy-updates,now ", "")
+            .replace("ubuntu3~22.04.1", "")
             .trim()
             .to_string();
         info!("autopkgtest version {}", output_str);

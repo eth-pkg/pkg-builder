@@ -600,7 +600,7 @@ workdir="~/.pkg-builder/packages"
                 run_lintian: Some(false),
                 run_piuparts: Some(false),
                 run_autopkgtest: Some(false),
-                lintian_version: "v2.116.3".to_string(),
+                lintian_version: "2.116.3".to_string(),
                 piuparts_version: "1.1.7".to_string(),
                 autopkgtest_version: "5.28".to_string(),
                 sbuild_version: "0.85.6".to_string(),
