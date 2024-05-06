@@ -372,6 +372,8 @@ impl BackendBuildEnv for Sbuild {
                 let mut script = File::create(debootstrap_script)?;
                 let noble_script = include_bytes!("noble");
                 script.write_all(noble_script)?;
+                info!("Created script for noble!");
+
             }
         }
 
