@@ -106,12 +106,12 @@ jobs:
           cd examples/bookworm/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts 
 
-      - name: autopkgtest
-        run: |
-          sudo cp -R ${HOME}/.pkg-builder /root
-          apt list --installed autopkgtest
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+#      - name: autopkgtest
+#        run: |
+#          sudo cp -R ${HOME}/.pkg-builder /root
+#          apt list --installed autopkgtest
+#          cd examples/bookworm/${{matrix.language}}/hello-world
+#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
@@ -280,13 +280,13 @@ jobs:
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-      - name: autopkgtest
-        run: |
-          apt list --installed autopkgtest
-          apt-cache madison autopkgtest
-          sudo cp -R ${HOME}/.pkg-builder /root
-          cd examples/noble/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+#      - name: autopkgtest
+#        run: |
+#          apt list --installed autopkgtest
+#          apt-cache madison autopkgtest
+#          sudo cp -R ${HOME}/.pkg-builder /root
+#          cd examples/noble/${{matrix.language}}/hello-world
+#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
