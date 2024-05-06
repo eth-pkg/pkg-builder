@@ -571,7 +571,7 @@ lintian_version="2.116.3"
 piuparts_version="1.1.7"
 autopkgtest_version="5.28"
 sbuild_version="0.85.6"
-workdir="~/.pkg-builder/packages"
+workdir="~/.pkg-builder/packages/jammy"
 "#;
         let config = PkgConfig {
             package_fields: PackageFields {
