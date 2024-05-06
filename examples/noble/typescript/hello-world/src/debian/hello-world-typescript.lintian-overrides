@@ -1,0 +1,8 @@
+# if you don't upload to debian this is not a bug
+hello-world-typescript: initial-upload-closes-no-bugs [usr/share/doc/hello-world-typescript/changelog.Debian.gz:1]
+hello-world-typescript: maintainer-script-ignores-errors [postrm]
+hello-world-typescript: no-manual-page [usr/bin/hello-world]
+hello-world-typescript: script-not-executable [usr/lib/hello-world-typescript/src/hello.sh]
+# you can add nodejs as dependency, this package does not adds it
+hello-world-typescript: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/lib/hello-world-typescript/node_modules/typescript/bin/tsc]
+hello-world-typescript: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/lib/hello-world-typescript/node_modules/typescript/bin/tsserver]

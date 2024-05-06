@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
-use std::fs::create_dir_all;
+use std::fs::{create_dir_all, File};
 use cargo_metadata::semver::Version;
 use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use sha1::{Digest, Sha1}; // Import from the sha1 crate
@@ -330,9 +330,20 @@ impl BackendBuildEnv for Sbuild {
         let cache_file = self.get_cache_file();
         let cache_dir = Path::new(&cache_file).parent().unwrap();
         create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+        
+        let debootstrap_script = format!("/usr/share/debootstrap/scripts/{}", codename);
+        let debootstrap_script = Path::new(&debootstrap_script);
+        if !debootstrap_script.exists(){
+            warn!("Debootstrap script does not exist!");
+            if codename == "noble"{
+                let mut script = File::create(debootstrap_script)?;
+                let noble_script = include_bytes!("noble");
+                script.write_all(noble_script)?;
+            }
+        }
 
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
-        let codename = normalize_codename(&self.config.build_env.codename)?;
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")

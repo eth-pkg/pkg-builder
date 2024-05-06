@@ -1,0 +1,34 @@
+[package_fields]
+spec_file = "hello-world-javascript.sss"
+package_name = "hello-world-javascript"
+version_number = "1.0.0"
+revision_number = "1"
+homepage="https://github.com/eth-pkg/pkg-builder#examples"
+
+[package_type]
+# virtual | git | default
+package_type="default"
+tarball_url = "hello-world-javascript-1.0.0.tar.gz"
+tarball_hash = "a7c7eb7779e319cc9c884128a64bd0997481c16aab75824b7f6a02844f847cbc46c5a04a21efcb024661ed0795fe9908fd8c00954ffdbff80337dcb6471d53f0"
+
+[package_type.language_env]
+language_env = "javascript"
+node_version = "20.12.2"
+node_binary_url = "https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz"
+node_binary_checksum = "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d"
+yarn_version = "1.22.19"
+
+[build_env]
+codename="noble numbat"
+arch = "amd64"
+pkg_builder_version="0.2.0"
+debcrafter_version = "2711b53"
+run_lintian=true
+run_piuparts=true
+run_autopkgtest=true
+lintian_version="2.116.3"
+piuparts_version="1.1.7"
+autopkgtest_version="5.20"
+sbuild_version="0.85.6"
+# package directory
+workdir="~/.pkg-builder/packages/noble"
