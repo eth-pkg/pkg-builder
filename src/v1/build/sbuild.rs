@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
-use std::fs::{create_dir_all, File};
+use std::fs::{create_dir_all};
 use cargo_metadata::semver::Version;
 use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use sha1::{Digest, Sha1}; // Import from the sha1 crate
@@ -363,7 +363,7 @@ impl BackendBuildEnv for Sbuild {
         let cache_dir = Path::new(&cache_file).parent().unwrap();
         create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
         let codename = normalize_codename(&self.config.build_env.codename)?;
-        
+
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
