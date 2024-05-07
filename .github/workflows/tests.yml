@@ -267,11 +267,12 @@ jobs:
       - name: Create chroot env
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder env create 
-          sudo systemctl restart schroot
+          sysctl -w kernel.unprivileged_userns_clone=1
+          ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
+          # sudo ${HOME}/.local/bin/pkg-builder env create 
           # First will fail, try again
-          sudo cat /etc/subuid
-          ${HOME}/.local/bin/pkg-builder env create 
+          #sudo cat /etc/subuid
+          pkg-builder env create 
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: package
