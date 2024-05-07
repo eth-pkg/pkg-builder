@@ -363,20 +363,7 @@ impl BackendBuildEnv for Sbuild {
         let cache_dir = Path::new(&cache_file).parent().unwrap();
         create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
         let codename = normalize_codename(&self.config.build_env.codename)?;
-
-        let debootstrap_script = format!("/usr/share/debootstrap/scripts/{}", codename);
-        let debootstrap_script = Path::new(&debootstrap_script);
-        if !debootstrap_script.exists() {
-            warn!("Debootstrap script does not exist!");
-            if codename == "noble" {
-                let mut script = File::create(debootstrap_script)?;
-                let noble_script = include_bytes!("noble");
-                script.write_all(noble_script)?;
-                info!("Created script for noble!");
-
-            }
-        }
-
+        
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")

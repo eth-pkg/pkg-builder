@@ -20,7 +20,7 @@ nim_version_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224
 [build_env]
 codename="noble numbat"
 arch = "amd64"
-pkg_builder_version="0.2.0"
+pkg_builder_version="0.2.1"
 debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true
