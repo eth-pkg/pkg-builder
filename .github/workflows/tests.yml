@@ -288,13 +288,13 @@ jobs:
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-#      - name: autopkgtest
-#        run: |
-#          apt list --installed autopkgtest
-#          apt-cache madison autopkgtest
-#          sudo cp -R ${HOME}/.pkg-builder /root
-#          cd examples/noble/${{matrix.language}}/hello-world
-#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+      - name: autopkgtest
+        run: |
+          apt list --installed autopkgtest
+          apt-cache madison autopkgtest
+          sudo cp -R ${HOME}/.pkg-builder /root
+          cd examples/noble/${{matrix.language}}/hello-world
+          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |

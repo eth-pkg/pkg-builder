@@ -643,11 +643,15 @@ fn check_lintian_version(expected_version: String) -> Result<()> {
         .output()?;
 
     if output.status.success() {
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string()
+        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
             .replace("Lintian v", "")
             .replace("\n", "")
             .trim()
             .to_string();
+        if let Some(pos) = output_str.find("ubuntu") {
+            output_str.truncate(pos);
+            output_str = output_str.trim().to_string();
+        }
         warn_compare_versions(expected_version, &output_str, "lintian")?;
         Ok(())
     } else {
