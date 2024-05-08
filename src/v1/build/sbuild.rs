@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::{env, fs, io};
-use std::fs::create_dir_all;
+use std::fs::{create_dir_all};
 use cargo_metadata::semver::Version;
 use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use sha1::{Digest, Sha1}; // Import from the sha1 crate
@@ -139,19 +139,36 @@ impl Sbuild {
             LanguageEnv::Dotnet(config) => {
                 let dotnet_version = &config.dotnet_version;
                 let dotnet_full_version = &config.dotnet_full_version;
-                // TODO do not use MS repository as they upgrade between major versions
-                // this breaks backward compatibility
-                // reproducible builds should use pinned versions
-                let install = vec![
-                    "apt install -y wget".to_string(),
-                    "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                    "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                    "apt-get update -y".to_string(),
-                    format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
-                    "dotnet --version".to_string(),
-                    "apt remove -y wget".to_string(),
-                ];
-                install
+                if self.config.build_env.codename == "bookworm" ||
+                    self.config.build_env.codename == "jammy jellyfish" {
+                    // TODO do not use MS repository as they upgrade between major versions
+                    // this breaks backward compatibility
+                    // reproducible builds should use pinned versions
+                    let install = vec![
+                        "apt install -y wget".to_string(),
+                        "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                        "apt-get update -y".to_string(),
+                        format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
+                        "dotnet --version".to_string(),
+                        "apt remove -y wget".to_string(),
+                    ];
+                    install
+                } else if self.config.build_env.codename == "noble numbat" {
+                    let install = vec![
+                        "apt install -y wget".to_string(),
+                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                        "apt-get update -y".to_string(),
+                        format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
+                        format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
+                        "dotnet --version".to_string(),
+                        "apt remove -y wget".to_string(),
+                    ];
+                    install
+                } else {
+                    return vec![];
+                }
             }
             LanguageEnv::Nim(config) => {
                 let nim_version = &config.nim_version;
@@ -222,14 +239,29 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(_) => {
                 // add ms repo, but do not install dotnet, let test_bed add it as intall dependency
-                let install = vec![
-                    "apt install -y wget".to_string(),
-                    "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                    "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                    "apt-get update -y".to_string(),
-                    "apt remove -y wget".to_string(),
-                ];
-                install
+                if self.config.build_env.codename == "bookworm" ||
+                    self.config.build_env.codename == "jammy jellyfish"
+                {
+                    let install = vec![
+                        "apt install -y wget".to_string(),
+                        "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                        "apt-get update -y".to_string(),
+                        "apt remove -y wget".to_string(),
+                    ];
+                    install
+                } else if self.config.build_env.codename == "noble numbat" {
+                    let install = vec![
+                        "apt install -y wget".to_string(),
+                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
+                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
+                        "apt-get update -y".to_string(),
+                        "apt remove -y wget".to_string(),
+                    ];
+                    install
+                } else {
+                    return vec![];
+                }
             }
             LanguageEnv::Nim(_) => {
                 // nim compiles to binary, no need to install under test_bed
@@ -330,9 +362,9 @@ impl BackendBuildEnv for Sbuild {
         let cache_file = self.get_cache_file();
         let cache_dir = Path::new(&cache_file).parent().unwrap();
         create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
 
         let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
-        let codename = normalize_codename(&self.config.build_env.codename)?;
         let create_result = Command::new("sbuild-createchroot")
             .arg("--chroot-mode=unshare")
             .arg("--make-sbuild-tarball")
@@ -361,7 +393,6 @@ impl BackendBuildEnv for Sbuild {
             "-v".to_string(),                    // verbose
             "--chroot-mode=unshare".to_string(),
         ];
-
 
 
         let lang_deps = self.get_build_deps_not_in_debian();
@@ -450,11 +481,11 @@ impl BackendBuildEnv for Sbuild {
             "--fail-on=warning".to_string(), // fail on warning
             "--fail-on=error".to_string(), // fail on error
             "--suppress-tags".to_string(), // overrides fails for this message
-            "debug-file-with-no-debug-symbols".to_string()
+            "debug-file-with-no-debug-symbols".to_string(),
         ];
         let codename = normalize_codename(&self.config.build_env.codename)?;
 
-        if codename == "jammy".to_string() || codename == "noble".to_string()  {
+        if codename == "jammy".to_string() || codename == "noble".to_string() {
             // changed a format of .deb packages on ubuntu, it's not a bug
             // but some lintian will report as such
             cmd_args.push("--suppress-tags".to_string());
@@ -507,12 +538,16 @@ impl BackendBuildEnv for Sbuild {
         if let Some(env) = lang_env {
             match env {
                 LanguageEnv::Dotnet(_) => {
-                    // let signed_by = "/usr/share/keyrings/microsoft-prod.gpg";
-                    // doesn't work as ca-certificates must be installed under chroot before adding repo
-                    // chicken and egg problem
-                    let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
-                    cmd_args.push(format!("--extra-repo={}", ms_repo));
-                    cmd_args.push("--do-not-verify-signatures".to_string());
+                    if self.config.build_env.codename == "bookworm" ||
+                        self.config.build_env.codename == "jammy jellyfish" {
+                        let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
+                        cmd_args.push(format!("--extra-repo={}", ms_repo));
+                        cmd_args.push("--do-not-verify-signatures".to_string());
+                    } else if self.config.build_env.codename == "noble numbat" {
+                        let ms_repo = format!("deb https://packages.microsoft.com/ubuntu/24.04/prod {} main", self.config.build_env.codename);
+                        cmd_args.push(format!("--extra-repo={}", ms_repo));
+                        cmd_args.push("--do-not-verify-signatures".to_string());
+                    }
                 }
                 _ => {
                     // no other package repositories supported
@@ -595,11 +630,15 @@ fn check_lintian_version(expected_version: String) -> Result<()> {
         .output()?;
 
     if output.status.success() {
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string()
+        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
             .replace("Lintian v", "")
             .replace("\n", "")
             .trim()
             .to_string();
+        if let Some(pos) = output_str.find("ubuntu") {
+            output_str.truncate(pos);
+            output_str = output_str.trim().to_string();
+        }
         warn_compare_versions(expected_version, &output_str, "lintian")?;
         Ok(())
     } else {
@@ -647,7 +686,7 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
         if let Some(pos) = output_str.find("all ") {
             output_str.truncate(pos);
             output_str = output_str.trim().to_string();
-        }    
+        }
         info!("autopkgtest version {}", output_str);
         // append versions, to it looks like semver
         let expected_version = format!("{}.0", expected_version);
