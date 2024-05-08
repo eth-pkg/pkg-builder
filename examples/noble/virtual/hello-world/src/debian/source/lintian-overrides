@@ -1,2 +1,1 @@
-# Not a bug, this is a virtual package to serve as umbrella installation for others package deps
 test-virtual-package source: empty-upstream-sources
