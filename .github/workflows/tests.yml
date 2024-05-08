@@ -97,7 +97,7 @@ jobs:
       - name: package
         run: |
           cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false
+          pkg-builder package --run-piuparts false 
 
 
       - name: piuparts
@@ -107,12 +107,6 @@ jobs:
           cd examples/bookworm/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-      - name: autopkgtest
-        run: |
-          sudo cp -R ${HOME}/.pkg-builder /root
-          apt list --installed autopkgtest
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
@@ -184,7 +178,7 @@ jobs:
       - name: package
         run: |
           cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false
+          pkg-builder package --run-piuparts false 
 
 
       - name: piuparts
@@ -194,14 +188,7 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-# most likely Github Actions have again, package problem like one or two weeks ago
-#      - name: autopkgtest
-#        run: |
-#          apt list --installed autopkgtest
-#          apt-cache madison autopkgtest
-#          sudo cp -R ${HOME}/.pkg-builder /root
-#          cd examples/jammy/${{matrix.language}}/hello-world
-#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+
 
       - name: verify
         run: |
@@ -278,7 +265,7 @@ jobs:
       - name: package
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false 
+          pkg-builder package --run-piuparts false 
 
 
       - name: piuparts
@@ -288,13 +275,6 @@ jobs:
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-#      - name: autopkgtest
-#        run: |
-#          apt list --installed autopkgtest
-#          apt-cache madison autopkgtest
-#          sudo cp -R ${HOME}/.pkg-builder /root
-#          cd examples/noble/${{matrix.language}}/hello-world
-#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
       - name: verify
         run: |
