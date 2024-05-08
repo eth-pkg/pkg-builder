@@ -405,11 +405,19 @@ impl BackendBuildEnv for Sbuild {
         cmd_args.push("--no-apt-upgrade".to_string());
         cmd_args.push("--no-apt-distupgrade".to_string());
 
-
         if let Some(true) = self.config.build_env.run_lintian {
-            self.run_lintian()?;
-        } else {
             cmd_args.push("--run-lintian".to_string());
+            cmd_args.push("--lintian-opt=-i".to_string());
+            cmd_args.push("--lintian-opt=--I".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=debug-file-with-no-debug-symbols".to_string());
+            cmd_args.push("--lintian-opt=--tag-display-limit=0".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=error".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=warning".to_string());
+        } else {
+            cmd_args.push("--no-run-lintian".to_string());
 
         }
         if let Some(true) = self.config.build_env.run_autopkgtest {
@@ -418,9 +426,7 @@ impl BackendBuildEnv for Sbuild {
         } else {
             cmd_args.push("--no-run-autopkgtest".to_string());
         }
-        if let Some(true) = self.config.build_env.run_piuparts {
-            self.run_piuparts()?;
-        };
+
         info!(
             "Building package by invoking: sbuild {}",
             cmd_args.join(" ")
@@ -433,6 +439,11 @@ impl BackendBuildEnv for Sbuild {
             .stderr(Stdio::inherit())
             .spawn()?;
         run_process(&mut cmd)?;
+
+        if let Some(true) = self.config.build_env.run_piuparts {
+            self.run_piuparts()?;
+        };
+
         Ok(())
     }
 
@@ -508,6 +519,7 @@ impl BackendBuildEnv for Sbuild {
             .stderr(Stdio::inherit())
             .spawn()?;
         run_process(&mut cmd)
+
     }
 
 
