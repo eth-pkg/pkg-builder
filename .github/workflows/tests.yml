@@ -97,7 +97,7 @@ jobs:
       - name: package
         run: |
           cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false 
+          pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
       - name: piuparts
@@ -106,6 +106,13 @@ jobs:
           # sudo apt-get install -y debian-archive-keyring
           cd examples/bookworm/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
+
+      - name: autopkgtest
+        run: |
+          sudo cp -R ${HOME}/.pkg-builder /root
+          apt list --installed autopkgtest
+          cd examples/bookworm/${{matrix.language}}/hello-world
+          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
@@ -178,7 +185,7 @@ jobs:
       - name: package
         run: |
           cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false 
+          pkg-builder package --run-piuparts false --run-autopkgtest false
 
 
       - name: piuparts
@@ -188,6 +195,12 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
+      - name: autopkgtest
+        run: |
+          sudo cp -R ${HOME}/.pkg-builder /root
+          apt list --installed autopkgtest
+          cd examples/jammy/${{matrix.language}}/hello-world
+          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
@@ -265,7 +278,7 @@ jobs:
       - name: package
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false 
+          pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
       - name: piuparts
@@ -274,6 +287,13 @@ jobs:
           # sudo apt-get install -y debian-archive-keyring
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
+
+      - name: autopkgtest
+        run: |
+          sudo cp -R ${HOME}/.pkg-builder /root
+          apt list --installed autopkgtest
+          cd examples/noble/${{matrix.language}}/hello-world
+          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify

@@ -420,15 +420,8 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push("--no-run-lintian".to_string());
 
         }
-        if let Some(true) = self.config.build_env.run_autopkgtest {
-            cmd_args.push("--run-autopkgtest".to_string());
-            // shunit2 is needed for autopkgtest to run
-            cmd_args.push(format!("--chroot-setup-commands={}", "apt install -y shunit2"))
 
-
-        } else {
-            cmd_args.push("--no-run-autopkgtest".to_string());
-        }
+        cmd_args.push("--no-run-autopkgtest".to_string());
 
         info!(
             "Building package by invoking: sbuild {}",
@@ -446,6 +439,10 @@ impl BackendBuildEnv for Sbuild {
         if let Some(true) = self.config.build_env.run_piuparts {
             self.run_piuparts()?;
         };
+
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+           self.run_autopkgtests()?;
+        }
 
         Ok(())
     }
