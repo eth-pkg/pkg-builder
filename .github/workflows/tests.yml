@@ -97,7 +97,7 @@ jobs:
       - name: package
         run: |
           cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false
+          pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
       - name: piuparts
@@ -113,6 +113,7 @@ jobs:
           apt list --installed autopkgtest
           cd examples/bookworm/${{matrix.language}}/hello-world
           sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+
 
       - name: verify
         run: |
@@ -184,7 +185,7 @@ jobs:
       - name: package
         run: |
           cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false
+          pkg-builder package --run-piuparts false --run-autopkgtest false
 
 
       - name: piuparts
@@ -194,14 +195,17 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-# most likely Github Actions have again, package problem like one or two weeks ago
+# Still failing with ifupdown, not being able to installable
+#  Package ifupdown is not available, but is referred to by another package.
+#  This may mean that the package is missing, has been obsoleted, or
+#  is only available from another source
 #      - name: autopkgtest
 #        run: |
-#          apt list --installed autopkgtest
-#          apt-cache madison autopkgtest
 #          sudo cp -R ${HOME}/.pkg-builder /root
+#          apt list --installed autopkgtest
 #          cd examples/jammy/${{matrix.language}}/hello-world
 #          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+
 
       - name: verify
         run: |
@@ -278,7 +282,7 @@ jobs:
       - name: package
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false --run-lintian false 
+          pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
       - name: piuparts
@@ -290,11 +294,11 @@ jobs:
 
 #      - name: autopkgtest
 #        run: |
-#          apt list --installed autopkgtest
-#          apt-cache madison autopkgtest
 #          sudo cp -R ${HOME}/.pkg-builder /root
+#          apt list --installed autopkgtest
 #          cd examples/noble/${{matrix.language}}/hello-world
 #          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+
 
       - name: verify
         run: |

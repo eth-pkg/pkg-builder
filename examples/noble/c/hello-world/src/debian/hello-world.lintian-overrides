@@ -1,5 +1,5 @@
 # not a bug
-hello-world: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
+hello-world: initial-upload-closes-no-bugs
 # not a bug
 hello-world: maintainer-script-ignores-errors [postrm]
 # FIX this

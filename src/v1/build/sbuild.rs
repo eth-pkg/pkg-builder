@@ -401,11 +401,27 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
 
-        cmd_args.push("--no-run-lintian".to_string());
         cmd_args.push("--no-run-piuparts".to_string());
-        cmd_args.push("--no-run-autopkgtest".to_string());
         cmd_args.push("--no-apt-upgrade".to_string());
         cmd_args.push("--no-apt-distupgrade".to_string());
+
+        if let Some(true) = self.config.build_env.run_lintian {
+            cmd_args.push("--run-lintian".to_string());
+            cmd_args.push("--lintian-opt=-i".to_string());
+            cmd_args.push("--lintian-opt=--I".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=debug-file-with-no-debug-symbols".to_string());
+            cmd_args.push("--lintian-opt=--tag-display-limit=0".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=error".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=warning".to_string());
+        } else {
+            cmd_args.push("--no-run-lintian".to_string());
+
+        }
+
+        cmd_args.push("--no-run-autopkgtest".to_string());
 
         info!(
             "Building package by invoking: sbuild {}",
@@ -420,15 +436,14 @@ impl BackendBuildEnv for Sbuild {
             .spawn()?;
         run_process(&mut cmd)?;
 
-        if let Some(true) = self.config.build_env.run_lintian {
-            self.run_lintian()?;
-        };
         if let Some(true) = self.config.build_env.run_piuparts {
             self.run_piuparts()?;
         };
+
         if let Some(true) = self.config.build_env.run_autopkgtest {
-            self.run_autopkgtests()?;
+           self.run_autopkgtests()?;
         }
+
         Ok(())
     }
 
@@ -465,7 +480,7 @@ impl BackendBuildEnv for Sbuild {
 
     fn run_lintian(&self) -> Result<()> {
         info!(
-            "Running lintian..",
+            "Running lintian outside, not as same as on CI..",
         );
         check_lintian_version(self.config.build_env.lintian_version.clone())?;
         // let deb_dir = self.get_deb_dir();
@@ -504,6 +519,7 @@ impl BackendBuildEnv for Sbuild {
             .stderr(Stdio::inherit())
             .spawn()?;
         run_process(&mut cmd)
+
     }
 
 
@@ -579,7 +595,7 @@ impl BackendBuildEnv for Sbuild {
 
     fn run_autopkgtests(&self) -> Result<()> {
         info!(
-            "Running autopkgtests command",
+            "Running autopkgtests command outside of build env, not as same as on CI",
         );
         check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
 
