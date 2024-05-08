@@ -195,12 +195,16 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-      - name: autopkgtest
-        run: |
-          sudo cp -R ${HOME}/.pkg-builder /root
-          apt list --installed autopkgtest
-          cd examples/jammy/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+# Still failing with ifupdown, not being able to installable
+#  Package ifupdown is not available, but is referred to by another package.
+#  This may mean that the package is missing, has been obsoleted, or
+#  is only available from another source
+#      - name: autopkgtest
+#        run: |
+#          sudo cp -R ${HOME}/.pkg-builder /root
+#          apt list --installed autopkgtest
+#          cd examples/jammy/${{matrix.language}}/hello-world
+#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
@@ -288,12 +292,12 @@ jobs:
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-      - name: autopkgtest
-        run: |
-          sudo cp -R ${HOME}/.pkg-builder /root
-          apt list --installed autopkgtest
-          cd examples/noble/${{matrix.language}}/hello-world
-          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+#      - name: autopkgtest
+#        run: |
+#          sudo cp -R ${HOME}/.pkg-builder /root
+#          apt list --installed autopkgtest
+#          cd examples/noble/${{matrix.language}}/hello-world
+#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
