@@ -595,17 +595,20 @@ impl BackendBuildEnv for Sbuild {
 
     fn run_autopkgtests(&self) -> Result<()> {
         info!(
-            "Running autopkgtests command outside of build env, not as same as on CI",
+            "Running autopkgtests command outside of build env.",
         );
         check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
 
-        let image_name = format!("autopkgtest-{}.img", self.config.build_env.codename.to_string());
+        let image_name = format!("autopkgtest-{}.img", codename);
         let mut cache_dir = self.cache_dir.clone();
         if cache_dir.starts_with('~') {
             cache_dir = shellexpand::tilde(&cache_dir).to_string()
         }
         let image_path = Path::new(&cache_dir).join(image_name.clone());
-        create_autopkgtest_image(image_path.clone(), self.config.build_env.codename.to_string())?;
+        create_autopkgtest_image(image_path.clone(), 
+                                self.config.build_env.codename.to_string(), 
+                                self.config.build_env.arch.to_string())?;
 
         let deb_dir = self.get_deb_dir();
         //  let deb_name = self.get_deb_name();
@@ -787,7 +790,7 @@ pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
     Ok(hex_digest)
 }
 
-fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()> {
+fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String) -> Result<()> {
 
     // do not recreate image if exists
     if image_path.exists() {
@@ -807,6 +810,7 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String) -> Result<()>
         codename.to_string(),
         image_path.to_str().unwrap().to_string(),
         format!("--mirror={}", repo_url),
+        format!("--arch={}", arch)
     ];
     let mut cmd = Command::new("sudo")
         // for CI
