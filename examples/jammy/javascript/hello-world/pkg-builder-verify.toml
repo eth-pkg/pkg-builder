@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="ade0b8b050fe1086aeecdd59d437d7c0a6a9d7f3", name= "hello-world-javascript_1.0.0-1.dsc"},
+    { hash="09ff2f68f6da5ff0cb006437a558b6df7d1d39f0", name= "hello-world-javascript_1.0.0-1.dsc"},
     { hash="161b7ac1a3dea76b1f98b10f0ae57ea601b9e642", name= "hello-world-javascript_1.0.0.orig.tar.gz"},
-    { hash="b0a8abe21f1b8a0635ad65852118646f63e06bbc", name= "hello-world-javascript_1.0.0-1.debian.tar.xz"},
+    { hash="bf2c63564293adbc2d0a8199f426936a4d96c896", name= "hello-world-javascript_1.0.0-1.debian.tar.xz"},
     { hash="94d67a11435c63c5d1b6523a51dc146e4f2d1495", name= "hello-world-javascript_1.0.0-1_amd64.deb"},
 ]

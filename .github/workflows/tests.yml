@@ -41,16 +41,16 @@ jobs:
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code
@@ -129,16 +129,16 @@ jobs:
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code
@@ -218,16 +218,16 @@ jobs:
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code

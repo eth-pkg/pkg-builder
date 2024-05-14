@@ -616,6 +616,8 @@ impl BackendBuildEnv for Sbuild {
             // as some packages can take an hour to build,
             // we don't want to build for 2 hours
             "--no-built-binaries".to_string(),
+            // needed dist-upgrade as testbed is outdated, when new version of distribution released
+            "--apt-upgrade".to_string(),
         ];
         let lang_deps = self.get_test_deps_not_in_debian();
 
