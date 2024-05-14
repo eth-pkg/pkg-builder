@@ -11,7 +11,7 @@ test_binary_in_path(){
 
 test_invocation_with_dotnet(){
   output="$(hello-world)"
-  assertContains "Hello, World!" "$output"
+  assertEquals "Hello, World!" "$output"
 }
 
 . shunit2

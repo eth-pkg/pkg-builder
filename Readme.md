@@ -14,7 +14,8 @@ sudo sbuild-adduser `whoami`
 git clone https://github.com/eth-pkg/sbuild.git ~/<DIR>/sbuild 
 cd ~/<DIR>/sbuild  
 # Install dependencies
-sudo apt-get install dh-python dh-sequence-python3 libyaml-tiny-perl python3-all
+sudo apt-get install -y dh-python dh-sequence-python3 libyaml-tiny-perl python3-all 
+sudo apt-get install -y genisoimage
 # Build the package
 dpkg-buildpackage -us -uc 
 # Install the newly built package 

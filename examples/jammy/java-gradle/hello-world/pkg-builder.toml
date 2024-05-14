@@ -26,7 +26,7 @@ gradle_binary_checksum="544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2
 [build_env]
 codename="jammy jellyfish"
 arch = "amd64"
-pkg_builder_version="0.2.2"
+pkg_builder_version="0.2.3"
 debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true

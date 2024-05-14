@@ -35,22 +35,22 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
-  bookworm_packaging:
+  bookworm_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code
@@ -123,22 +123,22 @@ jobs:
 
 
 
-  jammy_packaging:
+  jammy_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code
@@ -151,6 +151,7 @@ jobs:
           sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts autopkgtest vmdb2 qemu-system-x86
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
+          sudo apt-get install -y genisoimage
           # change this into actually built version and cache it
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
@@ -195,16 +196,14 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-# Still failing with ifupdown, not being able to installable
-#  Package ifupdown is not available, but is referred to by another package.
-#  This may mean that the package is missing, has been obsoleted, or
-#  is only available from another source
-#      - name: autopkgtest
-#        run: |
-#          sudo cp -R ${HOME}/.pkg-builder /root
-#          apt list --installed autopkgtest
-#          cd examples/jammy/${{matrix.language}}/hello-world
-#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+      - name: autopkgtest
+        run: |
+         sudo cp -R ${HOME}/.pkg-builder /root
+         apt list --installed autopkgtest
+         echo $AUTOPKGTEST_KEEP_APT_SOURCES
+         echo $AUTOPKGTEST_APT_SOURCES_FILE
+         cd examples/jammy/${{matrix.language}}/hello-world
+         sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
@@ -213,22 +212,22 @@ jobs:
           ${HOME}/.local/bin/pkg-builder verify --no-package true
   
 
-  noble_packaging:
+  noble_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         language:
-          - virtual
           - c
           - dotnet
           - go
           - java
+          - java-gradle
           - javascript
           - nim
           - rust
           - typescript
-          - java-gradle
+          - virtual
       fail-fast: false
     steps:
       - name: Checkout code
@@ -241,6 +240,7 @@ jobs:
           sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts autopkgtest=5.20 vmdb2 qemu-system-x86
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
+          sudo apt-get install -y genisoimage
           # change this into actually built version and cache it
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
@@ -292,12 +292,12 @@ jobs:
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder piuparts
 
-#      - name: autopkgtest
-#        run: |
-#          sudo cp -R ${HOME}/.pkg-builder /root
-#          apt list --installed autopkgtest
-#          cd examples/noble/${{matrix.language}}/hello-world
-#          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+      - name: autopkgtest
+        run: |
+         sudo cp -R ${HOME}/.pkg-builder /root
+         apt list --installed autopkgtest
+         cd examples/noble/${{matrix.language}}/hello-world
+         sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
 
       - name: verify
