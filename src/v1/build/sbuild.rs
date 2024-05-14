@@ -141,9 +141,6 @@ impl Sbuild {
                 let dotnet_full_version = &config.dotnet_full_version;
                 if self.config.build_env.codename == "bookworm" ||
                     self.config.build_env.codename == "jammy jellyfish" {
-                    // TODO do not use MS repository as they upgrade between major versions
-                    // this breaks backward compatibility
-                    // reproducible builds should use pinned versions
                     let install = vec![
                         "apt install -y wget".to_string(),
                         "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
@@ -600,7 +597,7 @@ impl BackendBuildEnv for Sbuild {
         check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
         let codename = normalize_codename(&self.config.build_env.codename)?;
 
-        let image_name = format!("autopkgtest-{}.img", codename);
+        let image_name = format!("autopkgtest-{}-{}.img", codename, self.config.build_env.arch);
         let mut cache_dir = self.cache_dir.clone();
         if cache_dir.starts_with('~') {
             cache_dir = shellexpand::tilde(&cache_dir).to_string()
@@ -805,23 +802,51 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
     create_dir_all(image_path.parent().unwrap())?;
     let repo_url = get_repo_url(&codename)?;
 
-    let codename = normalize_codename(&codename)?;
-    let cmd_args = vec![
-        codename.to_string(),
-        image_path.to_str().unwrap().to_string(),
-        format!("--mirror={}", repo_url),
-        format!("--arch={}", arch),
-        "--apt-proxy=DIRECT".to_string(),
-    ];
-    let mut cmd = Command::new("sudo")
-        // for CI
-        .arg("-S")
-        .arg("autopkgtest-build-qemu")
-        .args(&cmd_args)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
-    run_process(&mut cmd)
+
+
+    match codename.as_str() {
+        "bookworm" => {
+            let codename = normalize_codename(&codename)?;
+            let cmd_args = vec![
+                codename.to_string(),
+                image_path.to_str().unwrap().to_string(),
+                format!("--mirror={}", repo_url),
+                format!("--arch={}", arch),
+            ];
+            let mut cmd = Command::new("sudo")
+                // for CI
+                .arg("-S")
+                .arg("autopkgtest-build-qemu")
+                .args(&cmd_args)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
+            run_process(&mut cmd)
+        }
+        "noble numbat" | "jammy jellyfish" => {
+            let codename = normalize_codename(&codename)?;
+            let cmd_args = vec![
+                format!("--release={}", codename.to_string()),
+                format!("--mirror={}", repo_url),
+                format!("--arch={}", arch),
+                "-v".to_string(),
+            ];
+            let mut cmd = Command::new("sudo")
+                // for CI
+                .arg("-S")
+                .arg("autopkgtest-buildvm-ubuntu-cloud")
+                .args(&cmd_args)
+                .current_dir(image_path.parent().unwrap().to_str().unwrap())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
+            run_process(&mut cmd)
+
+        }
+        _ => {
+            Err(eyre!("Not supported distribution"))
+        }
+    }
 }
 
 fn run_process(child: &mut Child) -> Result<()> {
