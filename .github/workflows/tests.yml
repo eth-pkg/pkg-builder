@@ -199,6 +199,8 @@ jobs:
         run: |
          sudo cp -R ${HOME}/.pkg-builder /root
          apt list --installed autopkgtest
+         echo $AUTOPKGTEST_KEEP_APT_SOURCES
+         echo $AUTOPKGTEST_APT_SOURCES_FILE
          cd examples/jammy/${{matrix.language}}/hello-world
          sudo ${HOME}/.local/bin/pkg-builder autopkgtest
 
