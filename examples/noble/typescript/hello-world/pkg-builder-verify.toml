@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="4d49ecb3519bcb51649638d80424b77dffbcc71b", name= "hello-world-typescript_1.0.0-1.dsc"},
+    { hash="360fe6b27ea38ec94161328400512e3afb7579ea", name= "hello-world-typescript_1.0.0-1.dsc"},
     { hash="72dded9c5b23987ca3808e61dd33d09a2632cb86", name= "hello-world-typescript_1.0.0.orig.tar.gz"},
-    { hash="1d54bf2a192896b3ae093925c0bfccb109018ffe", name= "hello-world-typescript_1.0.0-1.debian.tar.xz"},
+    { hash="1a2de8441c541c3e7432f5e71c96e3ca9f95dffe", name= "hello-world-typescript_1.0.0-1.debian.tar.xz"},
     { hash="6f2d4ac29763e9e0cfe71b8382d893a30fd6f063", name= "hello-world-typescript_1.0.0-1_amd64.deb"},
 ]

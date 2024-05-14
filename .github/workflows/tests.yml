@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: cargo test --lib --verbose
 
-  bookworm_packaging:
+  bookworm_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
@@ -123,7 +123,7 @@ jobs:
 
 
 
-  jammy_packaging:
+  jammy_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
@@ -212,7 +212,7 @@ jobs:
           ${HOME}/.local/bin/pkg-builder verify --no-package true
   
 
-  noble_packaging:
+  noble_amd64_packaging:
     runs-on: ubuntu-latest
 
     strategy:
