@@ -810,7 +810,8 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
         codename.to_string(),
         image_path.to_str().unwrap().to_string(),
         format!("--mirror={}", repo_url),
-        format!("--arch={}", arch)
+        format!("--arch={}", arch),
+        "--apt-proxy=DIRECT".to_string(),
     ];
     let mut cmd = Command::new("sudo")
         // for CI
