@@ -151,7 +151,7 @@ jobs:
           sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts autopkgtest vmdb2 qemu-system-x86
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          sudo apt-get install -y autopkgtest-buildvm-ubuntu-cloud genisoimage
+          sudo apt-get install -y genisoimage
           # change this into actually built version and cache it
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
