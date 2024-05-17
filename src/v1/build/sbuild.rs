@@ -146,6 +146,7 @@ impl Sbuild {
                         "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
                         "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
                         "apt-get update -y".to_string(),
+                        format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
                         format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
                         "dotnet --version".to_string(),
                         "apt remove -y wget".to_string(),
@@ -153,13 +154,8 @@ impl Sbuild {
                     install
                 } else if self.config.build_env.codename == "noble numbat" {
                     let install = vec![
-                        "apt install -y wget".to_string(),
-                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                        "apt-get update -y".to_string(),
-                        "apt install -y libicu-dev".to_string(),
-                        format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
-                        format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
+                        format!("apt-cache madison dotnet{}", dotnet_version),
+                        format!("apt-get install -y dotnet{}={}", dotnet_version, dotnet_full_version),
                         "dotnet --version".to_string(),
                         "apt remove -y wget".to_string(),
                     ];
@@ -249,14 +245,7 @@ impl Sbuild {
                     ];
                     install
                 } else if self.config.build_env.codename == "noble numbat" {
-                    let install = vec![
-                        "apt install -y wget".to_string(),
-                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                        "apt-get update -y".to_string(),
-                        "apt remove -y wget".to_string(),
-                    ];
-                    install
+                    return vec![];
                 } else {
                     return vec![];
                 }
@@ -541,6 +530,7 @@ impl BackendBuildEnv for Sbuild {
             repo_url.to_string(),
             "--bindmount=/dev".to_string(),
             format!("--keyring={}", keyring),
+            "--verbose".to_string(),
         ];
         let package_type = &self.config.package_type;
 
@@ -558,9 +548,6 @@ impl BackendBuildEnv for Sbuild {
                         cmd_args.push(format!("--extra-repo={}", ms_repo));
                         cmd_args.push("--do-not-verify-signatures".to_string());
                     } else if self.config.build_env.codename == "noble numbat" {
-                        let ms_repo = format!("deb https://packages.microsoft.com/ubuntu/24.04/prod {} main", self.config.build_env.codename);
-                        cmd_args.push(format!("--extra-repo={}", ms_repo));
-                        cmd_args.push("--do-not-verify-signatures".to_string());
                     }
                 }
                 _ => {
