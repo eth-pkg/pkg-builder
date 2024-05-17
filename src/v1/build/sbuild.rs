@@ -157,6 +157,7 @@ impl Sbuild {
                         "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
                         "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
                         "apt-get update -y".to_string(),
+                        "apt install -y libicu-dev".to_string(),
                         format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
                         format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
                         "dotnet --version".to_string(),
