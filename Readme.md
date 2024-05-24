@@ -82,7 +82,7 @@ pkg-builder package examples/bookworm/nim/hello-world/pkg-builder.toml
 
 ```bash
 cargo build 
-cargo install . 
+cargo install --path . 
 pkg-builder env create examples/bookworm/dotnet/hello-world/pkg-builder.toml
 pkg-builder package examples/bookworm/dotnet/hello-world/pkg-builder.toml
 ```
