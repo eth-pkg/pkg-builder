@@ -23,7 +23,10 @@ cd .. && sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb
 
 # if chroot not exists create it
 sudo mkdir /srv/chroot 
-sudo chown :sbuild /srv/chroot 
+sudo chown :sbuild /srv/chroot
+
+# for noble builds
+sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
 ```
 
 If you are building for ubuntu on bookworm you need to manually download the ubuntu-archive-keyring
