@@ -834,7 +834,7 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
     let repo_url = get_repo_url(&codename)?;
 
     match codename.as_str() {
-        "bookworm" => {
+        "bookworm" | "jammy jellyfish" => {
             let codename = normalize_codename(&codename)?;
             let cmd_args = vec![
                 codename.to_string(),
@@ -852,25 +852,44 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
                 .spawn()?;
             run_process(&mut cmd)
         }
-        "noble numbat" | "jammy jellyfish" => {
+        "noble numbat" => {
             let codename = normalize_codename(&codename)?;
             let cmd_args = vec![
-                format!("--release={}", codename.to_string()),
+                codename.to_string(),
+                image_path.to_str().unwrap().to_string(),
                 format!("--mirror={}", repo_url),
                 format!("--arch={}", arch),
-                "-v".to_string(),
+                format!("--apt-add-source=deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse"),
             ];
             let mut cmd = Command::new("sudo")
                 // for CI
                 .arg("-S")
-                .arg("autopkgtest-buildvm-ubuntu-cloud")
+                .arg("autopkgtest-build-qemu")
                 .args(&cmd_args)
-                .current_dir(image_path.parent().unwrap().to_str().unwrap())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .spawn()?;
             run_process(&mut cmd)
         }
+        // "noble numbat but" => {
+        //     let codename = normalize_codename(&codename)?;
+        //     let cmd_args = vec![
+        //         format!("--release={}", codename.to_string()),
+        //         format!("--mirror={}", repo_url),
+        //         format!("--arch={}", arch),
+        //         "-v".to_string(),
+        //     ];
+        //     let mut cmd = Command::new("sudo")
+        //         // for CI
+        //         .arg("-S")
+        //         .arg("autopkgtest-buildvm-ubuntu-cloud")
+        //         .args(&cmd_args)
+        //         .current_dir(image_path.parent().unwrap().to_str().unwrap())
+        //         .stdout(Stdio::inherit())
+        //         .stderr(Stdio::inherit())
+        //         .spawn()?;
+        //     run_process(&mut cmd)
+        // }
         _ => Err(eyre!("Not supported distribution")),
     }
 }
