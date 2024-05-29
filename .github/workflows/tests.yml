@@ -151,8 +151,8 @@ jobs:
             echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
             echo "build_dir=$BUILD_DIR"
 
-            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
-            echo "deb_file::${deb_file}"
+            deb_file=$(find $BUILD_DIR  -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file=${deb_file}"
         
       - name: Save dotnet.deb
         if: steps.env.outputs.deb_file != ''
@@ -284,8 +284,8 @@ jobs:
             echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
             echo "build_dir=$BUILD_DIR"
 
-            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
-            echo "deb_file::${deb_file}"
+            deb_file=$(find $BUILD_DIR -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file=${deb_file}"
         
       - name: Save dotnet.deb
         if: steps.env.outputs.deb_file != ''
@@ -421,8 +421,8 @@ jobs:
             echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
             echo "build_dir=$BUILD_DIR"
 
-            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
-            echo "deb_file::${deb_file}"
+            deb_file=$(find $BUILD_DIR -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file=${deb_file}"
         
       - name: Save .deb
         if: steps.env.outputs.deb_file != ''
