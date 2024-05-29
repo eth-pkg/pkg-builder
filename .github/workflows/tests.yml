@@ -154,14 +154,14 @@ jobs:
             deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
             echo "deb_file::${deb_file}"
         
-        - name: Save dotnet.deb
-          if: steps.env.outputs.deb_file != ''
-          uses: actions/upload-artifact@v2
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            path: ${{ steps.env.outputs.debfile }}
-            name: dotnet.deb
+      - name: Save dotnet.deb
+        if: steps.env.outputs.deb_file != ''
+        uses: actions/upload-artifact@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ steps.env.outputs.debfile }}
+          name: dotnet.deb
 
 
 
@@ -287,14 +287,14 @@ jobs:
             deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
             echo "deb_file::${deb_file}"
         
-        - name: Save dotnet.deb
-          if: steps.env.outputs.deb_file != ''
-          uses: actions/upload-artifact@v2
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            path: ${{ steps.env.outputs.debfile }}
-            name: dotnet.deb
+      - name: Save dotnet.deb
+        if: steps.env.outputs.deb_file != ''
+        uses: actions/upload-artifact@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ steps.env.outputs.debfile }}
+          name: dotnet.deb
 
 
   noble_amd64_packaging:
@@ -391,8 +391,8 @@ jobs:
           ${HOME}/.local/bin/pkg-builder verify --no-package true 
 
       - name: Env variables
-          id: env
-          run: |
+        id: env
+        run: |
             FOLDER=examples/bookworm/${{matrix.language}}/hello-world
             # Extract the second and third directories from the tag name
             CODENAME=bookworm
@@ -424,11 +424,11 @@ jobs:
             deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
             echo "deb_file::${deb_file}"
         
-        - name: Save .deb
-          if: steps.env.outputs.deb_file != ''
-          uses: actions/upload-artifact@v2
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            path: ${{ steps.env.outputs.debfile }}
-            name: dotnet.deb
+      - name: Save .deb
+        if: steps.env.outputs.deb_file != ''
+        uses: actions/upload-artifact@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ steps.env.outputs.debfile }}
+          name: dotnet.deb

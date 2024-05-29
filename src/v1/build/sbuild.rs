@@ -409,8 +409,16 @@ impl BackendBuildEnv for Sbuild {
         ];
 
 
-        let lang_deps = self.get_build_deps_not_in_debian();
+        let mut lang_deps = self.get_build_deps_not_in_debian();
 
+        if &self.config.build_env.codename == "noble numbat"{
+            lang_deps.push("apt install -y software-properties-common".to_string());
+            lang_deps.push("add-apt-repository universe".to_string());
+            lang_deps.push("add-apt-repository restricted".to_string());
+            lang_deps.push("add-apt-repository multiverse".to_string());
+            lang_deps.push("apt update".to_string());
+        }
+   
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
         }
