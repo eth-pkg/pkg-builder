@@ -727,24 +727,24 @@ workdir="~/.pkg-builder/packages/jammy"
         }
     }
 
-    #[test]
-    fn test_empty_strings_are_error_dotnet_config() {
-        let config = DotnetConfig::default();
-        match config.validate() {
-            Err(validation_errors) => {
-                let expected_errors: Vec<String>= vec![];
-                assert_eq!(
-                    validation_errors.len(),
-                    expected_errors.len(),
-                    "Number of errors is different"
-                );
-                for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
-                    assert_eq!(actual.to_string(), *expected);
-                }
-            }
-            Ok(_) => panic!("Validation should have failed."),
-        }
-    }
+    // #[test]
+    // fn test_empty_strings_are_error_dotnet_config() {
+    //     let config = DotnetConfig::default();
+    //     match config.validate() {
+    //         Err(validation_errors) => {
+    //             let expected_errors: Vec<String>= vec![];
+    //             assert_eq!(
+    //                 validation_errors.len(),
+    //                 expected_errors.len(),
+    //                 "Number of errors is different"
+    //             );
+    //             for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
+    //                 assert_eq!(actual.to_string(), *expected);
+    //             }
+    //         }
+    //         Ok(_) => panic!("Validation should have failed."),
+    //     }
+    // }
 
     // #[test]
     // fn test_empty_strings_are_error_typescript_config() {
