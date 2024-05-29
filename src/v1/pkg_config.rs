@@ -184,34 +184,48 @@ impl Validation for JavaConfig {
         }
     }
 }
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+pub struct DotnetPackage {
+    pub name: String,
+    pub hash: String,
+    pub url: String,
+}
+
+impl Validation for DotnetPackage {
+    fn validate(&self) -> Result<(), Vec<Report>> {
+        let mut errors = Vec::new();
+
+        if let Err(err) = validate_not_empty("name", &self.name) {
+            errors.push(err);
+        }
+
+        if let Err(err) = validate_not_empty("hash", &self.hash) {
+            errors.push(err);
+        }
+
+        if let Err(err) = validate_not_empty("url", &self.url) {
+            errors.push(err);
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DotnetConfig {
-    pub dotnet_version: String,
-    pub dotnet_full_version: String,
-    pub dotnet_deb_hash: String,
     pub use_backup_version: bool,
-    pub backup_url: String,
+    pub dotnet_packages: Vec<DotnetPackage>,
 }
 
 impl Validation for DotnetConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
-        let mut errors = Vec::new();
+        let errors = Vec::new();
 
-        if let Err(err) = validate_not_empty("dotnet_version", &self.dotnet_version) {
-            errors.push(err);
-        }
-        if let Err(err) = validate_not_empty("dotnet_full_version", &self.dotnet_version) {
-            errors.push(err);
-        }
-        if let Err(err) = validate_not_empty("dotnet_deb_hash", &self.dotnet_deb_hash) {
-            errors.push(err);
-        }
-        if self.use_backup_version {
-            if let Err(err) = validate_not_empty("backup_url", &self.backup_url) {
-                errors.push(err);
-            }
-        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -718,11 +732,7 @@ workdir="~/.pkg-builder/packages/jammy"
         let config = DotnetConfig::default();
         match config.validate() {
             Err(validation_errors) => {
-                let expected_errors = [
-                    "field: dotnet_version cannot be empty",
-                    "field: dotnet_full_version cannot be empty",
-                    "field: dotnet_deb_hash cannot be empty",
-                ];
+                let expected_errors: Vec<String>= vec![];
                 assert_eq!(
                     validation_errors.len(),
                     expected_errors.len(),
