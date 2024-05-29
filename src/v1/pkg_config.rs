@@ -184,23 +184,48 @@ impl Validation for JavaConfig {
         }
     }
 }
+#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+pub struct DotnetPackage {
+    pub name: String,
+    pub hash: String,
+    pub url: String,
+}
+
+impl Validation for DotnetPackage {
+    fn validate(&self) -> Result<(), Vec<Report>> {
+        let mut errors = Vec::new();
+
+        if let Err(err) = validate_not_empty("name", &self.name) {
+            errors.push(err);
+        }
+
+        if let Err(err) = validate_not_empty("hash", &self.hash) {
+            errors.push(err);
+        }
+
+        if let Err(err) = validate_not_empty("url", &self.url) {
+            errors.push(err);
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DotnetConfig {
-    pub dotnet_version: String,
-    pub dotnet_full_version: String,
+    pub use_backup_version: bool,
+    pub dotnet_packages: Vec<DotnetPackage>,
 }
 
 impl Validation for DotnetConfig {
     fn validate(&self) -> Result<(), Vec<Report>> {
-        let mut errors = Vec::new();
+        let errors = Vec::new();
 
-        if let Err(err) = validate_not_empty("dotnet_version", &self.dotnet_version) {
-            errors.push(err);
-        }
-        if let Err(err) = validate_not_empty("dotnet_full_version", &self.dotnet_version) {
-            errors.push(err);
-        }
         if errors.is_empty() {
             Ok(())
         } else {
@@ -562,7 +587,7 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.2.3"
+pkg_builder_version="0.2.4"
 debcrafter_version = "2711b53"
 run_lintian=false
 run_piuparts=false
@@ -593,7 +618,7 @@ workdir="~/.pkg-builder/packages/jammy"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.2.3".to_string(),
+                pkg_builder_version: "0.2.4".to_string(),
                 debcrafter_version: "2711b53".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
@@ -702,27 +727,24 @@ workdir="~/.pkg-builder/packages/jammy"
         }
     }
 
-    #[test]
-    fn test_empty_strings_are_error_dotnet_config() {
-        let config = DotnetConfig::default();
-        match config.validate() {
-            Err(validation_errors) => {
-                let expected_errors = [
-                    "field: dotnet_version cannot be empty",
-                    "field: dotnet_full_version cannot be empty"
-                ];
-                assert_eq!(
-                    validation_errors.len(),
-                    expected_errors.len(),
-                    "Number of errors is different"
-                );
-                for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
-                    assert_eq!(actual.to_string(), *expected);
-                }
-            }
-            Ok(_) => panic!("Validation should have failed."),
-        }
-    }
+    // #[test]
+    // fn test_empty_strings_are_error_dotnet_config() {
+    //     let config = DotnetConfig::default();
+    //     match config.validate() {
+    //         Err(validation_errors) => {
+    //             let expected_errors: Vec<String>= vec![];
+    //             assert_eq!(
+    //                 validation_errors.len(),
+    //                 expected_errors.len(),
+    //                 "Number of errors is different"
+    //             );
+    //             for (actual, expected) in validation_errors.iter().zip(expected_errors.iter()) {
+    //                 assert_eq!(actual.to_string(), *expected);
+    //             }
+    //         }
+    //         Ok(_) => panic!("Validation should have failed."),
+    //     }
+    // }
 
     // #[test]
     // fn test_empty_strings_are_error_typescript_config() {

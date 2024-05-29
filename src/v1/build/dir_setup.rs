@@ -379,6 +379,7 @@ pub fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     Ok(())
 }
 
+
 pub fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     info!(
         "Adding executable permission for {}/debian/rules",

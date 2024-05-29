@@ -1,16 +1,16 @@
 use crate::v1::packager::BackendBuildEnv;
 use crate::v1::pkg_config::{LanguageEnv, PackageType, PkgConfig};
+use crate::v1::pkg_config_verify::PkgVerifyConfig;
+use cargo_metadata::semver::Version;
 use eyre::{eyre, Report, Result};
 use log::{info, warn};
 use rand::random;
+use sha1::{Digest, Sha1};
+use std::fs::create_dir_all;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::{env, fs, io};
-use std::fs::{create_dir_all};
-use cargo_metadata::semver::Version;
-use crate::v1::pkg_config_verify::PkgVerifyConfig;
-use sha1::{Digest, Sha1}; // Import from the sha1 crate
+use std::{env, fs, io}; // Import from the sha1 crate
 
 pub struct Sbuild {
     config: PkgConfig,
@@ -45,10 +45,14 @@ impl Sbuild {
                 let lang_deps = vec![
                     "apt install -y curl gpg gpg-agent".to_string(),
                     format!("cd /tmp && curl -o rust.tar.xz -L {}", rust_binary_url),
-                    format!("cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ", rust_binary_gpg_asc),
+                    format!(
+                        "cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ",
+                        rust_binary_gpg_asc
+                    ),
                     "curl https://keybase.io/rust/pgp_keys.asc | gpg --import".to_string(),
                     "cd /tmp && gpg --verify rust.tar.xz.asc rust.tar.xz".to_string(),
-                    "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs".to_string(),
+                    "cd /tmp && tar xvJf rust.tar.xz -C . --strip-components=1 --exclude=rust-docs"
+                        .to_string(),
                     "cd /tmp && /bin/bash install.sh --without=rust-docs".to_string(),
                     "apt remove -y curl gpg gpg-agent".to_string(),
                 ];
@@ -123,12 +127,24 @@ impl Sbuild {
                         let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
 
                         install.push("apt install -y wget unzip".to_string());
-                        install.push(format!("mkdir -p /opt/lib/gradle-{version}", version = gradle_version));
-                        install.push(format!("cd /tmp && wget -q --output-document gradle.tar.gz {}", gradle_binary_url));
+                        install.push(format!(
+                            "mkdir -p /opt/lib/gradle-{version}",
+                            version = gradle_version
+                        ));
+                        install.push(format!(
+                            "cd /tmp && wget -q --output-document gradle.tar.gz {}",
+                            gradle_binary_url
+                        ));
                         install.push(format!("cd /tmp && echo \"{} gradle.tar.gz\" > hash_file.txt && cat hash_file.txt", gradle_binary_checksum));
                         install.push("cd /tmp && sha256sum -c hash_file.txt".to_string());
-                        install.push(format!("cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib", version = gradle_version));
-                        install.push(format!("ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle", version = gradle_version));
+                        install.push(format!(
+                            "cd /tmp && unzip gradle.tar.gz && mv gradle-{version} /opt/lib",
+                            version = gradle_version
+                        ));
+                        install.push(format!(
+                            "ln -s /opt/lib/gradle-{version}/bin/gradle  /usr/bin/gradle",
+                            version = gradle_version
+                        ));
                         install.push("gradle -version".to_string());
                         install.push("apt remove -y wget".to_string());
                     }
@@ -137,35 +153,58 @@ impl Sbuild {
                 vec![]
             }
             LanguageEnv::Dotnet(config) => {
-                let dotnet_version = &config.dotnet_version;
-                let dotnet_full_version = &config.dotnet_full_version;
-                if self.config.build_env.codename == "bookworm" ||
-                    self.config.build_env.codename == "jammy jellyfish" {
-                    let install = vec![
-                        "apt install -y wget".to_string(),
-                        "cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                        "apt-get update -y".to_string(),
-                        format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
-                        "dotnet --version".to_string(),
-                        "apt remove -y wget".to_string(),
-                    ];
-                    install
+                let dotnet_packages = &config.dotnet_packages;
+                let mut install: Vec<String> = vec![];
+                if config.use_backup_version {
+                    install.push("apt install -y wget".to_string());
+                    install.push("apt install -y libicu-dev".to_string());
+                    for package in dotnet_packages {
+                        install.push(format!("cd /tmp && wget -q {}", package.url));
+                        install.push(format!("cd /tmp && ls && dpkg -i {}.deb", package.name));
+                        // check package version
+                        install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
+                        install.push(format!("cd /tmp &&  echo {} {}.deb > hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
+                    }
+                    install.push("dotnet --version".to_string());
+                    install.push("apt remove -y wget".to_string());
+                } else if self.config.build_env.codename == "bookworm"
+                    || self.config.build_env.codename == "jammy jellyfish"
+                {
+                    install.push("apt install -y wget".to_string());
+                    install.push("cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string());
+                    install.push("cd /tmp && dpkg -i packages-microsoft-prod.deb".to_string());
+                    install.push("apt update -y".to_string());
+                    for package in dotnet_packages {
+                        let pkg = transform_name(&package.name, &self.config.build_env.arch);
+                        install.push(format!("cd /tmp && wget -q {}", package.url));
+                        install.push(format!("cd /tmp && apt install -y {}", pkg));
+                        install.push(format!("cd /tmp && apt download -y {}", pkg));
+                        // check package version
+                        install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
+                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
+                    }
+                    install.push("dotnet --version".to_string());
+                    install.push("apt remove -y wget".to_string());
+          
                 } else if self.config.build_env.codename == "noble numbat" {
-                    let install = vec![
-                        "apt install -y wget".to_string(),
-                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                        "apt-get update -y".to_string(),
-                        format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
-                        format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
-                        "dotnet --version".to_string(),
-                        "apt remove -y wget".to_string(),
-                    ];
-                    install
-                } else {
-                    return vec![];
+                    install.push("apt install -y wget".to_string());
+                    for package in dotnet_packages {
+                        let pkg = transform_name(&package.name, &self.config.build_env.arch);
+                        install.push(format!("cd /tmp && wget -q {}", package.url));
+                        install.push(format!("cd /tmp && apt install -y {}", pkg));
+                        install.push(format!("cd /tmp && apt download -y {}", pkg));
+                        // check package version
+                        install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
+                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
+                    }
+                    install.push("dotnet --version".to_string());
+                    install.push("apt remove -y wget".to_string());
                 }
+                // validate dotnet packages
+                return install;
             }
             LanguageEnv::Nim(config) => {
                 let nim_version = &config.nim_version;
@@ -201,9 +240,7 @@ impl Sbuild {
             None => {
                 vec![]
             }
-            Some(lang_env) => {
-                self.get_build_deps_based_on_langenv(lang_env)
-            }
+            Some(lang_env) => self.get_build_deps_based_on_langenv(lang_env),
         }
     }
     fn get_test_deps_based_on_langenv(&self, lang_env: &LanguageEnv) -> Vec<String> {
@@ -236,8 +273,8 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(_) => {
                 // add ms repo, but do not install dotnet, let test_bed add it as intall dependency
-                if self.config.build_env.codename == "bookworm" ||
-                    self.config.build_env.codename == "jammy jellyfish"
+                if self.config.build_env.codename == "bookworm"
+                    || self.config.build_env.codename == "jammy jellyfish"
                 {
                     let install = vec![
                         "apt install -y wget".to_string(),
@@ -248,14 +285,7 @@ impl Sbuild {
                     ];
                     install
                 } else if self.config.build_env.codename == "noble numbat" {
-                    let install = vec![
-                        "apt install -y wget".to_string(),
-                        "cd /tmp && wget https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string(),
-                        "cd /tmp && dpkg -i packages-microsoft-prod.deb ".to_string(),
-                        "apt-get update -y".to_string(),
-                        "apt remove -y wget".to_string(),
-                    ];
-                    install
+                    return vec![];
                 } else {
                     return vec![];
                 }
@@ -278,9 +308,7 @@ impl Sbuild {
             None => {
                 vec![]
             }
-            Some(lang_env) => {
-                self.get_test_deps_based_on_langenv(lang_env)
-            }
+            Some(lang_env) => self.get_test_deps_based_on_langenv(lang_env),
         }
     }
 
@@ -300,11 +328,8 @@ impl Sbuild {
         };
 
         let codename = normalize_codename(&self.config.build_env.codename).unwrap();
-        let cache_file_name = format!(
-            "{}-{}.tar.gz",
-            codename, self.config.build_env.arch
-        )
-            .to_string();
+        let cache_file_name =
+            format!("{}-{}.tar.gz", codename, self.config.build_env.arch).to_string();
         let path = Path::new(&expanded_path);
         let cache_file = path.join(cache_file_name);
         cache_file.to_str().unwrap().to_string()
@@ -316,11 +341,13 @@ impl Sbuild {
     }
     pub fn get_deb_name(&self) -> PathBuf {
         let deb_dir = self.get_deb_dir();
-        let deb_file_name = format!("{}_{}-{}_{}.deb",
-                                    self.config.package_fields.package_name,
-                                    self.config.package_fields.version_number,
-                                    self.config.package_fields.revision_number,
-                                    self.config.build_env.arch);
+        let deb_file_name = format!(
+            "{}_{}-{}_{}.deb",
+            self.config.package_fields.package_name,
+            self.config.package_fields.version_number,
+            self.config.package_fields.revision_number,
+            self.config.build_env.arch
+        );
         let deb_name = deb_dir.join(deb_file_name);
         deb_name
     }
@@ -328,11 +355,13 @@ impl Sbuild {
     //hello-world_1.0.0-1_amd64.changes
     pub fn get_changes_file(&self) -> PathBuf {
         let deb_dir = self.get_deb_dir();
-        let deb_file_name = format!("{}_{}-{}_{}.changes",
-                                    self.config.package_fields.package_name,
-                                    self.config.package_fields.version_number,
-                                    self.config.package_fields.revision_number,
-                                    self.config.build_env.arch);
+        let deb_file_name = format!(
+            "{}_{}-{}_{}.changes",
+            self.config.package_fields.package_name,
+            self.config.package_fields.version_number,
+            self.config.package_fields.revision_number,
+            self.config.build_env.arch
+        );
         let deb_name = deb_dir.join(deb_file_name);
         deb_name
     }
@@ -385,14 +414,21 @@ impl BackendBuildEnv for Sbuild {
             "-A".to_string(),                    // build_arch_all
             "-s".to_string(),                    // build source
             "--source-only-changes".to_string(), // source_only_changes
-            "-c".to_string(),                    // override cache file location, default is ~/.cache/sbuild both by sbuild and pkg-builder
+            "-c".to_string(), // override cache file location, default is ~/.cache/sbuild both by sbuild and pkg-builder
             self.get_cache_file(),
-            "-v".to_string(),                    // verbose
+            "-v".to_string(), // verbose
             "--chroot-mode=unshare".to_string(),
         ];
 
+        let mut lang_deps = self.get_build_deps_not_in_debian();
 
-        let lang_deps = self.get_build_deps_not_in_debian();
+        if &self.config.build_env.codename == "noble numbat" {
+            lang_deps.push("apt install -y software-properties-common".to_string());
+            lang_deps.push("add-apt-repository universe".to_string());
+            lang_deps.push("add-apt-repository restricted".to_string());
+            lang_deps.push("add-apt-repository multiverse".to_string());
+            lang_deps.push("apt update".to_string());
+        }
 
         for action in lang_deps.iter() {
             cmd_args.push(format!("--chroot-setup-commands={}", action))
@@ -415,7 +451,6 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.push("--lintian-opts=--fail-on=warning".to_string());
         } else {
             cmd_args.push("--no-run-lintian".to_string());
-
         }
 
         cmd_args.push("--no-run-autopkgtest".to_string());
@@ -438,7 +473,7 @@ impl BackendBuildEnv for Sbuild {
         };
 
         if let Some(true) = self.config.build_env.run_autopkgtest {
-           self.run_autopkgtests()?;
+            self.run_autopkgtests()?;
         }
 
         Ok(())
@@ -451,21 +486,30 @@ impl BackendBuildEnv for Sbuild {
         for output in package_hash.iter() {
             let file = output_dir.join(output.name.clone());
             if !file.exists() {
-                return Err(eyre!(format!("File to be verified does not exist {}", output.name)));
+                return Err(eyre!(format!(
+                    "File to be verified does not exist {}",
+                    output.name
+                )));
             }
             let mut file = fs::File::open(file).map_err(|_| eyre!("Could not open file."))?;
             let mut buffer = Vec::new();
-            file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read file."))?;
+            file.read_to_end(&mut buffer)
+                .map_err(|_| eyre!("Could not read file."))?;
             let actual_sha1 = calculate_sha1(&*buffer.clone()).unwrap_or_default();
             if actual_sha1 != output.hash {
-                errors.push(eyre!(format!("file {} actual sha1 is {}", output.name,  &actual_sha1)));
+                errors.push(eyre!(format!(
+                    "file {} actual sha1 is {}",
+                    output.name, &actual_sha1
+                )));
             }
         }
         let result = if errors.is_empty() {
             println!("Verify is successful!");
             Ok(())
         } else {
-            let mut combined_report = errors.pop().unwrap_or_else(|| Report::msg("No errors found"));
+            let mut combined_report = errors
+                .pop()
+                .unwrap_or_else(|| Report::msg("No errors found"));
 
             for report in errors.into_iter() {
                 combined_report = combined_report.wrap_err(report);
@@ -476,9 +520,7 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn run_lintian(&self) -> Result<()> {
-        info!(
-            "Running lintian outside, not as same as on CI..",
-        );
+        info!("Running lintian outside, not as same as on CI..",);
         check_lintian_version(self.config.build_env.lintian_version.clone())?;
         // let deb_dir = self.get_deb_dir();
         let changes_file = self.get_changes_file();
@@ -491,8 +533,8 @@ impl BackendBuildEnv for Sbuild {
             changes_file.to_string(),
             "--tag-display-limit=0".to_string(),
             "--fail-on=warning".to_string(), // fail on warning
-            "--fail-on=error".to_string(), // fail on error
-            "--suppress-tags".to_string(), // overrides fails for this message
+            "--fail-on=error".to_string(),   // fail on error
+            "--suppress-tags".to_string(),   // overrides fails for this message
             "debug-file-with-no-debug-symbols".to_string(),
         ];
         let codename = normalize_codename(&self.config.build_env.codename)?;
@@ -516,14 +558,10 @@ impl BackendBuildEnv for Sbuild {
             .stderr(Stdio::inherit())
             .spawn()?;
         run_process(&mut cmd)
-
     }
 
-
     fn run_piuparts(&self) -> Result<()> {
-        info!(
-            "Running piuparts command with elevated privileges..",
-        );
+        info!("Running piuparts command with elevated privileges..",);
         info!(
             "Piuparts must run as root user through sudo, please provide your password, if prompted."
         );
@@ -540,6 +578,7 @@ impl BackendBuildEnv for Sbuild {
             repo_url.to_string(),
             "--bindmount=/dev".to_string(),
             format!("--keyring={}", keyring),
+            "--verbose".to_string(),
         ];
         let package_type = &self.config.package_type;
 
@@ -551,15 +590,16 @@ impl BackendBuildEnv for Sbuild {
         if let Some(env) = lang_env {
             match env {
                 LanguageEnv::Dotnet(_) => {
-                    if self.config.build_env.codename == "bookworm" ||
-                        self.config.build_env.codename == "jammy jellyfish" {
-                        let ms_repo = format!("deb https://packages.microsoft.com/debian/12/prod {} main", self.config.build_env.codename);
+                    if self.config.build_env.codename == "bookworm"
+                        || self.config.build_env.codename == "jammy jellyfish"
+                    {
+                        let ms_repo = format!(
+                            "deb https://packages.microsoft.com/debian/12/prod {} main",
+                            self.config.build_env.codename
+                        );
                         cmd_args.push(format!("--extra-repo={}", ms_repo));
                         cmd_args.push("--do-not-verify-signatures".to_string());
                     } else if self.config.build_env.codename == "noble numbat" {
-                        let ms_repo = format!("deb https://packages.microsoft.com/ubuntu/24.04/prod {} main", self.config.build_env.codename);
-                        cmd_args.push(format!("--extra-repo={}", ms_repo));
-                        cmd_args.push("--do-not-verify-signatures".to_string());
                     }
                 }
                 _ => {
@@ -575,7 +615,10 @@ impl BackendBuildEnv for Sbuild {
             cmd_args.join(" "),
             deb_name.to_str().unwrap()
         );
-        info!("Note this command run inside of directory: {}", deb_dir.display());
+        info!(
+            "Note this command run inside of directory: {}",
+            deb_dir.display()
+        );
 
         let mut cmd = Command::new("sudo")
             .current_dir(deb_dir)
@@ -591,21 +634,24 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn run_autopkgtests(&self) -> Result<()> {
-        info!(
-            "Running autopkgtests command outside of build env.",
-        );
+        info!("Running autopkgtests command outside of build env.",);
         check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
         let codename = normalize_codename(&self.config.build_env.codename)?;
 
-        let image_name = format!("autopkgtest-{}-{}.img", codename, self.config.build_env.arch);
+        let image_name = format!(
+            "autopkgtest-{}-{}.img",
+            codename, self.config.build_env.arch
+        );
         let mut cache_dir = self.cache_dir.clone();
         if cache_dir.starts_with('~') {
             cache_dir = shellexpand::tilde(&cache_dir).to_string()
         }
         let image_path = Path::new(&cache_dir).join(image_name.clone());
-        create_autopkgtest_image(image_path.clone(), 
-                                self.config.build_env.codename.to_string(), 
-                                self.config.build_env.arch.to_string())?;
+        create_autopkgtest_image(
+            image_path.clone(),
+            self.config.build_env.codename.to_string(),
+            self.config.build_env.arch.to_string(),
+        )?;
 
         let deb_dir = self.get_deb_dir();
         //  let deb_name = self.get_deb_name();
@@ -631,7 +677,10 @@ impl BackendBuildEnv for Sbuild {
             "Testing package by invoking: autopkgtest {}",
             cmd_args.join(" ")
         );
-        info!("Note this command run inside of directory: {}", deb_dir.display());
+        info!(
+            "Note this command run inside of directory: {}",
+            deb_dir.display()
+        );
         let mut cmd = Command::new("autopkgtest")
             .current_dir(deb_dir)
             .args(&cmd_args)
@@ -643,12 +692,11 @@ impl BackendBuildEnv for Sbuild {
 }
 
 fn check_lintian_version(expected_version: String) -> Result<()> {
-    let output = Command::new("lintian")
-        .arg("--version")
-        .output()?;
+    let output = Command::new("lintian").arg("--version").output()?;
 
     if output.status.success() {
-        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
+        let mut output_str = String::from_utf8_lossy(&output.stdout)
+            .to_string()
             .replace("Lintian v", "")
             .replace("\n", "")
             .trim()
@@ -665,9 +713,7 @@ fn check_lintian_version(expected_version: String) -> Result<()> {
 }
 
 fn check_piuparts_version(expected_version: String) -> Result<()> {
-    let output = Command::new("piuparts")
-        .arg("--version")
-        .output()?;
+    let output = Command::new("piuparts").arg("--version").output()?;
 
     if output.status.success() {
         let output_str = String::from_utf8_lossy(&output.stdout)
@@ -692,7 +738,8 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
 
     //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
     if output.status.success() {
-        let mut output_str = String::from_utf8_lossy(&output.stdout).to_string()
+        let mut output_str = String::from_utf8_lossy(&output.stdout)
+            .to_string()
             .replace("Listing...", "")
             .replace("\n", "")
             .replace("autopkgtest/stable,now ", "")
@@ -716,7 +763,11 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
     }
 }
 
-pub fn warn_compare_versions(expected_version: String, actual_version: &str, program_name: &str) -> Result<()> {
+pub fn warn_compare_versions(
+    expected_version: String,
+    actual_version: &str,
+    program_name: &str,
+) -> Result<()> {
     let expected_version = Version::parse(&expected_version).unwrap();
     let actual_version = Version::parse(actual_version).unwrap();
     match expected_version.cmp(&actual_version) {
@@ -737,46 +788,26 @@ pub fn warn_compare_versions(expected_version: String, actual_version: &str, pro
 
 pub fn normalize_codename(codename: &str) -> Result<&str> {
     match codename {
-        "bookworm" => {
-            Ok("bookworm")
-        }
-        "noble numbat" => {
-            Ok("noble")
-        }
-        "jammy jellyfish" => {
-            Ok("jammy")
-        }
-        _ => {
-            Err(eyre!("Not supported distribution"))
-        }
+        "bookworm" => Ok("bookworm"),
+        "noble numbat" => Ok("noble"),
+        "jammy jellyfish" => Ok("jammy"),
+        _ => Err(eyre!("Not supported distribution")),
     }
 }
 
 pub fn get_keyring(codename: &str) -> Result<&str> {
     match codename {
-        "bookworm" => {
-            Ok("/usr/share/keyrings/debian-archive-keyring.gpg")
-        }
-        "noble numbat" | "jammy jellyfish" => {
-            Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg")
-        }
-        _ => {
-            Err(eyre!("Not supported distribution"))
-        }
+        "bookworm" => Ok("/usr/share/keyrings/debian-archive-keyring.gpg"),
+        "noble numbat" | "jammy jellyfish" => Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg"),
+        _ => Err(eyre!("Not supported distribution")),
     }
 }
 
 pub fn get_repo_url(codename: &str) -> Result<&str> {
     match codename {
-        "bookworm" => {
-            Ok("http://deb.debian.org/debian")
-        }
-        "noble numbat" | "jammy jellyfish" => {
-            Ok("http://archive.ubuntu.com/ubuntu")
-        }
-        _ => {
-            Err(eyre!("Not supported distribution"))
-        }
+        "bookworm" => Ok("http://deb.debian.org/debian"),
+        "noble numbat" | "jammy jellyfish" => Ok("http://archive.ubuntu.com/ubuntu"),
+        _ => Err(eyre!("Not supported distribution")),
     }
 }
 
@@ -784,27 +815,23 @@ pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
     let mut hasher = Sha1::new();
     io::copy(&mut reader, &mut hasher)?;
     let digest_bytes = hasher.finalize();
-    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+    let hex_digest = digest_bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
 
     Ok(hex_digest)
 }
 
 fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String) -> Result<()> {
-
     // do not recreate image if exists
     if image_path.exists() {
         return Ok(());
     }
-    info!(
-        "autopkgtests environment does not exist. Creating it."
-    );
-    info!(
-        "please provide your password through sudo to as autopkgtest env creation requires it."
-    );
+    info!("autopkgtests environment does not exist. Creating it.");
+    info!("please provide your password through sudo to as autopkgtest env creation requires it.");
     create_dir_all(image_path.parent().unwrap())?;
     let repo_url = get_repo_url(&codename)?;
-
-
 
     match codename.as_str() {
         "bookworm" => {
@@ -843,11 +870,8 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
                 .stderr(Stdio::inherit())
                 .spawn()?;
             run_process(&mut cmd)
-
         }
-        _ => {
-            Err(eyre!("Not supported distribution"))
-        }
+        _ => Err(eyre!("Not supported distribution")),
     }
 }
 
@@ -877,6 +901,15 @@ fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
         fs::remove_file(path)?;
     }
     Ok(())
+}
+
+fn transform_name(input: &str, arch: &str) -> String {
+    if let Some(pos) = input.find(format!("_{}", arch).as_str()) {
+        let trimmed = &input[..pos];
+        trimmed.replace('_', "=")
+    } else {
+        input.replace('_', "=")
+    }
 }
 
 #[cfg(test)]
@@ -922,7 +955,8 @@ mod tests {
         pkg_config.build_env.arch = "amd64".to_string();
         let sbuild_cache = tempdir().unwrap();
         // create dir manually, as it doesn't exist
-        create_dir_all(sbuild_cache.path()).expect("Could not create temporary directory for testing.");
+        create_dir_all(sbuild_cache.path())
+            .expect("Could not create temporary directory for testing.");
         let sbuild_cache_dir = sbuild_cache.path().to_str().unwrap().to_string();
         pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir.clone());
         let build_env = Sbuild::new(pkg_config, build_files_dir);
@@ -931,9 +965,7 @@ mod tests {
 
         File::create(cache_file_path)
             .expect("File needs to be created manually before testing deletion.");
-        assert!(
-            Path::new(&sbuild_cache_dir).exists(),
-        );
+        assert!(Path::new(&sbuild_cache_dir).exists(),);
 
         assert!(
             cache_file_path.exists(),
