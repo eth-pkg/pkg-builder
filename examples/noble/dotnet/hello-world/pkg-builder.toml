@@ -16,11 +16,14 @@ language_env = "dotnet"
 dotnet_version = "8"
 # see available list in apt-cache madison, which lists which versions you can install
 dotnet_full_version = "8.0.104-8.0.4-0ubuntu1"
+dotnet_deb_hash="48b651a066ca96075887a0431655faa9b39ff3e1b643220e259514261f1e8917"
+use_backup_version=false
+backup_url=""
 
 [build_env]
 codename="noble numbat"
 arch = "amd64"
-pkg_builder_version="0.2.3"
+pkg_builder_version="0.2.4"
 debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true

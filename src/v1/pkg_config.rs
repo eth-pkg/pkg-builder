@@ -189,6 +189,9 @@ impl Validation for JavaConfig {
 pub struct DotnetConfig {
     pub dotnet_version: String,
     pub dotnet_full_version: String,
+    pub dotnet_deb_hash: String,
+    pub use_backup_version: bool,
+    pub backup_url: String,
 }
 
 impl Validation for DotnetConfig {
@@ -200,6 +203,14 @@ impl Validation for DotnetConfig {
         }
         if let Err(err) = validate_not_empty("dotnet_full_version", &self.dotnet_version) {
             errors.push(err);
+        }
+        if let Err(err) = validate_not_empty("dotnet_deb_hash", &self.dotnet_deb_hash) {
+            errors.push(err);
+        }
+        if self.use_backup_version {
+            if let Err(err) = validate_not_empty("backup_url", &self.backup_url) {
+                errors.push(err);
+            }
         }
         if errors.is_empty() {
             Ok(())
@@ -562,7 +573,7 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.2.3"
+pkg_builder_version="0.2.4"
 debcrafter_version = "2711b53"
 run_lintian=false
 run_piuparts=false
@@ -593,7 +604,7 @@ workdir="~/.pkg-builder/packages/jammy"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.2.3".to_string(),
+                pkg_builder_version: "0.2.4".to_string(),
                 debcrafter_version: "2711b53".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
@@ -709,7 +720,8 @@ workdir="~/.pkg-builder/packages/jammy"
             Err(validation_errors) => {
                 let expected_errors = [
                     "field: dotnet_version cannot be empty",
-                    "field: dotnet_full_version cannot be empty"
+                    "field: dotnet_full_version cannot be empty",
+                    "field: dotnet_deb_hash cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),

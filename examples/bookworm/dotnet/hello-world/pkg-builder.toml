@@ -15,11 +15,16 @@ tarball_hash = "f263892f5ed6cbcd82f31d60058eed359686d7e745c3da97fea917ee2f44867c
 language_env = "dotnet"
 dotnet_version = "8.0"
 dotnet_full_version = "8.0.204-1"
+# Because MS force pushes the security update onto packages, without using revision numbers
+dotnet_deb_hash="e9513998246d006ea9c701b0a201a9d165a72557bc298c8c0e8768ef32dcff6e"
+use_backup_version=false
+backup_url=""
+
 
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.2.3"
+pkg_builder_version="0.2.4"
 debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true

@@ -139,7 +139,22 @@ impl Sbuild {
             LanguageEnv::Dotnet(config) => {
                 let dotnet_version = &config.dotnet_version;
                 let dotnet_full_version = &config.dotnet_full_version;
-                if self.config.build_env.codename == "bookworm" ||
+                let dotnet_deb_hash = &config.dotnet_deb_hash;
+                let backup_url = &config.backup_url;
+                if config.use_backup_version {
+                    let install = vec![
+                        "apt install -y wget".to_string(),
+                        format!("cd /tmp && wget -q {} -o dotnet-sdk-{}_{}_{}.deb", backup_url, dotnet_version, dotnet_full_version,  &self.config.build_env.arch),
+                        format!("ls -l && cd debian/tmp && dpkg -i dotnet-sdk-{}_{}_{}.deb", dotnet_version, dotnet_full_version,  &self.config.build_env.arch),
+                        // Check version of acquired deb
+                        "echo 'checking if acquired package is same as used before'".to_string(),
+                        format!("cd /tmp && ls && sha256sum dotnet-sdk-{}_{}_{}.deb", dotnet_version, dotnet_full_version, &self.config.build_env.arch),
+                        format!("cd /tmp && echo {} dotnet-sdk-{}_{}_{}.deb >> hash_file.txt && cat hash_file.txt", dotnet_deb_hash, dotnet_version, dotnet_full_version, &self.config.build_env.arch, ),
+                        "cd /tmp && sha256sum -c hash_file.txt".to_string(),
+                        "dotnet --version && exit 1".to_string(),
+                    ];
+                    install
+                } else if self.config.build_env.codename == "bookworm" ||
                     self.config.build_env.codename == "jammy jellyfish" {
                     let install = vec![
                         "apt install -y wget".to_string(),
@@ -148,6 +163,12 @@ impl Sbuild {
                         "apt-get update -y".to_string(),
                         format!("apt-cache madison dotnet-sdk-{}", dotnet_version),
                         format!("apt-get install -y dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
+                        format!("cd .. && apt download dotnet-sdk-{}={}", dotnet_version, dotnet_full_version),
+                        // Check version of acquired deb
+                        "echo 'checking if acquired package is same as used before'".to_string(),
+                        format!("cd .. && ls && sha256sum dotnet-sdk-{}_{}_{}.deb", dotnet_version, dotnet_full_version, &self.config.build_env.arch),
+                        format!("cd .. && echo {} dotnet-sdk-{}_{}_{}.deb >> hash_file.txt && cat hash_file.txt", dotnet_deb_hash, dotnet_version, dotnet_full_version, &self.config.build_env.arch, ),
+                        "cd .. && sha256sum -c hash_file.txt".to_string(),
                         "dotnet --version".to_string(),
                         "apt remove -y wget".to_string(),
                     ];
@@ -156,6 +177,12 @@ impl Sbuild {
                     let install = vec![
                         format!("apt-cache madison dotnet{}", dotnet_version),
                         format!("apt-get install -y dotnet{}={}", dotnet_version, dotnet_full_version),
+                        format!("cd .. && apt download dotnet{}={}", dotnet_version, dotnet_full_version),
+                        // Check version of acquired deb
+                        "echo 'checking if acquired package is same as used before'".to_string(),
+                        format!("cd .. && ls && sha256sum dotnet{}_{}_{}.deb", dotnet_version, dotnet_full_version, &self.config.build_env.arch),
+                        format!("cd .. && echo {} dotnet{}_{}_{}.deb >> hash_file.txt && cat hash_file.txt", dotnet_deb_hash, dotnet_version, dotnet_full_version, &self.config.build_env.arch, ),
+                        "cd .. && sha256sum -c hash_file.txt".to_string(),
                         "dotnet --version".to_string(),
                         "apt remove -y wget".to_string(),
                     ];

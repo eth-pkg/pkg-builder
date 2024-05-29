@@ -120,6 +120,48 @@ jobs:
           cd examples/bookworm/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder verify  --no-package true
 
+      - name: Env variables
+          id: env
+          run: |
+            FOLDER=examples/bookworm/${{matrix.language}}/hello-world
+            # Extract the second and third directories from the tag name
+            CODENAME=bookworm
+            ARCH=amd64
+            PACKAGE_NAME=hello-world
+            VERSION_NUMBER=1.0.0-1
+            VERSION_NUMBER_WITHOUT_REVISON=1.0.0
+            BUILD_DIR=$(echo "/home/runner/.pkg-builder/packages/$CODENAME/$PACKAGE_NAME-$VERSION_NUMBER")
+        
+        
+            # Write outputs to GITHUB_OUTPUT environment file
+            echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+            echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+            echo "folder=$FOLDER" >> $GITHUB_OUTPUT
+            echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON" >> $GITHUB_OUTPUT
+            echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+            echo "arch=$ARCH" >> $GITHUB_OUTPUT
+
+            # values 
+            echo "folder=$FOLDER"
+            echo "codename=$CODENAME"
+            echo "arch=$ARCH"
+            echo "package_name=$PACKAGE_NAME"
+            echo "version_number=$VERSION_NUMBER"
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
+            echo "build_dir=$BUILD_DIR"
+
+            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file::${deb_file}"
+        
+        - name: Save dotnet.deb
+          if: steps.env.outputs.deb_file != ''
+          uses: actions/upload-artifact@v2
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            path: ${{ steps.env.outputs.debfile }}
+            name: dotnet.deb
 
 
 
@@ -211,6 +253,49 @@ jobs:
           cd examples/jammy/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder verify --no-package true
   
+      - name: Env variables
+          id: env
+          run: |
+            FOLDER=examples/bookworm/${{matrix.language}}/hello-world
+            # Extract the second and third directories from the tag name
+            CODENAME=bookworm
+            ARCH=amd64
+            PACKAGE_NAME=hello-world
+            VERSION_NUMBER=1.0.0-1
+            VERSION_NUMBER_WITHOUT_REVISON=1.0.0
+            BUILD_DIR=$(echo "/home/runner/.pkg-builder/packages/$CODENAME/$PACKAGE_NAME-$VERSION_NUMBER")
+        
+        
+            # Write outputs to GITHUB_OUTPUT environment file
+            echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+            echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+            echo "folder=$FOLDER" >> $GITHUB_OUTPUT
+            echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON" >> $GITHUB_OUTPUT
+            echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+            echo "arch=$ARCH" >> $GITHUB_OUTPUT
+
+            # values 
+            echo "folder=$FOLDER"
+            echo "codename=$CODENAME"
+            echo "arch=$ARCH"
+            echo "package_name=$PACKAGE_NAME"
+            echo "version_number=$VERSION_NUMBER"
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
+            echo "build_dir=$BUILD_DIR"
+
+            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file::${deb_file}"
+        
+        - name: Save dotnet.deb
+          if: steps.env.outputs.deb_file != ''
+          uses: actions/upload-artifact@v2
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            path: ${{ steps.env.outputs.debfile }}
+            name: dotnet.deb
+
 
   noble_amd64_packaging:
     runs-on: ubuntu-latest
@@ -304,3 +389,46 @@ jobs:
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
           ${HOME}/.local/bin/pkg-builder verify --no-package true 
+
+      - name: Env variables
+          id: env
+          run: |
+            FOLDER=examples/bookworm/${{matrix.language}}/hello-world
+            # Extract the second and third directories from the tag name
+            CODENAME=bookworm
+            ARCH=amd64
+            PACKAGE_NAME=hello-world
+            VERSION_NUMBER=1.0.0-1
+            VERSION_NUMBER_WITHOUT_REVISON=1.0.0
+            BUILD_DIR=$(echo "/home/runner/.pkg-builder/packages/$CODENAME/$PACKAGE_NAME-$VERSION_NUMBER")
+        
+        
+            # Write outputs to GITHUB_OUTPUT environment file
+            echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+            echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+            echo "folder=$FOLDER" >> $GITHUB_OUTPUT
+            echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON" >> $GITHUB_OUTPUT
+            echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
+            echo "arch=$ARCH" >> $GITHUB_OUTPUT
+
+            # values 
+            echo "folder=$FOLDER"
+            echo "codename=$CODENAME"
+            echo "arch=$ARCH"
+            echo "package_name=$PACKAGE_NAME"
+            echo "version_number=$VERSION_NUMBER"
+            echo "version_number_without_revision=$VERSION_NUMBER_WITHOUT_REVISON"
+            echo "build_dir=$BUILD_DIR"
+
+            deb_file=$(find ${{ github.workspace }}/build -name 'dotnet-sdk-*.deb' | head -n 1)
+            echo "deb_file::${deb_file}"
+        
+        - name: Save .deb
+          if: steps.env.outputs.deb_file != ''
+          uses: actions/upload-artifact@v2
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            path: ${{ steps.env.outputs.debfile }}
+            name: dotnet.deb
