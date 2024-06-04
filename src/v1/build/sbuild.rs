@@ -365,6 +365,18 @@ impl Sbuild {
         let deb_name = deb_dir.join(deb_file_name);
         deb_name
     }
+
+    pub fn get_dsc_file(&self) -> PathBuf {
+        let deb_dir = self.get_deb_dir();
+        let deb_file_name = format!(
+            "{}_{}-{}.dsc",
+            self.config.package_fields.package_name,
+            self.config.package_fields.version_number,
+            self.config.package_fields.revision_number,
+        );
+        let deb_name = deb_dir.join(deb_file_name);
+        deb_name
+    }
 }
 
 impl BackendBuildEnv for Sbuild {
@@ -655,7 +667,7 @@ impl BackendBuildEnv for Sbuild {
 
         let deb_dir = self.get_deb_dir();
         //  let deb_name = self.get_deb_name();
-        let changes_file = self.get_changes_file();
+        let changes_file = self.get_dsc_file();
         let mut cmd_args = vec![
             changes_file.to_str().unwrap().to_string(),
             // this will not going rebuild the package, which we want to avoid
@@ -663,8 +675,12 @@ impl BackendBuildEnv for Sbuild {
             // we don't want to build for 2 hours
             "--no-built-binaries".to_string(),
             // needed dist-upgrade as testbed is outdated, when new version of distribution released
-            "--apt-upgrade".to_string(),
+            //"--apt-upgrade".to_string(),
+            "-ddd".to_string(),
         ];
+        if self.config.build_env.codename == "noble numbat" {
+            cmd_args.push(format!("--add-apt-source=deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse"));
+        }
         let lang_deps = self.get_test_deps_not_in_debian();
 
         for action in lang_deps.iter() {
@@ -855,41 +871,22 @@ fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String)
         "noble numbat" => {
             let codename = normalize_codename(&codename)?;
             let cmd_args = vec![
-                codename.to_string(),
-                image_path.to_str().unwrap().to_string(),
+                format!("--release={}", codename.to_string()),
                 format!("--mirror={}", repo_url),
                 format!("--arch={}", arch),
-                format!("--apt-add-source=deb http://archive.ubuntu.com/ubuntu noble main universe restricted multiverse"),
+                "-v".to_string(),
             ];
             let mut cmd = Command::new("sudo")
                 // for CI
                 .arg("-S")
-                .arg("autopkgtest-build-qemu")
+                .arg("autopkgtest-buildvm-ubuntu-cloud")
                 .args(&cmd_args)
+                .current_dir(image_path.parent().unwrap().to_str().unwrap())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .spawn()?;
             run_process(&mut cmd)
         }
-        // "noble numbat but" => {
-        //     let codename = normalize_codename(&codename)?;
-        //     let cmd_args = vec![
-        //         format!("--release={}", codename.to_string()),
-        //         format!("--mirror={}", repo_url),
-        //         format!("--arch={}", arch),
-        //         "-v".to_string(),
-        //     ];
-        //     let mut cmd = Command::new("sudo")
-        //         // for CI
-        //         .arg("-S")
-        //         .arg("autopkgtest-buildvm-ubuntu-cloud")
-        //         .args(&cmd_args)
-        //         .current_dir(image_path.parent().unwrap().to_str().unwrap())
-        //         .stdout(Stdio::inherit())
-        //         .stderr(Stdio::inherit())
-        //         .spawn()?;
-        //     run_process(&mut cmd)
-        // }
         _ => Err(eyre!("Not supported distribution")),
     }
 }
