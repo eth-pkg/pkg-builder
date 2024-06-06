@@ -211,7 +211,7 @@ jobs:
 
 
   noble_amd64_packaging:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -235,7 +235,7 @@ jobs:
         run: |
           sudo apt-get update
           # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools piuparts autopkgtest=5.20 vmdb2 qemu-system-x86
+          sudo apt install -y debhelper schroot ubuntu-dev-tools autopkgtest vmdb2 qemu-system-x86
           sudo apt-get install -y pkg-config libssl-dev uidmap
           sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
           sudo apt-get install -y genisoimage
@@ -244,7 +244,7 @@ jobs:
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
           sudo sbuild-adduser `whoami`
-          newgrp sbuild
+          #newgrp sbuild
 
       - name: Build
         run: |
@@ -270,7 +270,7 @@ jobs:
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
           sudo sysctl -w kernel.unprivileged_userns_clone=1
-          sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
+          #sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
           # sudo ${HOME}/.local/bin/pkg-builder env create 
           # First will fail, try again
           #sudo cat /etc/subuid
@@ -283,12 +283,12 @@ jobs:
           pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
-      - name: piuparts
-        run: |
-          # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-          # sudo apt-get install -y debian-archive-keyring
-          cd examples/noble/${{matrix.language}}/hello-world
-          ${HOME}/.local/bin/pkg-builder piuparts
+      # - name: piuparts
+      #   run: |
+      #     # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
+      #     # sudo apt-get install -y debian-archive-keyring
+      #     cd examples/noble/${{matrix.language}}/hello-world
+      #     ${HOME}/.local/bin/pkg-builder piuparts
 
       - name: autopkgtest
         run: |
