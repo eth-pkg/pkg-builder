@@ -244,7 +244,7 @@ jobs:
           wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
           sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
           sudo sbuild-adduser `whoami`
-          newgrp sbuild
+          #newgrp sbuild
 
       - name: Build
         run: |
