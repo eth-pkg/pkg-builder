@@ -747,6 +747,7 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
             .replace("autopkgtest/jammy,now ", "")
             .replace("autopkgtest/noble,now ", "")
             .replace("ubuntu3~22.04.1", "")
+            .replace("ubuntu2", "")
             .trim()
             .to_string();
         if let Some(pos) = output_str.find("all ") {
