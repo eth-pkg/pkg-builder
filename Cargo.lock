@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "cargo_metadata",
  "clap",
@@ -2060,7 +2060,7 @@ dependencies = [
 
 [[package]]
 name = "unicode-xid"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
 

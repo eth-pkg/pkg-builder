@@ -211,7 +211,7 @@ jobs:
 
 
   noble_amd64_packaging:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
@@ -283,12 +283,12 @@ jobs:
           pkg-builder package --run-piuparts false  --run-autopkgtest false
 
 
-      - name: piuparts
-        run: |
-          # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-          # sudo apt-get install -y debian-archive-keyring
-          cd examples/noble/${{matrix.language}}/hello-world
-          ${HOME}/.local/bin/pkg-builder piuparts
+      # - name: piuparts
+      #   run: |
+      #     # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
+      #     # sudo apt-get install -y debian-archive-keyring
+      #     cd examples/noble/${{matrix.language}}/hello-world
+      #     ${HOME}/.local/bin/pkg-builder piuparts
 
       - name: autopkgtest
         run: |

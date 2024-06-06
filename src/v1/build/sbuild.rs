@@ -745,6 +745,7 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
             .replace("autopkgtest/stable,now ", "")
             .replace("autopkgtest/jammy-updates,now ", "")
             .replace("autopkgtest/jammy,now ", "")
+            .replace("autopkgtest/noble,now ", "")
             .replace("ubuntu3~22.04.1", "")
             .trim()
             .to_string();
