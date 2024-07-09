@@ -426,6 +426,10 @@ pub fn setup_sbuild() -> Result<()> {
 }
 
 pub fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
+    if !src_dir.exists() {
+        return Err(io::Error::new(io::ErrorKind::NotFound, format!("Source directory {:?} does not exist", src_dir)));
+    }
+
     if !dest_dir.exists() {
         fs::create_dir_all(dest_dir)?;
     }
@@ -440,7 +444,10 @@ pub fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), i
         if entry_path.is_dir() {
             copy_directory_recursive(&entry_path, &dest_path)?;
         } else {
-            fs::copy(&entry_path, &dest_path)?;
+            if let Err(e) = fs::copy(&entry_path, &dest_path) {
+                eprintln!("Failed to copy file from {:?} to {:?}: {}", entry_path, dest_path, e);
+                return Err(e);
+            }
         }
     }
 
