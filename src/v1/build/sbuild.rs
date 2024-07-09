@@ -44,7 +44,7 @@ impl Sbuild {
                 let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
                 let lang_deps = vec![
                     "apt install -y wget gpg gpg-agent".to_string(),
-                    format!("cd /tmp && wget -o rust.tar.xz {}", rust_binary_url),
+                    format!("cd /tmp && wget -O  rust.tar.xz {}", rust_binary_url),
                     format!(
                         "cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ",
                         rust_binary_gpg_asc
@@ -65,7 +65,7 @@ impl Sbuild {
                 let go_binary_checksum = &config.go_binary_checksum;
                 let install = vec![
                     "apt install -y wget".to_string(),
-                    format!("cd /tmp && wget -o go.tar.gz {}", go_binary_url),
+                    format!("cd /tmp && wget -O  go.tar.gz {}", go_binary_url),
                     format!("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum),
                     "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                     "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
@@ -83,7 +83,7 @@ impl Sbuild {
                 let node_binary_checksum = &config.node_binary_checksum;
                 let mut install = vec![
                     "apt install -y wget".to_string(),
-                    format!("cd /tmp && wget -o node.tar.gz {}", node_binary_url),
+                    format!("cd /tmp && wget -O  node.tar.gz {}", node_binary_url),
                     format!("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum),
                     "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                     "cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1".to_string(),
