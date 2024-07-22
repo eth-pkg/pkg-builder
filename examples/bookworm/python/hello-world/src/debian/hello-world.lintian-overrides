@@ -1,6 +1,3 @@
-# not a bug
-hello-world: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
-# not a bug
-hello-world: maintainer-script-ignores-errors [postrm]
-# FIX this
-hello-world: no-manual-page [usr/bin/hello_world]
+hello-world-python: hardening-no-pie [usr/bin/hello_world/hello_world]
+hello-world-python: initial-upload-closes-no-bugs [usr/share/doc/hello-world-python/changelog.Debian.gz:1]
+hello-world-python: maintainer-script-ignores-errors [postrm]

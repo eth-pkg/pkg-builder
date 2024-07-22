@@ -1,6 +1,0 @@
-# not a bug
-hello-world: initial-upload-closes-no-bugs [usr/share/doc/hello-world/changelog.Debian.gz:1]
-# not a bug
-hello-world: maintainer-script-ignores-errors [postrm]
-# FIX this
-hello-world: no-manual-page [usr/bin/hello_world]

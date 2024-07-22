@@ -9,7 +9,7 @@ recommends = []
 provides = []
 suggests = []
 depends = ["python3"]
-add_files = ["dist/hello_world /usr/bin/hello_world"]
+add_files = ["dist/hello_world /usr/bin"]
 add_manpages = []
 long_doc = """
 Example Package

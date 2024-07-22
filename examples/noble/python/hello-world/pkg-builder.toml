@@ -15,7 +15,7 @@ tarball_hash = "1915a59fabb5859cfd4c14eb2cde7064acf3b9ff6e9e78fa68ed06f4acc482b5
 language_env = "python"
 
 [build_env]
-codename="noble"
+codename="noble numbat"
 arch = "amd64"
 pkg_builder_version="0.2.7"
 debcrafter_version = "2711b53"
