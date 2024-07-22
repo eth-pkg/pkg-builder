@@ -1,0 +1,5 @@
+hello-world-python (1.0.0-1) noble; urgency=medium
+
+  * Initial packaging
+
+ -- John Doe <johndoe@example.com>  Tue, 17 Oct 2023 13:19:27 +0700

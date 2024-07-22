@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "cargo_metadata",
  "clap",
