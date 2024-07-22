@@ -21,7 +21,7 @@ jdk_binary_checksum="e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0
 [build_env]
 codename="noble numbat"
 arch = "amd64"
-pkg_builder_version="0.2.6"
+pkg_builder_version="0.2.7"
 debcrafter_version = "2711b53"
 run_lintian=true
 run_piuparts=true

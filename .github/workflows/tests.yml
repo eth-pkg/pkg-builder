@@ -51,6 +51,7 @@ jobs:
           - rust
           - typescript
           - virtual
+          - python
       fail-fast: false
     steps:
       - name: Checkout code
@@ -137,6 +138,7 @@ jobs:
           - rust
           - typescript
           - virtual
+          - python
       fail-fast: false
     steps:
       - name: Checkout code
@@ -226,6 +228,7 @@ jobs:
           - rust
           - typescript
           - virtual
+          - python
       fail-fast: false
     steps:
       - name: Checkout code

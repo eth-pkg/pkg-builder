@@ -37,6 +37,10 @@ impl Sbuild {
                 let lang_deps = vec![];
                 lang_deps
             }
+            LanguageEnv::Python => {
+                let lang_deps = vec![];
+                lang_deps
+            }
             LanguageEnv::Rust(config) => {
                 // TODO
                 // let rust_version = &config.rust_version;
@@ -246,6 +250,10 @@ impl Sbuild {
     fn get_test_deps_based_on_langenv(&self, lang_env: &LanguageEnv) -> Vec<String> {
         match lang_env {
             LanguageEnv::C => {
+                let lang_deps = vec![];
+                lang_deps
+            }
+            LanguageEnv::Python => {
                 let lang_deps = vec![];
                 lang_deps
             }
