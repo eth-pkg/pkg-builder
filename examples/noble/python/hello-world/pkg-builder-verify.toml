@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="7ccd4293a124f03b01410352330639984d0bdf14", name= "hello-world-python_1.0.0-1.dsc"},
+    { hash="935dc9dc940996cd4ad029940e78c42d6f4cc9f3", name= "hello-world-python_1.0.0-1.dsc"},
     { hash="24cdab278a7c09be60caeca81b34b877c7f0b95e", name= "hello-world-python_1.0.0.orig.tar.gz"},
-    { hash="e092b4b892ce2bf1c292d375b513974e161cefd9", name= "hello-world-python_1.0.0-1.debian.tar.xz"},
-    { hash="bfbbc4ab15da937a70c69f41bdceaf2d3c7415f3", name= "hello-world-python_1.0.0-1_amd64.deb"},
+    { hash="2a98ecce25b41329aa16461e72ecca991d9b0a9e", name= "hello-world-python_1.0.0-1.debian.tar.xz"},
+    { hash="3bf77a204ab09189ef30aa6c1a1b13c59e1142ff", name= "hello-world-python_1.0.0-1_amd64.deb"},
 ]
