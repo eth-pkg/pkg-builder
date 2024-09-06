@@ -274,14 +274,7 @@ pub fn create_debian_dir(
     spec_file: &str,
 ) -> Result<()> {
     debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
-    if !debcrafter_helper::check_if_installed() {
-        debcrafter_helper::install()?;
-    }
-    warn!(
-        "Debcrafter version number is not checked! Expecting version number of: {}",
-        debcrafter_version
-    );
-    // debcrafter_helper::check_version_compatibility(debcrafter_version)?;
+    debcrafter_helper::check_if_installed(debcrafter_version)?;
 
     debcrafter_helper::create_debian_dir(spec_file, build_files_dir)?;
     info!(
