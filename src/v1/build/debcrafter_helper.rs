@@ -1,4 +1,3 @@
-use git2::Repository;
 use log::info;
 use std::fs;
 use std::io;

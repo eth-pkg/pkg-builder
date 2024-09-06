@@ -4,10 +4,8 @@ use std::{env, fs, io};
 
 use eyre::{eyre, Result};
 
-use crate::v1::pkg_config::{SubModule};
 use dirs::home_dir;
 use log::info;
-use log::warn;
 use std::io::{Write, Read};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
