@@ -90,7 +90,7 @@ pub fn check_if_installed(debcrafter_version: &String) -> eyre::Result<()> {
 //     Ok(())
 // }
 
-pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), Error> {
+pub fn create_debian_dir(specification_file: &str, target_dir: &str, debcrafter_version: &String) -> Result<(), Error> {
     let debcrafter_dir = tempdir().expect("Failed to create temporary directory");
 
     let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| {
@@ -106,7 +106,7 @@ pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(
     info!("Spec directory: {:?}", spec_dir.to_str().unwrap());
     info!("Spec file: {:?}", spec_file_name);
     info!("Debcrafter directory: {:?}", debcrafter_dir);
-    let mut cmd = Command::new("debcrafter");
+    let mut cmd = Command::new(format!("debcrafter_{}", debcrafter_version));
     cmd.arg(spec_file_name)
         .current_dir(spec_dir)
         .arg(debcrafter_dir.path());

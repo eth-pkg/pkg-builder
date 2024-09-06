@@ -276,7 +276,7 @@ pub fn create_debian_dir(
     debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
     debcrafter_helper::check_if_installed(debcrafter_version)?;
 
-    debcrafter_helper::create_debian_dir(spec_file, build_files_dir)?;
+    debcrafter_helper::create_debian_dir(spec_file, build_files_dir, debcrafter_version)?;
     info!(
         "Created /debian dir under build_files_dir folder: {:?}",
         build_files_dir
