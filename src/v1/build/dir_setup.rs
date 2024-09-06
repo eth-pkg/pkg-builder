@@ -4,16 +4,17 @@ use std::{env, fs, io};
 
 use eyre::{eyre, Result};
 
+use crate::v1::build::debcrafter_helper;
+use crate::v1::pkg_config::SubModule;
 use dirs::home_dir;
+use filetime::FileTime;
 use log::info;
-use std::io::{Write, Read};
+use sha2::{Digest, Sha256, Sha512};
+use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use filetime::FileTime;
-use sha2::{Digest, Sha256, Sha512};
-use crate::v1::build::debcrafter_helper;
 
 pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
     if fs::metadata(build_artifacts_dir).is_ok() {
@@ -73,14 +74,27 @@ pub fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> 
     Ok(())
 }
 
-pub fn clone_and_checkout_tag(git_url: &str, tag_version: &str, path: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+pub fn clone_and_checkout_tag(
+    git_url: &str,
+    tag_version: &str,
+    path: &str,
+    git_submodules: &Vec<SubModule>,
+) -> Result<()> {
     match Command::new("which").arg("git-lfs").output() {
         Ok(_) => Ok(()),
         Err(_) => Err(eyre!("git-lfs is not installed, please install it!")),
     }?;
 
     let output = Command::new("git")
-        .args(&["clone", "--depth", "1", "--branch", tag_version, git_url, path])
+        .args(&[
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            tag_version,
+            git_url,
+            path,
+        ])
         .output()
         .expect("Failed to execute git clone command");
     if !output.status.success() {
@@ -137,15 +151,26 @@ fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Re
     Ok(())
 }
 
-
-pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, package_name: &str, git_url: &str, tag_version: &str, git_submodules: &Vec<SubModule>) -> Result<()> {
+pub fn download_git(
+    build_artifacts_dir: &str,
+    tarball_path: &str,
+    package_name: &str,
+    git_url: &str,
+    tag_version: &str,
+    git_submodules: &Vec<SubModule>,
+) -> Result<()> {
     let path = Path::new(build_artifacts_dir).join(package_name);
     if path.exists() {
         fs::remove_dir_all(path.clone())?;
     }
     fs::create_dir_all(&path.clone())?;
     //let path = Path::new("/tmp/nimbus");
-    clone_and_checkout_tag(git_url, tag_version, path.clone().to_str().unwrap(), &git_submodules)?;
+    clone_and_checkout_tag(
+        git_url,
+        tag_version,
+        path.clone().to_str().unwrap(),
+        &git_submodules,
+    )?;
     // remove .git directory, no need to package it
     fs::remove_dir_all(path.join(".git"))?;
 
@@ -163,7 +188,9 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, package_name:
             // does not work
             // "--mtime='2019-01-01 00:00'",
             "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
-            "-czf", tarball_path, package_name,
+            "-czf",
+            tarball_path,
+            package_name,
         ])
         .current_dir(build_artifacts_dir)
         .output()?;
@@ -172,7 +199,7 @@ pub fn download_git(build_artifacts_dir: &str, tarball_path: &str, package_name:
             "Failed to create tarball: {}",
             String::from_utf8_lossy(&output.stderr)
         ))
-            .into());
+        .into());
     }
 
     Ok(())
@@ -195,7 +222,10 @@ pub fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha512::new();
     io::copy(&mut reader, &mut hasher)?;
     let digest_bytes = hasher.finalize();
-    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+    let hex_digest = digest_bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
 
     Ok(hex_digest)
 }
@@ -204,7 +234,10 @@ pub fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
     let mut hasher = Sha256::new();
     io::copy(&mut reader, &mut hasher)?;
     let digest_bytes = hasher.finalize();
-    let hex_digest = digest_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+    let hex_digest = digest_bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
 
     Ok(hex_digest)
 }
@@ -212,7 +245,8 @@ pub fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
 pub fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
     let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."))?;
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).map_err(|_| eyre!("Could not read tarball."))?;
+    file.read_to_end(&mut buffer)
+        .map_err(|_| eyre!("Could not read tarball."))?;
 
     let actual_sha512 = calculate_sha512(&*buffer.clone()).unwrap_or_default();
     info!("sha512 hash {}", &actual_sha512);
@@ -232,13 +266,11 @@ pub fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> R
 
 pub fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<()> {
     match expected_checksum {
-        Some(tarball_hash) => {
-            match verify_tarball_checksum(tarball_path, &tarball_hash) {
-                Ok(true) => Ok(()),
-                Ok(false) => Err(eyre!("Checksum is invalid.")),
-                Err(err) => Err(eyre!("Error checking hash: {}", err)),
-            }
-        }
+        Some(tarball_hash) => match verify_tarball_checksum(tarball_path, &tarball_hash) {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(eyre!("Checksum is invalid.")),
+            Err(err) => Err(eyre!("Error checking hash: {}", err)),
+        },
         None => Ok(()), // If no checksum is provided, consider it verified
     }
 }
@@ -370,7 +402,6 @@ pub fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<()> {
     Ok(())
 }
 
-
 pub fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
     info!(
         "Adding executable permission for {}/debian/rules",
@@ -379,9 +410,11 @@ pub fn patch_rules_permission(build_files_dir: &str) -> Result<()> {
 
     let debian_rules = format!("{}/debian/rules", build_files_dir);
     let mut permissions = fs::metadata(debian_rules.clone())
-        .map_err(|_| eyre!("Failed to get debian/rules permission."))?.permissions();
+        .map_err(|_| eyre!("Failed to get debian/rules permission."))?
+        .permissions();
     permissions.set_mode(permissions.mode() | 0o111);
-    fs::set_permissions(debian_rules, permissions).map_err(|_| eyre!("Failed to set debian/rules permission."))?;
+    fs::set_permissions(debian_rules, permissions)
+        .map_err(|_| eyre!("Failed to set debian/rules permission."))?;
     Ok(())
 }
 
@@ -410,15 +443,20 @@ pub fn setup_sbuild() -> Result<()> {
     let content = include_str!(".sbuildrc");
     let home_dir = home_dir.to_str().unwrap_or("/home/runner").to_string();
     let replaced_contents = content.replace("<HOME>", &home_dir);
-    let mut file = fs::File::create(dest_path).map_err(|_| eyre!("Failed to create ~/.sbuildrc."))?;
-    file.write_all(replaced_contents.as_bytes()).map_err(|_| eyre!("Failed to write ~/.sbuildrc."))?;
+    let mut file =
+        fs::File::create(dest_path).map_err(|_| eyre!("Failed to create ~/.sbuildrc."))?;
+    file.write_all(replaced_contents.as_bytes())
+        .map_err(|_| eyre!("Failed to write ~/.sbuildrc."))?;
 
     Ok(())
 }
 
 pub fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), io::Error> {
     if !src_dir.exists() {
-        return Err(io::Error::new(io::ErrorKind::NotFound, format!("Source directory {:?} does not exist", src_dir)));
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!("Source directory {:?} does not exist", src_dir),
+        ));
     }
 
     if !dest_dir.exists() {
@@ -436,7 +474,10 @@ pub fn copy_directory_recursive(src_dir: &Path, dest_dir: &Path) -> Result<(), i
             copy_directory_recursive(&entry_path, &dest_path)?;
         } else {
             if let Err(e) = fs::copy(&entry_path, &dest_path) {
-                eprintln!("Failed to copy file from {:?} to {:?}: {}", entry_path, dest_path, e);
+                eprintln!(
+                    "Failed to copy file from {:?} to {:?}: {}",
+                    entry_path, dest_path, e
+                );
                 return Err(e);
             }
         }
@@ -493,10 +534,16 @@ pub fn longest_common_prefix(strings: &[&str]) -> String {
     prefix
 }
 
-pub fn get_build_artifacts_dir(package_name: &str, work_dir: &str,
-                               version_number: &str, revision_number: &str) -> String {
-    let build_artifacts_dir = format!("{}/{}-{}-{}", work_dir, &package_name,
-                                      version_number, revision_number);
+pub fn get_build_artifacts_dir(
+    package_name: &str,
+    work_dir: &str,
+    version_number: &str,
+    revision_number: &str,
+) -> String {
+    let build_artifacts_dir = format!(
+        "{}/{}-{}-{}",
+        work_dir, &package_name, version_number, revision_number
+    );
     build_artifacts_dir
 }
 
@@ -552,14 +599,14 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
     use super::*;
     use httpmock::prelude::*;
+    use std::fs::File;
     use std::path::PathBuf;
     // use std::sync::Once;
     // use env_logger::Env;
-    use tempfile::tempdir;
     use crate::v1::pkg_config::{PackageType, PkgConfig};
+    use tempfile::tempdir;
 
     // static INIT: Once = Once::new();
 
@@ -685,7 +732,6 @@ mod tests {
     #[ignore]
     fn test_download_source_with_git_package() {}
 
-
     #[test]
     fn test_extract_source() {
         setup();
@@ -694,10 +740,7 @@ mod tests {
         let temp_dir = temp_dir.path();
         let tarball_path: PathBuf = PathBuf::from("tests/misc/test_package.tar.gz");
 
-        let build_files_dir = temp_dir
-            .join(package_name)
-            .to_string_lossy()
-            .to_string();
+        let build_files_dir = temp_dir.join(package_name).to_string_lossy().to_string();
 
         assert!(tarball_path.exists());
         let result = extract_source(tarball_path.to_str().unwrap(), &build_files_dir);
@@ -705,8 +748,7 @@ mod tests {
         assert!(result.is_ok(), "{:?}", result);
         assert!(Path::new(&build_files_dir).exists());
 
-        let test_file_path = PathBuf::from(build_files_dir.clone())
-            .join("empty_file.txt");
+        let test_file_path = PathBuf::from(build_files_dir.clone()).join("empty_file.txt");
 
         assert!(
             test_file_path.exists(),
@@ -779,7 +821,6 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn test_verify_hash_valid_checksum_512() {
         setup();
@@ -800,7 +841,10 @@ mod tests {
         let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
 
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap().to_string(), "Error checking hash: Hashes do not match.");
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Error checking hash: Hashes do not match."
+        );
     }
 
     #[test]
@@ -823,7 +867,10 @@ mod tests {
         let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
 
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap().to_string(), "Error checking hash: Hashes do not match.");
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Error checking hash: Hashes do not match."
+        );
     }
 
     #[test]
@@ -835,16 +882,19 @@ mod tests {
         let tag_version = "v24.3.0";
         let str = fs::read_to_string("examples/bookworm/git-package/nimbus/pkg-builder.toml")
             .expect("File does not exist");
-        let config: PkgConfig = toml::from_str(&str)
-            .expect("Cannot parse file.");
+        let config: PkgConfig = toml::from_str(&str).expect("Cannot parse file.");
         match config.package_type {
             PackageType::Git(gitconfig) => {
-                let result = clone_and_checkout_tag(url, tag_version, repo_path_str, &gitconfig.submodules);
-                assert!(result.is_ok(), "Failed to clone and checkout tag: {:?}", result);
+                let result =
+                    clone_and_checkout_tag(url, tag_version, repo_path_str, &gitconfig.submodules);
+                assert!(
+                    result.is_ok(),
+                    "Failed to clone and checkout tag: {:?}",
+                    result
+                );
             }
             _ => panic!("Wrong type of file."),
         }
-
 
         fs::remove_dir_all(temp_dir).unwrap();
     }
