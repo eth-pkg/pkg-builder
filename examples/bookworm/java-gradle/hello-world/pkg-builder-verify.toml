@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="6545d67df4fd75306df056d3c3d0f37359281b04", name= "hello-world-java-gradle_1.0.0-1.dsc"},
+    { hash="da53433818d872974dd56a0fddaff118dc18faac", name= "hello-world-java-gradle_1.0.0-1.dsc"},
     { hash="eef991395fabb27016cc1a2e37cbaa04fd869de8", name= "hello-world-java-gradle_1.0.0.orig.tar.gz"},
-    { hash="8f1bdf20ac5583fff731792a8b6405541755424c", name= "hello-world-java-gradle_1.0.0-1.debian.tar.xz"},
-    { hash="5fdb14f69742fb23c907752db66010d8864b2616", name= "hello-world-java-gradle_1.0.0-1_amd64.deb"},
+    { hash="326724d64f41aebdd721db2276223523c4246517", name= "hello-world-java-gradle_1.0.0-1.debian.tar.xz"},
+    { hash="a09043df4d893fcf5c50134e3b1e97bc040f10a4", name= "hello-world-java-gradle_1.0.0-1_amd64.deb"},
 ]
