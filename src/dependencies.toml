@@ -1,5 +1,5 @@
 [dependencies]
 binaries = [
     { url = "https://github.com/Kixunil/debcrafter", commit_hash = "2711b53", binary_name = "debcrafter_2711b53", original_binary_name="debcrafter"},
-    { url = "https://github.com/eenagy/debcrafter", commit_hash = "a3125c7", binary_name = "debcrafter_a3125c7", original_binary_name="debcrafter"}
+    { url = "https://github.com/Kixunil/debcrafter", commit_hash = "8189263", binary_name = "debcrafter_8189263", original_binary_name="debcrafter"}
 ]
