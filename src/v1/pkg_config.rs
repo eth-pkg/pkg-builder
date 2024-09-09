@@ -589,8 +589,8 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.2.7"
-debcrafter_version = "2711b53"
+pkg_builder_version="0.2.8"
+debcrafter_version = "8189263"
 run_lintian=false
 run_piuparts=false
 run_autopkgtest=false
@@ -620,8 +620,8 @@ workdir="~/.pkg-builder/packages/jammy"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.2.7".to_string(),
-                debcrafter_version: "2711b53".to_string(),
+                pkg_builder_version: "0.2.8".to_string(),
+                debcrafter_version: "8189263".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,
                 run_lintian: Some(false),

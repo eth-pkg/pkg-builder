@@ -1,4 +1,3 @@
-use git2::Repository;
 use log::info;
 use std::fs;
 use std::io;
@@ -52,44 +51,28 @@ pub fn check_if_dpkg_parsechangelog_installed() -> Result<(), Error> {
     Ok(())
 }
 
-pub fn check_if_installed() -> bool {
-    match Command::new("which").arg("debcrafter").output() {
-        Ok(output) => output.status.success(),
-        Err(_) => false, // Assuming debcrafter is not installed if an error occurs
+pub fn check_if_installed(debcrafter_version: &String) -> eyre::Result<()> {
+    match Command::new("which")
+        .arg(format!("debcrafter_{}", debcrafter_version))
+        .output()
+    {
+        Ok(output) => {
+            if output.status.success() {
+                Ok(())
+            } else {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+
+                eyre::bail!(
+                    "Command failed with exit code {:?}\nstdout: {}\nstderr: {}",
+                    output.status.code(),
+                    stdout,
+                    stderr
+                );
+            }
+        }
+        Err(err) => eyre::bail!("Failed to execute 'which' command: {}", err),
     }
-}
-
-pub fn install() -> Result<(), Error> {
-    let repo_dir = tempdir().expect("Failed to create temporary directory");
-
-    // Path to the temporary directory
-    let repo_dir_path = repo_dir.path();
-
-    // Clone the Git repository into the temporary directory
-    let repo_url = "https://github.com/Kixunil/debcrafter.git";
-    Repository::clone(repo_url, repo_dir_path)?;
-
-    // check if cargo is installed
-    let mut cmd = Command::new("which");
-    cmd.arg("cargo");
-
-    handle_failure(&mut cmd, "Cargo not found".to_string())?;
-
-    // Build the project
-    let mut cmd = Command::new("cargo");
-    cmd.arg("build").current_dir(repo_dir_path);
-
-    handle_failure(
-        &mut cmd,
-        "Failed to build debcrafter with cargo.".to_string(),
-    )?;
-
-    // Install the binary
-    let mut cmd = Command::new("cargo");
-    cmd.arg("install").arg("--path").arg(repo_dir_path);
-
-    handle_failure(&mut cmd, "Failed to install debcrafter.".to_string())?;
-    Ok(())
 }
 
 // pub fn check_version_compatibility(debcrafter_version: &str) -> Result<(), String> {
@@ -106,7 +89,7 @@ pub fn install() -> Result<(), Error> {
 //     Ok(())
 // }
 
-pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(), Error> {
+pub fn create_debian_dir(specification_file: &str, target_dir: &str, debcrafter_version: &String) -> Result<(), Error> {
     let debcrafter_dir = tempdir().expect("Failed to create temporary directory");
 
     let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| {
@@ -122,7 +105,7 @@ pub fn create_debian_dir(specification_file: &str, target_dir: &str) -> Result<(
     info!("Spec directory: {:?}", spec_dir.to_str().unwrap());
     info!("Spec file: {:?}", spec_file_name);
     info!("Debcrafter directory: {:?}", debcrafter_dir);
-    let mut cmd = Command::new("debcrafter");
+    let mut cmd = Command::new(format!("debcrafter_{}", debcrafter_version));
     cmd.arg(spec_file_name)
         .current_dir(spec_dir)
         .arg(debcrafter_dir.path());

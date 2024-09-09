@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="14178920948d439f19053433ce862f0c6c40eec6", name= "hello-world-nim_1.0.0-1.dsc"},
+    { hash="7f193beb2ec74e4571fe6b035abfc124a431136e", name= "hello-world-nim_1.0.0-1.dsc"},
     { hash="a1b9eb72ce3b72094e6d815ff70208e7a88553cc", name= "hello-world-nim_1.0.0.orig.tar.gz"},
-    { hash="cd57f28543f179708db8f9452e533f4a15b71da0", name= "hello-world-nim_1.0.0-1.debian.tar.xz"},
-    { hash="38d8f2fa499390fddddd41fc2e7923371c0bb998", name= "hello-world-nim_1.0.0-1_amd64.deb"},
+    { hash="abff1c040dab55f6cd93c68ea12dea5949ca8323", name= "hello-world-nim_1.0.0-1.debian.tar.xz"},
+    { hash="ca5e19eaf0dbdca7cea68549539114b9d8315603", name= "hello-world-nim_1.0.0-1_amd64.deb"},
 ]
