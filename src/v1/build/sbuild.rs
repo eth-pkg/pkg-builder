@@ -38,7 +38,24 @@ impl Sbuild {
                 lang_deps
             }
             LanguageEnv::Python => {
-                let lang_deps = vec![];
+                // it's not really a build dep, but we need to fix the linking issue
+                let lang_deps = vec![
+                    "apt install -y python3-all python3-dev python3-pip python3-venv".to_string(),
+                    "rm /usr/lib/x86_64-linux-gnu/libpython3.11.so".to_string(),
+                    "ldconfig -p | grep libpython3.11".to_string(),
+                    // "rm /usr/lib/x86_64-linux-gnu/libpython3.11.so.1".to_string(),
+                    // "mv /usr/lib/x86_64-linux-gnu/libpython3.11.so.1.0  /usr/lib/x86_64-linux-gnu/libpython3.11.so".to_string(),
+                    // "rm /usr/lib/libpython3.11.so.1.0".to_string(),
+                    "find /usr -name \"libpython3.11.so.1.0*\"".to_string(),
+                    // "ln -s /usr/lib/x86_64-linux-gnu/libpython3.11.so /usr/lib/x86_64-linux-gnu/libpython3.11.so".to_string(),
+                    "ls -al /usr/lib/x86_64-linux-gnu".to_string(),
+                    "rm /etc/ld.so.cache && ldconfig".to_string(),
+                    "cat /etc/ld.so.conf.d/fakeroot-x86_64-linux-gnu.conf".to_string(),
+                    "cat /etc/ld.so.conf.d/libc.conf".to_string(),
+                    "cat /etc/ld.so.conf.d/x86_64-linux-gnu.conf".to_string(),
+                    "ldconfig -p | grep libpython3.11".to_string(),
+                ];
+
                 lang_deps
             }
             LanguageEnv::Rust(config) => {
