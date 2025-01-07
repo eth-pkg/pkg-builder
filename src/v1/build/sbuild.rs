@@ -762,6 +762,7 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
             .replace("ubuntu3~22.04.1", "")
             .replace("ubuntu2", "")
             .replace("ubuntu1~24.04.1", "")
+            .replace("ubuntu1~22.04.1", "")
             .trim()
             .to_string();
         if let Some(pos) = output_str.find("all ") {
