@@ -1,7 +1,7 @@
 [verify]
 package_hash=[
-    { hash="dfc4c605617f2efd93e50216c7f58c882f810f78", name= "hello-world-java_1.0.0-1.dsc"},
+    { hash="e4e358c0f5444c1dc3bde520561b0d16e867c3b1", name= "hello-world-java_1.0.0-1.dsc"},
     { hash="8b017e7ea5f6653691e37d324faf40dc15b5cfd5", name= "hello-world-java_1.0.0.orig.tar.gz"},
-    { hash="684a0087afcfcc0690879f7470f15d3654ef97a0", name= "hello-world-java_1.0.0-1.debian.tar.xz"},
+    { hash="f9220aa6855f8e548d13c0a760a3ebc4f371d196", name= "hello-world-java_1.0.0-1.debian.tar.xz"},
     { hash="ff1ad66a164f01ecd60b7f49bfde88bd09624b9c", name= "hello-world-java_1.0.0-1_amd64.deb"},
 ]

@@ -167,7 +167,10 @@ impl Sbuild {
                         install.push(format!("cd /tmp && ls && dpkg -i {}.deb", package.name));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb > hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb > hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
@@ -186,12 +189,14 @@ impl Sbuild {
                         install.push(format!("cd /tmp && apt download -y {}", pkg));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
                     install.push("apt remove -y wget".to_string());
-          
                 } else if self.config.build_env.codename == "noble numbat" {
                     // Note all the previous builds of dotnet fails, as they removed from main repo the dotnet packages
                     // when new distrubution 24.10 released
@@ -206,7 +211,10 @@ impl Sbuild {
                         install.push(format!("cd /tmp && apt download -y {}", pkg));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
@@ -751,28 +759,21 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
 
     //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
     if output.status.success() {
-        let mut output_str = String::from_utf8_lossy(&output.stdout)
+        let version: String = String::from_utf8_lossy(&output.stdout)
             .to_string()
-            .replace("Listing...", "")
-            .replace("\n", "")
-            .replace("autopkgtest/stable,now ", "")
-            .replace("autopkgtest/jammy-updates,now ", "")
-            .replace("autopkgtest/jammy,now ", "")
-            .replace("autopkgtest/noble,now ", "")
-            .replace("ubuntu3~22.04.1", "")
-            .replace("ubuntu2", "")
-            .replace("ubuntu1~24.04.1", "")
-            .replace("ubuntu1~22.04.1", "")
-            .trim()
-            .to_string();
-        if let Some(pos) = output_str.find("all ") {
-            output_str.truncate(pos);
-            output_str = output_str.trim().to_string();
-        }
-        info!("autopkgtest version {}", output_str);
+            .split_whitespace()
+            .find(|s| s.chars().next().unwrap_or(' ').is_digit(10))
+            .map(|version| {
+                version
+                    .chars()
+                    .take_while(|c| c.is_digit(10) || *c == '.')
+                    .collect()
+            })
+            .unwrap_or_default();
+        info!("autopkgtest version {}", version);
         // append versions, to it looks like semver
         let expected_version = format!("{}.0", expected_version);
-        let actual_version = format!("{}.0", output_str);
+        let actual_version = format!("{}.0", version);
         warn_compare_versions(expected_version, &actual_version, "autopkgtest")?;
         Ok(())
     } else {
