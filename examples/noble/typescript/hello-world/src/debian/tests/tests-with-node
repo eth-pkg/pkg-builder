@@ -14,6 +14,7 @@ ln -s /usr/lib/node/bin/npx /usr/bin/npx
 ln -s /usr/lib/node/bin/corepack /usr/bin/corepack
 node --version
 npm --version
+npm config set update-notifier false
 
 test_binary_in_path(){
   output="$(which hello-world)"

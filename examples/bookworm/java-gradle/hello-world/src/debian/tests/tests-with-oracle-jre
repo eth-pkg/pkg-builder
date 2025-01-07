@@ -5,7 +5,7 @@ exec 2>&1
 set -e
 
 cd /tmp
-curl https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb --output jdk-17_linux-x64_bin.deb
+curl https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.deb --output jdk-17_linux-x64_bin.deb
 dpkg -i jdk-17_linux-x64_bin.deb
 
 test_binary_in_path(){

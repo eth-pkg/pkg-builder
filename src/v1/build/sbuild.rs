@@ -48,7 +48,7 @@ impl Sbuild {
                 let rust_binary_gpg_asc = &config.rust_binary_gpg_asc;
                 let lang_deps = vec![
                     "apt install -y wget gpg gpg-agent".to_string(),
-                    format!("cd /tmp && wget -O  rust.tar.xz {}", rust_binary_url),
+                    format!("cd /tmp && wget -q -O  rust.tar.xz {}", rust_binary_url),
                     format!(
                         "cd /tmp && echo \"{}\" >> rust.tar.xz.asc && cat rust.tar.xz.asc ",
                         rust_binary_gpg_asc
@@ -69,7 +69,7 @@ impl Sbuild {
                 let go_binary_checksum = &config.go_binary_checksum;
                 let install = vec![
                     "apt install -y wget".to_string(),
-                    format!("cd /tmp && wget -O  go.tar.gz {}", go_binary_url),
+                    format!("cd /tmp && wget -q -O  go.tar.gz {}", go_binary_url),
                     format!("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum),
                     "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                     "cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz".to_string(),
@@ -87,7 +87,7 @@ impl Sbuild {
                 let node_binary_checksum = &config.node_binary_checksum;
                 let mut install = vec![
                     "apt install -y wget".to_string(),
-                    format!("cd /tmp && wget -O  node.tar.gz {}", node_binary_url),
+                    format!("cd /tmp && wget -q -O  node.tar.gz {}", node_binary_url),
                     format!("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum),
                     "cd /tmp && sha256sum -c hash_file.txt".to_string(),
                     "cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1".to_string(),
@@ -167,7 +167,10 @@ impl Sbuild {
                         install.push(format!("cd /tmp && ls && dpkg -i {}.deb", package.name));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb > hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb > hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
@@ -176,7 +179,7 @@ impl Sbuild {
                     || self.config.build_env.codename == "jammy jellyfish"
                 {
                     install.push("apt install -y wget".to_string());
-                    install.push("cd /tmp && wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string());
+                    install.push("cd /tmp && wget -q https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb".to_string());
                     install.push("cd /tmp && dpkg -i packages-microsoft-prod.deb".to_string());
                     install.push("apt update -y".to_string());
                     for package in dotnet_packages {
@@ -186,13 +189,20 @@ impl Sbuild {
                         install.push(format!("cd /tmp && apt download -y {}", pkg));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
                     install.push("apt remove -y wget".to_string());
-          
                 } else if self.config.build_env.codename == "noble numbat" {
+                    // Note all the previous builds of dotnet fails, as they removed from main repo the dotnet packages
+                    // when new distrubution 24.10 released
+                    install.push("apt-get install software-properties-common -y".to_string());
+                    install.push("add-apt-repository ppa:dotnet/backports".to_string());
+                    install.push("apt-get update -y".to_string());
                     install.push("apt install -y wget".to_string());
                     for package in dotnet_packages {
                         let pkg = transform_name(&package.name, &self.config.build_env.arch);
@@ -201,7 +211,10 @@ impl Sbuild {
                         install.push(format!("cd /tmp && apt download -y {}", pkg));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
-                        install.push(format!("cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt", package.hash, package.name));
+                        install.push(format!(
+                            "cd /tmp &&  echo {} {}.deb >> hash_file.txt && cat hash_file.txt",
+                            package.hash, package.name
+                        ));
                         install.push(format!("cd /tmp && sha1sum -c hash_file.txt"));
                     }
                     install.push("dotnet --version".to_string());
@@ -746,26 +759,21 @@ fn check_autopkgtest_version(expected_version: String) -> Result<()> {
 
     //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
     if output.status.success() {
-        let mut output_str = String::from_utf8_lossy(&output.stdout)
+        let version: String = String::from_utf8_lossy(&output.stdout)
             .to_string()
-            .replace("Listing...", "")
-            .replace("\n", "")
-            .replace("autopkgtest/stable,now ", "")
-            .replace("autopkgtest/jammy-updates,now ", "")
-            .replace("autopkgtest/jammy,now ", "")
-            .replace("autopkgtest/noble,now ", "")
-            .replace("ubuntu3~22.04.1", "")
-            .replace("ubuntu2", "")
-            .trim()
-            .to_string();
-        if let Some(pos) = output_str.find("all ") {
-            output_str.truncate(pos);
-            output_str = output_str.trim().to_string();
-        }
-        info!("autopkgtest version {}", output_str);
+            .split_whitespace()
+            .find(|s| s.chars().next().unwrap_or(' ').is_digit(10))
+            .map(|version| {
+                version
+                    .chars()
+                    .take_while(|c| c.is_digit(10) || *c == '.')
+                    .collect()
+            })
+            .unwrap_or_default();
+        info!("autopkgtest version {}", version);
         // append versions, to it looks like semver
         let expected_version = format!("{}.0", expected_version);
-        let actual_version = format!("{}.0", output_str);
+        let actual_version = format!("{}.0", version);
         warn_compare_versions(expected_version, &actual_version, "autopkgtest")?;
         Ok(())
     } else {
