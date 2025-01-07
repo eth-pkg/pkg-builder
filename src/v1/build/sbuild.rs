@@ -193,6 +193,11 @@ impl Sbuild {
                     install.push("apt remove -y wget".to_string());
           
                 } else if self.config.build_env.codename == "noble numbat" {
+                    // Note all the previous builds of dotnet fails, as they removed from main repo the dotnet packages
+                    // when new distrubution 24.10 released
+                    install.push("apt-get install software-properties-common -y".to_string());
+                    install.push("add-apt-repository ppa:dotnet/backports".to_string());
+                    install.push("apt-get update -y".to_string());
                     install.push("apt install -y wget".to_string());
                     for package in dotnet_packages {
                         let pkg = transform_name(&package.name, &self.config.build_env.arch);
