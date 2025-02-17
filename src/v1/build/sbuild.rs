@@ -185,7 +185,7 @@ impl Sbuild {
                     for package in dotnet_packages {
                         let pkg = transform_name(&package.name, &self.config.build_env.arch);
                         install.push(format!("cd /tmp && wget -q {}", package.url));
-                        install.push(format!("cd /tmp && apt install -y {}", pkg));
+                        install.push(format!("cd /tmp && apt install -y --allow-downgrades {}", pkg));
                         install.push(format!("cd /tmp && apt download -y {}", pkg));
                         // check package version
                         install.push(format!("cd /tmp && ls && sha1sum {}.deb", package.name));
