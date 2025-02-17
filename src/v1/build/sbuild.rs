@@ -158,7 +158,7 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(config) => {
                 let dotnet_packages = &config.dotnet_packages;
-                let deps = &config.deps;
+                let deps = config.deps.clone().unwrap_or_default();
                 let mut install: Vec<String> = vec![];
                 if config.use_backup_version {
                     install.push("apt install -y wget".to_string());

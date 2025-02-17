@@ -220,7 +220,7 @@ impl Validation for DotnetPackage {
 pub struct DotnetConfig {
     pub use_backup_version: bool,
     pub dotnet_packages: Vec<DotnetPackage>,
-    pub deps: Vec<String>,
+    pub deps: Option<Vec<String>>,
 }
 
 impl Validation for DotnetConfig {
