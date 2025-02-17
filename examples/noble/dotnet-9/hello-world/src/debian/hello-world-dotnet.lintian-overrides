@@ -1,0 +1,7 @@
+# if you don't upload to debian this is not a bug
+hello-world-dotnet: mismatched-override initial-upload-closes-no-bugs
+# if you don't upload to debian this is not a bug
+hello-world-dotnet: initial-upload-closes-no-bugs
+hello-world-dotnet: maintainer-script-ignores-errors [postrm]
+hello-world-dotnet: no-manual-page [usr/bin/hello-world]
+

@@ -158,10 +158,14 @@ impl Sbuild {
             }
             LanguageEnv::Dotnet(config) => {
                 let dotnet_packages = &config.dotnet_packages;
+                let deps = config.deps.clone().unwrap_or_default();
                 let mut install: Vec<String> = vec![];
                 if config.use_backup_version {
                     install.push("apt install -y wget".to_string());
                     install.push("apt install -y libicu-dev".to_string());
+                    for package in deps {
+                        install.push(format!("apt install -y {}", package));
+                    }
                     for package in dotnet_packages {
                         install.push(format!("cd /tmp && wget -q {}", package.url));
                         install.push(format!("cd /tmp && ls && dpkg -i {}.deb", package.name));

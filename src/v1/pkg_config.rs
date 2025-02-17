@@ -220,6 +220,7 @@ impl Validation for DotnetPackage {
 pub struct DotnetConfig {
     pub use_backup_version: bool,
     pub dotnet_packages: Vec<DotnetPackage>,
+    pub deps: Option<Vec<String>>,
 }
 
 impl Validation for DotnetConfig {
@@ -589,7 +590,7 @@ go_version = "1.22"
 [build_env]
 codename="bookworm"
 arch = "amd64"
-pkg_builder_version="0.2.10"
+pkg_builder_version="0.2.11"
 debcrafter_version = "8189263"
 run_lintian=false
 run_piuparts=false
@@ -620,7 +621,7 @@ workdir="~/.pkg-builder/packages/jammy"
             build_env: BuildEnv {
                 codename: "bookworm".to_string(),
                 arch: "amd64".to_string(),
-                pkg_builder_version: "0.2.10".to_string(),
+                pkg_builder_version: "0.2.11".to_string(),
                 debcrafter_version: "8189263".to_string(),
                 sbuild_cache_dir: None,
                 docker: None,

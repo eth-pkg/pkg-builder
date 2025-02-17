@@ -207,6 +207,7 @@ jobs:
         language:
           - c
           - dotnet
+          - dotnet-9
           - go
           - java
           - java-gradle
