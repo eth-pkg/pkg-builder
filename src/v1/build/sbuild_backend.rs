@@ -413,7 +413,7 @@ fn check_tool_version(tool: &str, expected_version: &str) -> Result<()> {
             .unwrap_or_default(),
         _ => unreachable!(),
     };
-
+    info!("versions: expected:{} actual:{}", expected_version, actual_version);
     warn_compare_versions(expected_version.to_string(), &actual_version, tool)?;
     Ok(())
 }
@@ -481,64 +481,70 @@ mod tests {
     use env_logger::Env;
     use std::sync::Once;
     use tempfile::tempdir;
+    use std::fs::{create_dir_all, File};
+    use std::path::Path;
 
     static INIT: Once = Once::new();
 
+    // Initialize logger once for all tests
     fn setup() {
         INIT.call_once(|| {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
         });
     }
 
-    #[test]
-    fn test_clean_sbuild_env_when_file_does_not_exist() {
-        setup();
-        let mut pkg_config = PkgConfig::default();
+    fn create_base_config() -> (PkgConfig, String, String) {
+        let mut config = PkgConfig::default();
+        config.build_env.codename = "bookworm".to_string();
+        config.build_env.arch = "amd64".to_string();
+        
         let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.arch = "amd64".to_string();
-        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
-        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        config.build_env.sbuild_cache_dir = Some(cache_dir.clone());
+        
+        (config, build_files_dir, cache_dir)
+    }
+
+    #[test]
+    fn test_clean_when_file_missing() {
+        setup();
+        let (config, build_files_dir, _) = create_base_config();
+        let build_env = Sbuild::new(config, build_files_dir);
+        
         let result = build_env.clean();
-        assert!(result.is_ok());
         let cache_file = build_env.get_cache_file();
+        
+        assert!(result.is_ok());
         assert!(!Path::new(&cache_file).exists());
     }
 
     #[test]
-    fn test_clean_sbuild_env() {
+    fn test_clean_with_existing_file() {
         setup();
-        let mut pkg_config = PkgConfig::default();
-        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.arch = "amd64".to_string();
-        let sbuild_cache = tempdir().unwrap();
-        create_dir_all(sbuild_cache.path()).unwrap();
-        let sbuild_cache_dir = sbuild_cache.path().to_str().unwrap().to_string();
-        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir.clone());
-        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let (config, build_files_dir, cache_dir) = create_base_config();
+        
+        let build_env = Sbuild::new(config, build_files_dir);
         let cache_file = build_env.get_cache_file();
+        
+        create_dir_all(cache_dir).unwrap();
         File::create(&cache_file).unwrap();
         assert!(Path::new(&cache_file).exists());
+        
         let result = build_env.clean();
         assert!(result.is_ok());
         assert!(!Path::new(&cache_file).exists());
     }
 
     #[test]
-    fn test_create_sbuild_env() {
+    fn test_create_environment() {
         setup();
-        let mut pkg_config = PkgConfig::default();
-        pkg_config.build_env.codename = "bookworm".to_string();
-        pkg_config.build_env.arch = "amd64".to_string();
-        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
-        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        let build_env = Sbuild::new(pkg_config, build_files_dir.clone());
+        let (config, build_files_dir, _) = create_base_config();
+        let build_env = Sbuild::new(config, build_files_dir);
+        
         build_env.clean().unwrap();
         let cache_file = build_env.get_cache_file();
         assert!(!Path::new(&cache_file).exists());
+        
         let result = build_env.create();
         assert!(result.is_ok());
         assert!(Path::new(&cache_file).exists());
