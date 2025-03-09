@@ -391,6 +391,16 @@ pub enum PackageType {
     Virtual,
 }
 
+impl PackageType {
+   pub fn get_language_env(&self) -> Option<&LanguageEnv> {
+        match self {
+            PackageType::Default(config) => Some(&config.language_env),
+            PackageType::Git(config) => Some(&config.language_env),
+            PackageType::Virtual => None,
+        }
+    }
+}
+
 impl Validation for PackageType {
     fn validate(&self) -> Result<(), Vec<Report>> {
         match self {

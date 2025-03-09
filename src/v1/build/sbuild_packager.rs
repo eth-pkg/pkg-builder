@@ -1,12 +1,13 @@
-use crate::v1::build::sbuild::Sbuild;
 use crate::v1::packager::{BackendBuildEnv, Packager};
 
-use eyre::{Result};
+use eyre::Result;
 
 use crate::v1::pkg_config::{PackageType, PkgConfig};
 use log::info;
 use std::path::PathBuf;
 use crate::v1::build::dir_setup::{*};
+
+use super::sbuild::Sbuild;
 
 pub struct SbuildPackager {
     config: PkgConfig,

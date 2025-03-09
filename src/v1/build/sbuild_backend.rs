@@ -1,0 +1,633 @@
+use crate::v1::build::sbuild::normalize_codename;
+use crate::v1::packager::BackendBuildEnv;
+use crate::v1::pkg_config::{LanguageEnv, PackageType};
+use crate::v1::pkg_config_verify::PkgVerifyConfig;
+use cargo_metadata::semver::Version;
+use eyre::{eyre, Report, Result};
+use log::{info, warn};
+use rand::random;
+use sha1::{Digest, Sha1};
+use std::fs::create_dir_all;
+use std::io::{BufRead, BufReader, Read, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::{env, fs, io};
+
+use super::sbuild::Sbuild; // Import from the sha1 crate
+
+
+impl BackendBuildEnv for Sbuild {
+    fn clean(&self) -> Result<()> {
+        let cache_file = self.get_cache_file();
+        info!("Cleaning cached build: {}", cache_file);
+        let path = Path::new(&cache_file);
+        if path.exists() {
+            remove_file_or_directory(&cache_file, false)
+                .map_err(|_| eyre!("Could not remove previous cache file!"))?;
+        }
+        Ok(())
+    }
+
+    fn create(&self) -> Result<()> {
+        let mut temp_dir = env::temp_dir();
+        let dir_name = format!("temp_{}", random::<u32>());
+        temp_dir.push(dir_name);
+        fs::create_dir(&temp_dir)?;
+
+        let cache_file = self.get_cache_file();
+        let cache_dir = Path::new(&cache_file).parent().unwrap();
+        create_dir_all(cache_dir).map_err(|_| eyre!("Failed to create cache_dir"))?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
+        let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
+        let create_result = Command::new("sbuild-createchroot")
+            .arg("--chroot-mode=unshare")
+            .arg("--make-sbuild-tarball")
+            .arg(cache_file)
+            .arg(codename)
+            .arg(temp_dir)
+            .arg(repo_url)
+            .status();
+
+        if let Err(err) = create_result {
+            return Err(eyre!(format!("Failed to create new chroot: {}", err)));
+        }
+        Ok(())
+    }
+    fn package(&self) -> Result<()> {
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
+        let mut cmd_args = vec![
+            "-d".to_string(),
+            codename.to_string(),
+            "-A".to_string(),                    // build_arch_all
+            "-s".to_string(),                    // build source
+            "--source-only-changes".to_string(), // source_only_changes
+            "-c".to_string(), // override cache file location, default is ~/.cache/sbuild both by sbuild and pkg-builder
+            self.get_cache_file(),
+            "-v".to_string(), // verbose
+            "--chroot-mode=unshare".to_string(),
+        ];
+
+        let mut lang_deps = self.get_build_deps_not_in_debian();
+
+        if &self.config.build_env.codename == "noble numbat" {
+            lang_deps.push("apt install -y software-properties-common".to_string());
+            lang_deps.push("add-apt-repository universe".to_string());
+            lang_deps.push("add-apt-repository restricted".to_string());
+            lang_deps.push("add-apt-repository multiverse".to_string());
+            lang_deps.push("apt update".to_string());
+        }
+
+        for action in lang_deps.iter() {
+            cmd_args.push(format!("--chroot-setup-commands={}", action))
+        }
+
+        cmd_args.push("--no-run-piuparts".to_string());
+        cmd_args.push("--no-apt-upgrade".to_string());
+        cmd_args.push("--no-apt-distupgrade".to_string());
+
+        if let Some(true) = self.config.build_env.run_lintian {
+            cmd_args.push("--run-lintian".to_string());
+            cmd_args.push("--lintian-opt=-i".to_string());
+            cmd_args.push("--lintian-opt=--I".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=bad-distribution-in-changes-file".to_string());
+            cmd_args.push("--lintian-opt=--suppress-tags".to_string());
+            cmd_args.push("--lintian-opt=debug-file-with-no-debug-symbols".to_string());
+            cmd_args.push("--lintian-opt=--tag-display-limit=0".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=error".to_string());
+            cmd_args.push("--lintian-opts=--fail-on=warning".to_string());
+        } else {
+            cmd_args.push("--no-run-lintian".to_string());
+        }
+
+        cmd_args.push("--no-run-autopkgtest".to_string());
+
+        info!(
+            "Building package by invoking: sbuild {}",
+            cmd_args.join(" ")
+        );
+
+        let mut cmd = Command::new("sbuild")
+            .current_dir(self.build_files_dir.clone())
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)?;
+
+        if let Some(true) = self.config.build_env.run_piuparts {
+            self.run_piuparts()?;
+        };
+
+        if let Some(true) = self.config.build_env.run_autopkgtest {
+            self.run_autopkgtests()?;
+        }
+
+        Ok(())
+    }
+
+    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<()> {
+        let output_dir = Path::new(&self.build_files_dir).parent().unwrap();
+        let package_hash = verify_config.verify.package_hash;
+        let mut errors: Vec<Report> = vec![];
+        for output in package_hash.iter() {
+            let file = output_dir.join(output.name.clone());
+            if !file.exists() {
+                return Err(eyre!(format!(
+                    "File to be verified does not exist {}",
+                    output.name
+                )));
+            }
+            let mut file = fs::File::open(file).map_err(|_| eyre!("Could not open file."))?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)
+                .map_err(|_| eyre!("Could not read file."))?;
+            let actual_sha1 = calculate_sha1(&*buffer.clone()).unwrap_or_default();
+            if actual_sha1 != output.hash {
+                errors.push(eyre!(format!(
+                    "file {} actual sha1 is {}",
+                    output.name, &actual_sha1
+                )));
+            }
+        }
+        let result = if errors.is_empty() {
+            println!("Verify is successful!");
+            Ok(())
+        } else {
+            let mut combined_report = errors
+                .pop()
+                .unwrap_or_else(|| Report::msg("No errors found"));
+
+            for report in errors.into_iter() {
+                combined_report = combined_report.wrap_err(report);
+            }
+            Err(combined_report)
+        };
+        result
+    }
+
+    fn run_lintian(&self) -> Result<()> {
+        info!("Running lintian outside, not as same as on CI..",);
+        check_lintian_version(self.config.build_env.lintian_version.clone())?;
+        // let deb_dir = self.get_deb_dir();
+        let changes_file = self.get_changes_file();
+        let changes_file = changes_file.to_str().unwrap();
+        let mut cmd_args = vec![
+            "--suppress-tags".to_string(),
+            "bad-distribution-in-changes-file".to_string(),
+            "-i".to_string(),
+            "--I".to_string(),
+            changes_file.to_string(),
+            "--tag-display-limit=0".to_string(),
+            "--fail-on=warning".to_string(), // fail on warning
+            "--fail-on=error".to_string(),   // fail on error
+            "--suppress-tags".to_string(),   // overrides fails for this message
+            "debug-file-with-no-debug-symbols".to_string(),
+        ];
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
+        if codename == "jammy".to_string() || codename == "noble".to_string() {
+            // changed a format of .deb packages on ubuntu, it's not a bug
+            // but some lintian will report as such
+            cmd_args.push("--suppress-tags".to_string());
+            cmd_args.push("malformed-deb-archive".to_string());
+        }
+
+        info!(
+            "Testing package by invoking: lintian {}",
+            cmd_args.join(" ")
+        );
+
+        let mut cmd = Command::new("lintian")
+            // for CI
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
+    }
+
+    fn run_piuparts(&self) -> Result<()> {
+        info!("Running piuparts command with elevated privileges..",);
+        info!(
+            "Piuparts must run as root user through sudo, please provide your password, if prompted."
+        );
+        check_piuparts_version(self.config.build_env.piuparts_version.clone())?;
+
+        let repo_url = get_repo_url(&self.config.build_env.codename.as_str())?;
+        let keyring = get_keyring(&self.config.build_env.codename)?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
+        let mut cmd_args = vec![
+            "-d".to_string(),
+            codename.to_string(),
+            "-m".to_string(),
+            repo_url.to_string(),
+            "--bindmount=/dev".to_string(),
+            format!("--keyring={}", keyring),
+            "--verbose".to_string(),
+        ];
+        let package_type = &self.config.package_type;
+
+        let var_name = match package_type {
+            PackageType::Default(config) => Some(&config.language_env),
+            PackageType::Git(config) => Some(&config.language_env),
+            PackageType::Virtual => None,
+        };
+        let lang_env = var_name;
+        if let Some(env) = lang_env {
+            match env {
+                LanguageEnv::Dotnet(_) => {
+                    if self.config.build_env.codename == "bookworm"
+                        || self.config.build_env.codename == "jammy jellyfish"
+                    {
+                        let ms_repo = format!(
+                            "deb https://packages.microsoft.com/debian/12/prod {} main",
+                            self.config.build_env.codename
+                        );
+                        cmd_args.push(format!("--extra-repo={}", ms_repo));
+                        cmd_args.push("--do-not-verify-signatures".to_string());
+                    } else if self.config.build_env.codename == "noble numbat" {
+                    }
+                }
+                _ => {
+                    // no other package repositories supported
+                    // might supply my own, but not for now
+                }
+            }
+        }
+        let deb_dir = self.get_deb_dir();
+        let deb_name = self.get_deb_name();
+        info!(
+            "Testing package by invoking: sudo -S piuparts {} {}",
+            cmd_args.join(" "),
+            deb_name.to_str().unwrap()
+        );
+        info!(
+            "Note this command run inside of directory: {}",
+            deb_dir.display()
+        );
+
+        let mut cmd = Command::new("sudo")
+            .current_dir(deb_dir)
+            // for CI
+            .arg("-S")
+            .arg("piuparts")
+            .args(&cmd_args)
+            .arg(deb_name)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
+    }
+
+    fn run_autopkgtests(&self) -> Result<()> {
+        info!("Running autopkgtests command outside of build env.",);
+        check_autopkgtest_version(self.config.build_env.autopkgtest_version.clone())?;
+        let codename = normalize_codename(&self.config.build_env.codename)?;
+
+        let image_name = format!(
+            "autopkgtest-{}-{}.img",
+            codename, self.config.build_env.arch
+        );
+        let mut cache_dir = self.cache_dir.clone();
+        if cache_dir.starts_with('~') {
+            cache_dir = shellexpand::tilde(&cache_dir).to_string()
+        }
+        let image_path = Path::new(&cache_dir).join(image_name.clone());
+        create_autopkgtest_image(
+            image_path.clone(),
+            self.config.build_env.codename.to_string(),
+            self.config.build_env.arch.to_string(),
+        )?;
+
+        let deb_dir = self.get_deb_dir();
+        //  let deb_name = self.get_deb_name();
+        let changes_file = self.get_changes_file();
+        let mut cmd_args = vec![
+            changes_file.to_str().unwrap().to_string(),
+            // this will not going rebuild the package, which we want to avoid
+            // as some packages can take an hour to build,
+            // we don't want to build for 2 hours
+            "--no-built-binaries".to_string(),
+            // needed dist-upgrade as testbed is outdated, when new version of distribution released
+            "--apt-upgrade".to_string(),
+        ];
+        let lang_deps = self.get_test_deps_not_in_debian();
+
+        for action in lang_deps.iter() {
+            cmd_args.push(format!("--setup-commands={}", action))
+        }
+        cmd_args.push("--".to_string());
+        cmd_args.push("qemu".to_string());
+        cmd_args.push(image_path.to_str().unwrap().to_string());
+        info!(
+            "Testing package by invoking: autopkgtest {}",
+            cmd_args.join(" ")
+        );
+        info!(
+            "Note this command run inside of directory: {}",
+            deb_dir.display()
+        );
+        let mut cmd = Command::new("autopkgtest")
+            .current_dir(deb_dir)
+            .args(&cmd_args)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?;
+        run_process(&mut cmd)
+    }
+}
+
+fn check_lintian_version(expected_version: String) -> Result<()> {
+    let output = Command::new("lintian").arg("--version").output()?;
+
+    if output.status.success() {
+        let mut output_str = String::from_utf8_lossy(&output.stdout)
+            .to_string()
+            .replace("Lintian v", "")
+            .replace("\n", "")
+            .trim()
+            .to_string();
+        if let Some(pos) = output_str.find("ubuntu") {
+            output_str.truncate(pos);
+            output_str = output_str.trim().to_string();
+        }
+        warn_compare_versions(expected_version, &output_str, "lintian")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute lintian --version"))
+    }
+}
+
+fn check_piuparts_version(expected_version: String) -> Result<()> {
+    let output = Command::new("piuparts").arg("--version").output()?;
+
+    if output.status.success() {
+        let output_str = String::from_utf8_lossy(&output.stdout)
+            .to_string()
+            .replace("piuparts ", "")
+            .replace("\n", "")
+            .trim()
+            .to_string();
+        warn_compare_versions(expected_version, &output_str, "piuparts")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute piuparts --version"))
+    }
+}
+
+fn check_autopkgtest_version(expected_version: String) -> Result<()> {
+    let output = Command::new("apt")
+        .arg("list")
+        .arg("--installed")
+        .arg("autopkgtest")
+        .output()?;
+
+    //autopkgtest/jammy-updates,now 5.32ubuntu3~22.04.1 all [installed]
+    if output.status.success() {
+        let version: String = String::from_utf8_lossy(&output.stdout)
+            .to_string()
+            .split_whitespace()
+            .find(|s| s.chars().next().unwrap_or(' ').is_digit(10))
+            .map(|version| {
+                version
+                    .chars()
+                    .take_while(|c| c.is_digit(10) || *c == '.')
+                    .collect()
+            })
+            .unwrap_or_default();
+        info!("autopkgtest version {}", version);
+        // append versions, to it looks like semver
+        let expected_version = format!("{}.0", expected_version);
+        let actual_version = format!("{}.0", version);
+        warn_compare_versions(expected_version, &actual_version, "autopkgtest")?;
+        Ok(())
+    } else {
+        Err(eyre!("Failed to execute apt list --installed autopkgtest"))
+    }
+}
+
+pub fn warn_compare_versions(
+    expected_version: String,
+    actual_version: &str,
+    program_name: &str,
+) -> Result<()> {
+    let expected_version = Version::parse(&expected_version).unwrap();
+    let actual_version = Version::parse(actual_version).unwrap();
+    match expected_version.cmp(&actual_version) {
+        std::cmp::Ordering::Less => {
+            warn!("Warning: using newer versions than expected version.");
+            Ok(())
+        }
+        std::cmp::Ordering::Greater => {
+            warn!("Using older version of {}", program_name);
+            Ok(())
+        }
+        std::cmp::Ordering::Equal => {
+            info!("Versions match. Proceeding.");
+            Ok(())
+        }
+    }
+}
+
+
+
+pub fn get_keyring(codename: &str) -> Result<&str> {
+    match codename {
+        "bookworm" => Ok("/usr/share/keyrings/debian-archive-keyring.gpg"),
+        "noble numbat" | "jammy jellyfish" => Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg"),
+        _ => Err(eyre!("Not supported distribution")),
+    }
+}
+
+pub fn get_repo_url(codename: &str) -> Result<&str> {
+    match codename {
+        "bookworm" => Ok("http://deb.debian.org/debian"),
+        "noble numbat" | "jammy jellyfish" => Ok("http://archive.ubuntu.com/ubuntu"),
+        _ => Err(eyre!("Not supported distribution")),
+    }
+}
+
+pub fn calculate_sha1<R: Read>(mut reader: R) -> Result<String, io::Error> {
+    let mut hasher = Sha1::new();
+    io::copy(&mut reader, &mut hasher)?;
+    let digest_bytes = hasher.finalize();
+    let hex_digest = digest_bytes
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
+
+    Ok(hex_digest)
+}
+
+fn create_autopkgtest_image(image_path: PathBuf, codename: String, arch: String) -> Result<()> {
+    // do not recreate image if exists
+    if image_path.exists() {
+        return Ok(());
+    }
+    info!("autopkgtests environment does not exist. Creating it.");
+    info!("please provide your password through sudo to as autopkgtest env creation requires it.");
+    create_dir_all(image_path.parent().unwrap())?;
+    let repo_url = get_repo_url(&codename)?;
+
+    match codename.as_str() {
+        "bookworm" => {
+            let codename = normalize_codename(&codename)?;
+            let cmd_args = vec![
+                codename.to_string(),
+                image_path.to_str().unwrap().to_string(),
+                format!("--mirror={}", repo_url),
+                format!("--arch={}", arch),
+            ];
+            let mut cmd = Command::new("sudo")
+                // for CI
+                .arg("-S")
+                .arg("autopkgtest-build-qemu")
+                .args(&cmd_args)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
+            run_process(&mut cmd)
+        }
+        "noble numbat" | "jammy jellyfish" => {
+            let codename = normalize_codename(&codename)?;
+            let cmd_args = vec![
+                format!("--release={}", codename.to_string()),
+                format!("--mirror={}", repo_url),
+                format!("--arch={}", arch),
+                "-v".to_string(),
+            ];
+            let mut cmd = Command::new("sudo")
+                // for CI
+                .arg("-S")
+                .arg("autopkgtest-buildvm-ubuntu-cloud")
+                .args(&cmd_args)
+                .current_dir(image_path.parent().unwrap().to_str().unwrap())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()?;
+            run_process(&mut cmd)
+        }
+        _ => Err(eyre!("Not supported distribution")),
+    }
+}
+
+fn run_process(child: &mut Child) -> Result<()> {
+    if let Some(stdout) = child.stdout.take() {
+        let reader = BufReader::new(stdout);
+
+        for line in reader.lines() {
+            let line = line?;
+            info!("{}", line);
+        }
+    }
+    io::stdout().flush()?;
+
+    let status = child.wait().map_err(|err| eyre!(err.to_string()))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(eyre!("Sbuild exited with non-zero status code. Please see build output for potential causes."))
+    }
+}
+
+fn remove_file_or_directory(path: &str, is_directory: bool) -> io::Result<()> {
+    if is_directory {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::v1::pkg_config::PkgConfig;
+
+    use super::*;
+    use env_logger::Env;
+    use std::fs::File;
+    use std::sync::Once;
+    use tempfile::tempdir;
+
+    static INIT: Once = Once::new();
+
+    // Set up logging for tests
+    fn setup() {
+        INIT.call_once(|| {
+            env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+        });
+    }
+
+    #[test]
+    fn test_clean_sbuild_env_when_file_does_not_exist() {
+        setup();
+        let mut pkg_config = PkgConfig::default();
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.arch = "amd64".to_string();
+        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let result = build_env.clean();
+        assert!(result.is_ok());
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+        assert!(!cache_file_path.exists())
+    }
+
+    #[test]
+    fn test_clean_sbuild_env() {
+        setup();
+        let mut pkg_config = PkgConfig::default();
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.arch = "amd64".to_string();
+        let sbuild_cache = tempdir().unwrap();
+        // create dir manually, as it doesn't exist
+        create_dir_all(sbuild_cache.path())
+            .expect("Could not create temporary directory for testing.");
+        let sbuild_cache_dir = sbuild_cache.path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir.clone());
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+
+        File::create(cache_file_path)
+            .expect("File needs to be created manually before testing deletion.");
+        assert!(Path::new(&sbuild_cache_dir).exists(),);
+
+        assert!(
+            cache_file_path.exists(),
+            "File should exist before testing deletion."
+        );
+
+        let result = build_env.clean();
+        assert!(result.is_ok());
+        assert!(!cache_file_path.exists())
+    }
+
+    #[test]
+    fn test_create_sbuild_env() {
+        setup();
+        let mut pkg_config = PkgConfig::default();
+        pkg_config.build_env.codename = "bookworm".to_string();
+        pkg_config.build_env.arch = "amd64".to_string();
+        let sbuild_cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        pkg_config.build_env.sbuild_cache_dir = Some(sbuild_cache_dir);
+
+        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        let build_env = Sbuild::new(pkg_config, build_files_dir);
+        build_env.clean().expect("Could not clean previous env.");
+        let cache_file = build_env.get_cache_file();
+        let cache_file_path = Path::new(&cache_file);
+        assert!(!cache_file_path.exists());
+        let result = build_env.create();
+        assert!(result.is_ok());
+        assert!(cache_file_path.exists())
+    }
+}
