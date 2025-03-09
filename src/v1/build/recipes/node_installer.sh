@@ -1,6 +1,6 @@
 apt install -y wget
 cd /tmp && wget -q -O node.tar.gz ${node_binary_url}
-cd /tmp && echo \"${node_binary_checksum} node.tar.gz\" >> hash_file.txt && cat hash_file.txt
+cd /tmp && echo "${node_binary_checksum} node.tar.gz" >> hash_file.txt && cat hash_file.txt
 cd /tmp && sha256sum -c hash_file.txt
 cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1
 ls -l /usr/share/node/bin
