@@ -52,7 +52,7 @@ impl LanguageInstaller for RustInstaller {
                 "cd /tmp && echo \"{}\" >> package.tar.xz.asc",
                 &self.0.rust_binary_gpg_asc,
             )
-            .add("wget -qO- https://keybase.io/some-key/pgp_keys.asc | gpg --import")
+            .add("wget -qO- https://keybase.io/rust/pgp_keys.asc  | gpg --import")
             .add("cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz")
             .add("cd /tmp && tar xvJf package.tar.xz -C . --strip-components=1")
             .add("cd /tmp && /bin/bash install.sh")
@@ -309,12 +309,12 @@ impl LanguageInstaller for NimInstaller {
         let mut builder = CommandBuilder::new();
         builder
             .add("apt install -y wget")
-            .add_with("rm -rf /tmp/nim-{} && rm -rf /usr/lib/nim/nim-{} && rm -rf /opt/lib/nim/nim-{} && mkdir /tmp/nim-{}", nim_version)
+            .add_with_args("rm -rf /tmp/nim-{} && rm -rf /usr/lib/nim/nim-{} && rm -rf /opt/lib/nim/nim-{} && mkdir /tmp/nim-{}", &[nim_version, nim_version, nim_version, nim_version])
             .add("mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim")
             .add_with("cd /tmp && wget -q {}", nim_binary_url)
             .add_with("cd /tmp && echo {} >> hash_file.txt && cat hash_file.txt", nim_version_checksum)
             .add("cd /tmp && sha256sum -c hash_file.txt")
-            .add_with("cd /tmp && tar xJf nim-{}-linux_x64.tar.xz -C nim-{} --strip-components=1", nim_version)
+            .add_with_args("cd /tmp && tar xJf nim-{}-linux_x64.tar.xz -C nim-{} --strip-components=1", &[nim_version, nim_version])
             .add_with("cd /tmp && mv nim-{} /opt/lib/nim", nim_version)
             .add_with("ln -s /opt/lib/nim/nim-{}/bin/nim /usr/bin/nim", nim_version)
             // format!("installed_version=`nim --version | head -n 1 | awk '{{print $4}}'` && echo \"installed version: $installed_version\" && [ \"$installed_version\" != \"{}\" ] && exit 1", nim_version),
