@@ -232,7 +232,7 @@ impl BackendBuildEnv for Sbuild {
         let debian_test_deps: Vec<String> = self
             .get_test_deps_not_in_debian()
             .iter()
-            .map(|dep|format!("--setup-commands={}", dep))
+            .map(|dep| format!("--setup-commands={}", dep))
             .collect();
         args.extend(
             debian_test_deps
@@ -381,13 +381,13 @@ fn run_command(command: &mut Command, cmd_name: &str) -> Result<()> {
 }
 
 fn check_tool_version(tool: &str, expected_version: &str) -> Result<()> {
-    let (cmd, version_arg) = match tool {
-        "lintian" | "piuparts" => (tool, "--version"),
-        "autopkgtest" => ("apt", "list --installed autopkgtest"),
+    let (cmd, args) = match tool {
+        "lintian" | "piuparts" => (tool, vec!["--version"]),
+        "autopkgtest" => ("apt", vec!["list", "--installed", "autopkgtest"]),
         _ => return Err(eyre!("Unsupported tool: {}", tool)),
     };
 
-    let output = Command::new(cmd).arg(version_arg).output()?;
+    let output = Command::new(cmd).args(args).output()?;
     if !output.status.success() {
         return Err(eyre!("Failed to check {} version", tool));
     }
