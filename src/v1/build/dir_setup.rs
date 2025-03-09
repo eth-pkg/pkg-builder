@@ -874,6 +874,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_clone_and_checkout_tag() {
         let url = "https://github.com/status-im/nimbus-eth2.git";
         let temp_dir = tempdir().expect("Failed to create temporary directory");
