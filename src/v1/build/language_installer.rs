@@ -1,3 +1,5 @@
+use std::{borrow::Cow, collections::HashMap};
+
 use crate::v1::pkg_config::{
     DotnetConfig, GoConfig, JavaConfig, JavascriptConfig, LanguageEnv, NimConfig, RustConfig,
 };
@@ -5,7 +7,27 @@ use crate::v1::pkg_config::{
 use super::command_builder::CommandBuilder;
 
 pub trait LanguageInstaller {
-    fn get_build_deps(&self, arch: &str, codename: &str) -> Vec<String>;
+    fn recipe(&self) -> Cow<'static, str>;
+    fn substitutions(&self) -> HashMap<&str, &str>;
+
+    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
+        let mut builder = CommandBuilder::new();
+        let recipe = self.recipe();
+        let substitutions = self.substitutions();
+
+        for line in recipe.lines() {
+            let command = line.trim();
+            let mut processed_command = String::from(command);
+
+            for (placeholder, value) in &substitutions {
+                processed_command = processed_command.replace(placeholder, value);
+            }
+
+            builder.add(&processed_command);
+        }
+
+        builder.build()
+    }
     fn get_test_deps(&self, codename: &str) -> Vec<String>;
 }
 
@@ -24,14 +46,6 @@ pub fn get_installer(lang_env: &LanguageEnv) -> Box<dyn LanguageInstaller> {
 }
 
 pub struct EmptyInstaller;
-impl LanguageInstaller for EmptyInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        vec![]
-    }
-    fn get_test_deps(&self, _codename: &str) -> Vec<String> {
-        vec![]
-    }
-}
 pub struct GoInstaller(GoConfig);
 pub struct NodeInstaller(JavascriptConfig);
 pub struct JavaInstaller(JavaConfig);
@@ -39,26 +53,34 @@ pub struct DotnetInstaller(DotnetConfig);
 pub struct NimInstaller(NimConfig);
 pub struct RustInstaller(RustConfig);
 
-impl LanguageInstaller for RustInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        let mut builder = CommandBuilder::new();
-        builder
-            .add("apt install -y wget gpg gpg-agent")
-            .add_with(
-                "cd /tmp && wget -q -O package.tar.xz {}",
-                &self.0.rust_binary_url,
-            )
-            .add_with(
-                "cd /tmp && echo \"{}\" >> package.tar.xz.asc",
-                &self.0.rust_binary_gpg_asc,
-            )
-            .add("wget -qO- https://keybase.io/rust/pgp_keys.asc  | gpg --import")
-            .add("cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz")
-            .add("cd /tmp && tar xvJf package.tar.xz -C . --strip-components=1")
-            .add("cd /tmp && /bin/bash install.sh")
-            .add("apt remove -y wget gpg gpg-agent");
+impl LanguageInstaller for EmptyInstaller {
+    fn get_test_deps(&self, _codename: &str) -> Vec<String> {
+        vec![]
+    }
 
-        builder.build()
+    fn recipe(&self) -> Cow<'static, str> {
+        Cow::Borrowed("")
+    }
+
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        HashMap::new()
+    }
+}
+
+impl LanguageInstaller for RustInstaller {
+    fn recipe(&self) -> Cow<'static, str> {
+        let recipe = include_str!("recipes/rust_installer.sh");
+        Cow::Borrowed(recipe)
+    }
+
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let mut subs = HashMap::new();
+        subs.insert("${rust_binary_url}", self.0.rust_binary_url.as_str());
+        subs.insert(
+            "${rust_binary_gpg_asc}",
+            self.0.rust_binary_gpg_asc.as_str(),
+        );
+        subs
     }
 
     fn get_test_deps(&self, _codename: &str) -> Vec<String> {
@@ -67,23 +89,16 @@ impl LanguageInstaller for RustInstaller {
 }
 
 impl LanguageInstaller for GoInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        let go_binary_url = &self.0.go_binary_url;
-        let go_binary_checksum = &self.0.go_binary_checksum;
+    fn recipe(&self) -> Cow<'static, str> {
+        let recipe = include_str!("recipes/go_installer.sh");
+        Cow::Borrowed(recipe)
+    }
 
-        let mut builder = CommandBuilder::new();
-        builder
-            .add("apt install -y wget")
-            .add_with("cd /tmp && wget -q -O go.tar.gz {}", go_binary_url)
-            .add_with("cd /tmp && echo \"{} go.tar.gz\" >> hash_file.txt && cat hash_file.txt", go_binary_checksum)
-            .add("cd /tmp && sha256sum -c hash_file.txt")
-            .add("cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz")
-            .add("ln -s /usr/local/go/bin/go /usr/bin/go")
-            .add("go version")
-            .add("chmod -R a+rwx /usr/local/go/pkg")
-            .add("apt remove -y wget");
-
-        builder.build()
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let mut subs = HashMap::new();
+        subs.insert("${go_binary_url}", self.0.go_binary_url.as_str());
+        subs.insert("${go_binary_checksum}", self.0.go_binary_checksum.as_str());
+        subs
     }
     fn get_test_deps(&self, _codename: &str) -> Vec<String> {
         vec![]
@@ -91,35 +106,29 @@ impl LanguageInstaller for GoInstaller {
 }
 
 impl LanguageInstaller for NodeInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        // let node_version = &self.0.go_version; // Comment preserved as in original
-        let node_binary_url = &self.0.node_binary_url;
-        let node_binary_checksum = &self.0.node_binary_checksum;
-
-        let mut builder = CommandBuilder::new();
-        builder
-        .add("apt install -y wget")
-        .add_with("cd /tmp && wget -q -O node.tar.gz {}", node_binary_url)
-        .add_with("cd /tmp && echo \"{} node.tar.gz\" >> hash_file.txt && cat hash_file.txt", node_binary_checksum)
-        .add("cd /tmp && sha256sum -c hash_file.txt")
-        .add("cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1")
-        .add("ls -l /usr/share/node/bin")
-        .add("ln -s /usr/share/node/bin/node /usr/bin/node")
-        .add("ln -s /usr/share/node/bin/npm /usr/bin/npm")
-        .add("ln -s /usr/share/node/bin/npx /usr/bin/npx")
-        .add("ln -s /usr/share/node/bin/corepack /usr/bin/corepack")
-        .add("apt remove -y wget")
-        .add("node --version")
-        .add("npm --version");
-
-        if let Some(yarn_version) = &self.0.yarn_version {
-            builder
-                .add_with("npm install --global yarn@{}", yarn_version)
-                .add("ln -s /usr/share/node/bin/yarn /usr/bin/yarn")
-                .add("yarn --version");
+    fn recipe(&self) -> Cow<'static, str> {
+        let recipe = include_str!("recipes/node_installer.sh");
+        if let Some(_) = &self.0.yarn_version {
+            let yarn_installer = include_str!("recipes/yarn_installer.sh");
+            let installer = recipe.to_string() + yarn_installer;
+            Cow::Owned(installer)
+        } else {
+            Cow::Borrowed(recipe)
         }
+    }
 
-        builder.build()
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let mut subs = HashMap::new();
+        subs.insert(
+            "${node_binary_checksum}",
+            self.0.node_binary_checksum.as_str(),
+        );
+        subs.insert("${node_binary_url}", &self.0.node_binary_url.as_str());
+        subs.insert("${node_version}", &&self.0.node_version.as_str());
+        if let Some(yarn_version) = &self.0.yarn_version {
+            subs.insert("${yarn_version}", &yarn_version.as_str());
+        }
+        subs
     }
     fn get_test_deps(&self, _codename: &str) -> Vec<String> {
         vec![]
@@ -127,77 +136,37 @@ impl LanguageInstaller for NodeInstaller {
 }
 
 impl LanguageInstaller for JavaInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        let is_oracle = self.0.is_oracle;
-        if !is_oracle {
-            return Vec::new(); // Return empty vector if not Oracle
+    fn recipe(&self) -> Cow<'static, str> {
+        let java_installer = include_str!("recipes/java_installer.sh");
+        if let Some(_) = &self.0.gradle {
+            let java_gradle_installer = include_str!("recipes/java_gradle_installer.sh");
+            let installer = java_installer.to_string() + java_gradle_installer;
+            Cow::Owned(installer)
+        } else {
+            Cow::Borrowed(java_installer)
         }
+    }
 
-        let jdk_version = &self.0.jdk_version;
-        let jdk_binary_url = &self.0.jdk_binary_url;
-        let jdk_binary_checksum = &self.0.jdk_binary_checksum;
-
-        let mut builder = CommandBuilder::new();
-        builder
-            .add("apt install -y wget")
-            .add_with(
-                "mkdir -p /opt/lib/jvm/jdk-{}-oracle && mkdir -p /usr/lib/jvm",
-                jdk_version,
-            )
-            .add_with(
-                "cd /tmp && wget -q --output-document jdk.tar.gz {}",
-                jdk_binary_url,
-            )
-            .add_with(
-                "cd /tmp && echo \"{} jdk.tar.gz\" >> hash_file.txt && cat hash_file.txt",
-                jdk_binary_checksum,
-            )
-            .add("cd /tmp && sha256sum -c hash_file.txt")
-            .add_with(
-                "cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{}-oracle --strip-components=1",
-                jdk_version,
-            )
-            .add_with(
-                "ln -s /opt/lib/jvm/jdk-{}-oracle/bin/java /usr/bin/java",
-                jdk_version,
-            )
-            .add_with(
-                "ln -s /opt/lib/jvm/jdk-{}-oracle/bin/javac /usr/bin/javac",
-                jdk_version,
-            )
-            .add("java -version")
-            .add("apt remove -y wget");
-
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let mut subs = HashMap::new();
+        subs.insert("${jdk_version}", self.0.jdk_version.as_str());
+        subs.insert("${jdk_binary_url}", &self.0.jdk_binary_url.as_str());
+        subs.insert(
+            "${jdk_binary_checksum}",
+            &self.0.jdk_binary_checksum.as_str(),
+        );
         if let Some(gradle_config) = &self.0.gradle {
             let gradle_version = &gradle_config.gradle_version;
             let gradle_binary_url = &gradle_config.gradle_binary_url;
             let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
-
-            builder
-                .add("apt install -y wget unzip")
-                .add_with("mkdir -p /opt/lib/gradle-{}", gradle_version)
-                .add_with(
-                    "cd /tmp && wget -q --output-document gradle.tar.gz {}",
-                    gradle_binary_url,
-                )
-                .add_with(
-                    "cd /tmp && echo \"{} gradle.tar.gz\" > hash_file.txt && cat hash_file.txt",
-                    gradle_binary_checksum,
-                )
-                .add("cd /tmp && sha256sum -c hash_file.txt")
-                .add_with(
-                    "cd /tmp && unzip gradle.tar.gz && mv gradle-{} /opt/lib",
-                    gradle_version,
-                )
-                .add_with(
-                    "ln -s /opt/lib/gradle-{}/bin/gradle /usr/bin/gradle",
-                    gradle_version,
-                )
-                .add("gradle -version")
-                .add("apt remove -y wget");
+            subs.insert("${gradle_version}", gradle_version.as_str());
+            subs.insert("${gradle_binary_url}", &gradle_binary_url.as_str());
+            subs.insert(
+                "${gradle_binary_checksum}",
+                &gradle_binary_checksum.as_str(),
+            );
         }
-
-        builder.build()
+        subs
     }
     fn get_test_deps(&self, _codename: &str) -> Vec<String> {
         vec![]
@@ -205,6 +174,15 @@ impl LanguageInstaller for JavaInstaller {
 }
 
 impl LanguageInstaller for DotnetInstaller {
+    fn recipe(&self) -> Cow<'static, str> {
+        let recipe = include_str!("recipes/dotnet_installer.sh");
+        Cow::Borrowed(&recipe)
+    }
+
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let subs = HashMap::new();
+        subs
+    }
     fn get_build_deps(&self, arch: &str, codename: &str) -> Vec<String> {
         let dotnet_packages = &self.0.dotnet_packages;
         let deps = self.0.deps.clone().unwrap_or_default();
@@ -292,39 +270,30 @@ impl LanguageInstaller for DotnetInstaller {
                 .add("apt remove -y wget");
 
             builder.build()
-        } else if codename == "noble numbat" {
-            Vec::new()
         } else {
-            Vec::new()
+            vec![]
         }
     }
 }
 
 impl LanguageInstaller for NimInstaller {
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
-        let nim_version = &self.0.nim_version;
-        let nim_binary_url = &self.0.nim_binary_url;
-        let nim_version_checksum = &self.0.nim_version_checksum;
+    fn recipe(&self) -> Cow<'static, str> {
+        let recipe = include_str!("recipes/nim_installer.sh");
+        Cow::Borrowed(recipe)
+    }
 
-        let mut builder = CommandBuilder::new();
-        builder
-            .add("apt install -y wget")
-            .add_with_args("rm -rf /tmp/nim-{} && rm -rf /usr/lib/nim/nim-{} && rm -rf /opt/lib/nim/nim-{} && mkdir /tmp/nim-{}", &[nim_version, nim_version, nim_version, nim_version])
-            .add("mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim")
-            .add_with("cd /tmp && wget -q {}", nim_binary_url)
-            .add_with("cd /tmp && echo {} >> hash_file.txt && cat hash_file.txt", nim_version_checksum)
-            .add("cd /tmp && sha256sum -c hash_file.txt")
-            .add_with_args("cd /tmp && tar xJf nim-{}-linux_x64.tar.xz -C nim-{} --strip-components=1", &[nim_version, nim_version])
-            .add_with("cd /tmp && mv nim-{} /opt/lib/nim", nim_version)
-            .add_with("ln -s /opt/lib/nim/nim-{}/bin/nim /usr/bin/nim", nim_version)
-            // format!("installed_version=`nim --version | head -n 1 | awk '{{print $4}}'` && echo \"installed version: $installed_version\" && [ \"$installed_version\" != \"{}\" ] && exit 1", nim_version),
-            .add("nim --version")
-            .add("apt remove -y wget");
-
-        builder.build()
+    fn substitutions(&self) -> HashMap<&str, &str> {
+        let mut subs = HashMap::new();
+        subs.insert("${nim_binary_url}", self.0.nim_binary_url.as_str());
+        subs.insert("${nim_version}", &self.0.nim_version.as_str());
+        subs.insert(
+            "${nim_version_checksum}",
+            &self.0.nim_version_checksum.as_str(),
+        );
+        subs
     }
     fn get_test_deps(&self, _codename: &str) -> Vec<String> {
-        todo!()
+        vec![]
     }
 }
 
