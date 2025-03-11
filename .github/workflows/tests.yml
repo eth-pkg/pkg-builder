@@ -80,6 +80,8 @@ jobs:
           mv target/release/pkg-builder ${HOME}/.local/bin
           # add to path the prebuilt debcrafter binaries as well
           cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/debcrafter_*
+          ls -al ${HOME}/.local/bin
           chmod +x ${HOME}/.local/bin/pkg-builder
           echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
@@ -161,6 +163,8 @@ jobs:
           mv target/release/pkg-builder ${HOME}/.local/bin
           # add to path the prebuilt debcrafter binaries as well
           cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/debcrafter_*
+          ls -al ${HOME}/.local/bin
           chmod +x ${HOME}/.local/bin/pkg-builder
           echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
@@ -248,6 +252,8 @@ jobs:
           mv target/release/pkg-builder ${HOME}/.local/bin
           # add to path the prebuilt debcrafter binaries as well
           cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/debcrafter_*
+          ls -al ${HOME}/.local/bin
           chmod +x ${HOME}/.local/bin/pkg-builder
           echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
