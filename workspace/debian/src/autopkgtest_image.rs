@@ -1,12 +1,12 @@
+use super::execute::{execute_command_with_sudo, Execute};
 /// Provides functionality for building and managing Autopkgtest VM images
-/// 
+///
 /// This module contains structures and implementations for creating
 /// virtual machine images compatible with autopkgtest for different
 /// Linux distributions.
 use eyre::{eyre, Result};
 use log::info;
 use std::path::{Path, PathBuf};
-use super::execute::{execute_command_with_sudo, Execute};
 
 /// Represents supported Linux distributions for VM image creation
 ///
@@ -76,8 +76,6 @@ pub struct AutopkgtestImageBuilder {
     mirror: Option<String>,
     /// Target architecture for the VM image
     arch: Option<String>,
-    /// Whether to enable verbose output
-    verbose: bool,
 }
 
 impl Default for AutopkgtestImageBuilder {
@@ -150,18 +148,6 @@ impl AutopkgtestImageBuilder {
         self
     }
 
-    /// Enables or disables verbose output during build
-    ///
-    /// # Arguments
-    /// * `enable` - Whether to enable verbose output
-    ///
-    /// # Returns
-    /// * `Self` - Modified builder
-    pub fn verbose(mut self, enable: bool) -> Self {
-        self.verbose = enable;
-        self
-    }
-
     /// Returns the configured image path if set
     ///
     /// # Returns
@@ -176,27 +162,23 @@ impl AutopkgtestImageBuilder {
     /// * `Result<Vec<String>>` - The list of arguments or an error if configuration is incomplete
     fn build_args(&self) -> Result<Vec<String>> {
         let mut args = Vec::new();
-        
+
         if let Some(dist) = &self.distribution {
             args.push(dist.get_codename_arg());
         } else {
             return Err(eyre!("Distribution not specified"));
         }
-        
-    
-        
+
         if let Some(mirror) = &self.mirror {
             args.push(format!("--mirror={}", mirror));
         }
-        
+
         if let Some(arch) = &self.arch {
             args.push(format!("--arch={}", arch));
         }
-        
-        if self.verbose {
-            if let Some(Distribution::Ubuntu(_)) = &self.distribution {
-                args.push("-v".to_string());
-            }
+
+        if let Some(Distribution::Ubuntu(_)) = &self.distribution {
+            args.push("-v".to_string());
         }
 
         if let Some(path) = &self.image_path {
@@ -204,7 +186,7 @@ impl AutopkgtestImageBuilder {
         } else {
             return Err(eyre!("Image path not specified"));
         }
-        
+
         Ok(args)
     }
 }
@@ -218,20 +200,18 @@ impl Execute for AutopkgtestImageBuilder {
     /// # Returns
     /// * `Result<()>` - Success or an error if the build fails
     fn execute(&self) -> Result<()> {
-        let cmd = self.distribution.as_ref()
+        let cmd = self
+            .distribution
+            .as_ref()
             .ok_or_else(|| eyre!("Distribution not specified"))?
             .get_command();
-            
+
         let args = self.build_args()?;
-        
+
         info!("Running: sudo -S {} {}", cmd, args.join(" "));
-            
-        execute_command_with_sudo(
-            cmd,
-            args,
-            self.work_dir.as_deref(),
-        )?;
-        
+
+        execute_command_with_sudo(cmd, args, self.work_dir.as_deref())?;
+
         Ok(())
     }
 }
@@ -248,15 +228,15 @@ mod tests {
             Distribution::from_codename("bookworm").unwrap(),
             Distribution::Debian(_)
         ));
-        
+
         assert!(matches!(
             Distribution::from_codename("noble").unwrap(),
             Distribution::Ubuntu(_)
         ));
-        
+
         assert!(Distribution::from_codename("unsupported").is_err());
     }
-    
+
     // /// Tests generation of command-line arguments
     // #[test]
     // fn test_build_args() {
@@ -265,7 +245,7 @@ mod tests {
     //         .image_path("/tmp", "bookworm", "amd64")
     //         .arch("amd64")
     //         .mirror("http://example.com/debian");
-            
+
     //     let args = builder.build_args().unwrap();
     //     assert!(args.contains(&"bookworm".to_string()));
     //     assert!(args.iter().any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
