@@ -178,12 +178,6 @@ impl BackendBuildEnv for Sbuild {
         let image_path = self.prepare_autopkgtest_image(&codename)?;
         let changes_file = self.get_changes_file();
 
-        let debian_test_deps: Vec<String> = self
-            .get_test_deps_not_in_debian()
-            .iter()
-            .map(|dep| format!("--setup-commands={}", dep))
-            .collect();
-
         Autopkgtest::new()
             .changes_file(
                 changes_file
@@ -192,7 +186,7 @@ impl BackendBuildEnv for Sbuild {
             )
             .no_built_binaries()
             .apt_upgrade()
-            .test_deps_not_in_debian(&debian_test_deps)
+            .test_deps_not_in_debian(&self.get_build_deps_not_in_debian())
             .qemu(image_path.to_str().ok_or(eyre!("Invalid image path"))?)
             .working_dir(self.get_deb_dir())
             .execute()?;

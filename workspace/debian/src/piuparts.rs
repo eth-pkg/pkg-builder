@@ -263,6 +263,10 @@ impl<'a> Piuparts<'a> {
             args.push("--do-not-verify-signatures".to_string());
         }
 
+        if let Some(deb_file) = &self.deb_file {
+            args.push(deb_file.display().to_string());
+        }
+
         args
     }
 }
@@ -282,7 +286,7 @@ impl<'a> Execute for Piuparts<'a> {
             deb_file
         );
 
-        execute_command_with_sudo("piuparts", args, deb_file, self.deb_path)?;
+        execute_command_with_sudo("piuparts", args, self.deb_path)?;
         Ok(())
     }
 }

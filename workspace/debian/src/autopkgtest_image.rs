@@ -183,11 +183,7 @@ impl AutopkgtestImageBuilder {
             return Err(eyre!("Distribution not specified"));
         }
         
-        if let Some(path) = &self.image_path {
-            args.push(path.to_string_lossy().to_string());
-        } else {
-            return Err(eyre!("Image path not specified"));
-        }
+    
         
         if let Some(mirror) = &self.mirror {
             args.push(format!("--mirror={}", mirror));
@@ -201,6 +197,12 @@ impl AutopkgtestImageBuilder {
             if let Some(Distribution::Ubuntu(_)) = &self.distribution {
                 args.push("-v".to_string());
             }
+        }
+
+        if let Some(path) = &self.image_path {
+            args.push(path.to_string_lossy().to_string());
+        } else {
+            return Err(eyre!("Image path not specified"));
         }
         
         Ok(args)
@@ -223,14 +225,10 @@ impl Execute for AutopkgtestImageBuilder {
         let args = self.build_args()?;
         
         info!("Running: sudo -S {} {}", cmd, args.join(" "));
-        
-        let image_path = self.get_image_path()
-            .ok_or_else(|| eyre!("Image path not specified"))?;
             
         execute_command_with_sudo(
             cmd,
             args,
-            image_path,
             self.work_dir.as_deref(),
         )?;
         

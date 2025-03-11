@@ -24,7 +24,7 @@ where
     }
     command
         .args(args)
-        .stdout(Stdio::piped())
+        .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .status()?;
     Ok(())
@@ -33,7 +33,6 @@ where
 pub fn execute_command_with_sudo(
     cmd: &str,
     args: Vec<String>,
-    target: &Path,
     dir: Option<&Path>,
 ) -> Result<()> {
     let mut command = Command::new("sudo");
@@ -41,8 +40,7 @@ pub fn execute_command_with_sudo(
         .arg("-S")
         .arg(cmd)
         .args(args)
-        .arg(target)
-        .stdout(Stdio::piped())
+        .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
     if let Some(dir) = dir {
         command.current_dir(dir);
