@@ -32,7 +32,7 @@ use_backup_version = true
 [build_env]
 codename = "bookworm"
 arch = "amd64"
-pkg_builder_version = "0.2.11"
+pkg_builder_version = "0.3.0"
 debcrafter_version = "8189263"
 run_lintian = true
 run_piuparts = true

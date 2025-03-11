@@ -138,19 +138,23 @@ fn get_first_line(text: &str) -> &str {
 }
 
 pub fn fail_compare_versions(expected_version: String, actual_version: &str, program_name: &str) -> Result<()> {
-    let expected_version = Version::parse(&expected_version).unwrap();
-    let actual_version = Version::parse(actual_version).unwrap();
-    match expected_version.cmp(&actual_version) {
+    let expected_version_parsed = Version::parse(&expected_version).unwrap();
+    let actual_version_parsed = Version::parse(actual_version).unwrap();
+    
+    match expected_version_parsed.cmp(&actual_version_parsed) {
         std::cmp::Ordering::Less => {
-            warn!("Warning: {} using newer versions than expected version.", program_name);
+            warn!("Warning: {} using newer version ({}) than expected version ({})", 
+                  program_name, actual_version, expected_version);
             Ok(())
         }
         std::cmp::Ordering::Greater => {
-            error!("Error: Actual version is less than expected. Halting. Please install newer version.");
-            Err(eyre!("{} version is older than expected.!", program_name))
+            error!("Error: Actual version ({}) is less than expected ({}). Halting. Please install newer version.", 
+                   actual_version, expected_version);
+            Err(eyre!("{} version {} is older than expected {}!", 
+                      program_name, actual_version, expected_version))
         }
         std::cmp::Ordering::Equal => {
-            info!("{} versions match. Proceeding.", program_name);
+            info!("{} version {} matches expected. Proceeding.", program_name, expected_version);
             Ok(())
         }
     }
