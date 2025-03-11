@@ -1,7 +1,10 @@
+use eyre::{eyre, Result};
 use std::{
-    ffi::OsStr, io::{BufRead, BufReader}, path::Path, process::{Command, Stdio}
+    ffi::OsStr,
+    io::{BufRead, BufReader},
+    path::Path,
+    process::{Command, Stdio},
 };
-use eyre::{eyre,Result};
 
 use log::info;
 
@@ -9,32 +12,24 @@ pub trait Execute {
     fn execute(&self) -> Result<()>;
 }
 
-pub fn execute_command<I, S>(
-    cmd: &str,
-    args: I,
-    dir: Option<&Path>,
-) -> Result<()>
+pub fn execute_command<I, S>(cmd: &str, args: I, dir: Option<&Path>) -> Result<()>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
     let mut command = Command::new(cmd);
+    command.args(args)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
     if let Some(dir) = dir {
         command.current_dir(dir);
     }
-    command
-        .args(args)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status()?;
+    run_command(&mut command, cmd)?;
+
     Ok(())
 }
 
-pub fn execute_command_with_sudo(
-    cmd: &str,
-    args: Vec<String>,
-    dir: Option<&Path>,
-) -> Result<()> {
+pub fn execute_command_with_sudo(cmd: &str, args: Vec<String>, dir: Option<&Path>) -> Result<()> {
     let mut command = Command::new("sudo");
     command
         .arg("-S")
@@ -49,10 +44,7 @@ pub fn execute_command_with_sudo(
     run_command(&mut command, &format!("sudo -S {}", cmd))
 }
 
-fn run_command(
-    command: &mut Command,
-    cmd_name: &str,
-) -> Result<()> {
+fn run_command(command: &mut Command, cmd_name: &str) -> Result<()> {
     let mut child = command.spawn()?;
     if let Some(stdout) = child.stdout.take() {
         let reader = BufReader::new(stdout);
