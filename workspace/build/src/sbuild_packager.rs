@@ -8,11 +8,10 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
-    debcrafter_helper::create_debian_dir,
     dir_setup::{
-        create_empty_tar, create_package_dir, download_git, download_source, expand_path,
-        extract_source, get_build_artifacts_dir, get_build_files_dir, get_tarball_path,
-        patch_source, setup_sbuild, verify_hash,
+        create_debian_dir, create_empty_tar, create_package_dir, download_git, download_source,
+        expand_path, extract_source, get_build_artifacts_dir, get_build_files_dir,
+        get_tarball_path, patch_source, setup_sbuild, verify_hash,
     },
     sbuild::Sbuild,
 };

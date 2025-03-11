@@ -15,7 +15,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::debcrafter_helper;
+use crate::debcrafter_cmd;
+use crate::debcrafter_cmd::DebcrafterCmd;
 
 pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
     if fs::metadata(build_artifacts_dir).is_ok() {
@@ -304,10 +305,10 @@ pub fn create_debian_dir(
     debcrafter_version: &String,
     spec_file: &str,
 ) -> Result<()> {
-    debcrafter_helper::check_if_dpkg_parsechangelog_installed()?;
-    debcrafter_helper::check_if_installed(debcrafter_version)?;
-
-    debcrafter_helper::create_debian_dir(spec_file, build_files_dir, debcrafter_version)?;
+    let debcrafter = DebcrafterCmd::new(debcrafter_version);
+    debcrafter.check_if_dpkg_parsechangelog_installed()?;
+    debcrafter.check_if_installed()?;
+    debcrafter.create_debian_dir(spec_file, build_files_dir)?;
     info!(
         "Created /debian dir under build_files_dir folder: {:?}",
         build_files_dir
