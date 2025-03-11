@@ -226,11 +226,14 @@ impl Sbuild {
             .image_path(&self.cache_dir, codename, &self.config.build_env.arch)
             .mirror(repo_url)
             .arch(&self.config.build_env.arch);
+        info!("Running prepare_autopkgtest_image 2");
+
         let image_path = builder.get_image_path().unwrap();
         let image_path_parent = image_path.parent().unwrap();
         if image_path.exists(){
             return Ok(image_path.clone());
         }
+
         create_dir_all(image_path_parent)?;
 
         builder.execute()?;

@@ -31,7 +31,7 @@ impl Distribution {
     pub fn from_codename(codename: &str) -> Result<Self> {
         match codename {
             "bookworm" => Ok(Distribution::Debian(codename.to_string())),
-            "noble" | "noble numbat" | "jammy" | "jammy jellyfish" => {
+            "noble" | "jammy"=> {
                 Ok(Distribution::Ubuntu(codename.to_string()))
             }
             _ => Err(eyre!("Unsupported distribution codename: {}", codename)),
@@ -65,6 +65,7 @@ impl Distribution {
 ///
 /// Provides a fluent interface for configuring and building VM images
 /// for different distributions, architectures, and repositories.
+#[derive(Debug, Clone, Default)]
 pub struct AutopkgtestImageBuilder {
     /// The target Linux distribution
     distribution: Option<Distribution>,
@@ -76,13 +77,6 @@ pub struct AutopkgtestImageBuilder {
     mirror: Option<String>,
     /// Target architecture for the VM image
     arch: Option<String>,
-}
-
-impl Default for AutopkgtestImageBuilder {
-    /// Creates a new builder with default settings
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl AutopkgtestImageBuilder {
@@ -237,19 +231,19 @@ mod tests {
         assert!(Distribution::from_codename("unsupported").is_err());
     }
 
-    // /// Tests generation of command-line arguments
-    // #[test]
-    // fn test_build_args() {
-    //     let builder = AutopkgtestImageBuilder::new()
-    //         .codename("bookworm").unwrap()
-    //         .image_path("/tmp", "bookworm", "amd64")
-    //         .arch("amd64")
-    //         .mirror("http://example.com/debian");
+    /// Tests generation of command-line arguments
+    #[test]
+    fn test_build_args() {
+        let builder = AutopkgtestImageBuilder::new()
+            .codename("bookworm").unwrap()
+            .image_path("/tmp", "bookworm", "amd64")
+            .arch("amd64")
+            .mirror("http://example.com/debian");
 
-    //     let args = builder.build_args().unwrap();
-    //     assert!(args.contains(&"bookworm".to_string()));
-    //     assert!(args.iter().any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
-    //     assert!(args.contains(&"--arch=amd64".to_string()));
-    //     assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
-    // }
+        let args = builder.build_args().unwrap();
+        assert!(args.contains(&"bookworm".to_string()));
+        assert!(args.iter().any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
+        assert!(args.contains(&"--arch=amd64".to_string()));
+        assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
+    }
 }
