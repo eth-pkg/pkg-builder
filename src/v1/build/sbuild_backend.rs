@@ -3,7 +3,7 @@ use crate::v1::packager::BackendBuildEnv;
 use crate::v1::pkg_config::{LanguageEnv, PackageType};
 use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use cargo_metadata::semver::Version;
-use eyre::{eyre, Result};
+use eyre::{eyre, Context, Result};
 use log::{info, warn};
 use rand::random;
 use sha1::{Digest, Sha1};
@@ -414,13 +414,13 @@ fn check_tool_version(tool: &str, expected_version: &str) -> Result<()> {
         _ => unreachable!(),
     };
     info!("versions: expected:{} actual:{}", expected_version, actual_version);
-    warn_compare_versions(expected_version.to_string(), &actual_version, tool)?;
+    warn_compare_versions(expected_version.to_string(), &actual_version.trim(), tool)?;
     Ok(())
 }
 
 fn warn_compare_versions(expected: String, actual: &str, tool: &str) -> Result<()> {
-    let expected_ver = Version::parse(&expected)?;
-    let actual_ver = Version::parse(actual)?;
+    let expected_ver = Version::parse(&expected).context("Failed parsing expected version")?;
+    let actual_ver = Version::parse(actual).context("Failed to parse actual version")?;
     match expected_ver.cmp(&actual_ver) {
         std::cmp::Ordering::Less => warn!("Using newer {} version than expected", tool),
         std::cmp::Ordering::Greater => warn!("Using older {} version", tool),
