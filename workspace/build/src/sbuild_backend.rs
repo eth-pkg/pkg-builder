@@ -1,4 +1,3 @@
-
 use crate::sbuild::normalize_codename;
 use cargo_metadata::semver::Version;
 use common::build::BackendBuildEnv;
@@ -19,7 +18,6 @@ use std::fs::{self, create_dir_all};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, vec};
-
 
 use super::sbuild::Sbuild;
 
@@ -273,18 +271,41 @@ fn check_tool_version(tool: &str, expected_version: &str) -> Result<()> {
         "versions: expected:{} actual:{}",
         expected_version, actual_version
     );
-    warn_compare_versions(expected_version.to_string(), &actual_version.trim(), tool)?;
+    warn_compare_versions(expected_version, &actual_version.trim(), tool)?;
     Ok(())
 }
 
-fn warn_compare_versions(expected: String, actual: &str, tool: &str) -> Result<()> {
-    let expected_ver = Version::parse(&expected).context("Failed parsing expected version")?;
-    let actual_ver = Version::parse(actual).context("Failed to parse actual version")?;
+fn warn_compare_versions(expected: &str, actual: &str, tool: &str) -> Result<()> {
+    // Normalize version strings for parsing only, when not using semver
+    let expected_normalized = if expected.matches('.').count() == 1 {
+        format!("{}.0", expected)
+    } else {
+        expected.to_string()
+    };
+
+    let actual_normalized = if actual.matches('.').count() == 1 {
+        format!("{}.0", actual)
+    } else {
+        actual.to_string()
+    };
+
+    let expected_ver =
+        Version::parse(&expected_normalized).context("Failed parsing expected version")?;
+    let actual_ver =
+        Version::parse(&actual_normalized).context("Failed to parse actual version")?;
+
     match expected_ver.cmp(&actual_ver) {
-        std::cmp::Ordering::Less => warn!("Using newer {} version than expected", tool),
-        std::cmp::Ordering::Greater => warn!("Using older {} version", tool),
-        std::cmp::Ordering::Equal => info!("{} versions match", tool),
+        std::cmp::Ordering::Less => warn!(
+            "Using newer {} version ({}) than expected ({})",
+            tool, actual, expected
+        ),
+        std::cmp::Ordering::Greater => warn!(
+            "Using older {} version ({}) than expected ({})",
+            tool, actual, expected
+        ),
+        std::cmp::Ordering::Equal => info!("{} versions match ({})", tool, expected),
     }
+
     Ok(())
 }
 

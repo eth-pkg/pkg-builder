@@ -15,7 +15,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::debcrafter_cmd;
 use crate::debcrafter_cmd::DebcrafterCmd;
 
 pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
