@@ -1,4 +1,4 @@
 /target
 .idea
-workspace/pkg-builder/bin_dependencies
+workspace/pkg_builder/bin_dependencies
 workspace/**/target/** 

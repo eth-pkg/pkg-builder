@@ -5,6 +5,6 @@ members = [
     "workspace/cli",
     "workspace/common",
     "workspace/debian",
-    "workspace/pkg-builder",
+    "workspace/pkg_builder",
 ]
 resolver = "2"
