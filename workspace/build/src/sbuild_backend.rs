@@ -219,10 +219,10 @@ impl Sbuild {
     }
 
     fn prepare_autopkgtest_image(&self, codename: &str) -> Result<PathBuf> {
+        info!("Running prepare_autopkgtest_image");
         let repo_url = get_repo_url(&self.config.build_env.codename)?;
         let builder = AutopkgtestImageBuilder::new()
-            .codename(codename)
-            .unwrap()
+            .codename(codename)?
             .image_path(&self.cache_dir, codename, &self.config.build_env.arch)
             .mirror(repo_url)
             .arch(&self.config.build_env.arch);
