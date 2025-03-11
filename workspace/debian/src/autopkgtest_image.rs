@@ -31,9 +31,7 @@ impl Distribution {
     pub fn from_codename(codename: &str) -> Result<Self> {
         match codename {
             "bookworm" => Ok(Distribution::Debian(codename.to_string())),
-            "noble" | "jammy"=> {
-                Ok(Distribution::Ubuntu(codename.to_string()))
-            }
+            "noble" | "jammy" => Ok(Distribution::Ubuntu(codename.to_string())),
             _ => Err(eyre!("Unsupported distribution codename: {}", codename)),
         }
     }
@@ -176,7 +174,9 @@ impl AutopkgtestImageBuilder {
         }
 
         if let Some(path) = &self.image_path {
-            args.push(path.to_string_lossy().to_string());
+            if let Some(Distribution::Debian(_)) = &self.distribution {
+                args.push(path.to_string_lossy().to_string());
+            }
         } else {
             return Err(eyre!("Image path not specified"));
         }
@@ -235,14 +235,17 @@ mod tests {
     #[test]
     fn test_build_args() {
         let builder = AutopkgtestImageBuilder::new()
-            .codename("bookworm").unwrap()
+            .codename("bookworm")
+            .unwrap()
             .image_path("/tmp", "bookworm", "amd64")
             .arch("amd64")
             .mirror("http://example.com/debian");
 
         let args = builder.build_args().unwrap();
         assert!(args.contains(&"bookworm".to_string()));
-        assert!(args.iter().any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
+        assert!(args
+            .iter()
+            .any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
         assert!(args.contains(&"--arch=amd64".to_string()));
         assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
     }
