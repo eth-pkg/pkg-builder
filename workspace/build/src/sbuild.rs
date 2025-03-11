@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::v1::pkg_config::{LanguageEnv, PkgConfig};
+use common::pkg_config::{LanguageEnv, PkgConfig};
 use eyre::{eyre, Result};
 
 use super::language_installer::{get_installer, LanguageInstaller};

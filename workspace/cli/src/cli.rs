@@ -1,14 +1,15 @@
+use crate::packager::DistributionPackager;
+
 use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
-use super::packager::DistributionPackager;
-use crate::v1::pkg_config::{get_config, PkgConfig};
 use clap::Parser;
+use common::pkg_config::{get_config, PkgConfig};
+use common::pkg_config_verify::PkgVerifyConfig;
 use env_logger::Env;
 use eyre::{eyre, Result};
 use std::{env, fs, path::Path};
 use std::process::Command;
 use cargo_metadata::semver;
 use log::{error, info, warn};
-use crate::v1::pkg_config_verify::PkgVerifyConfig;
 use semver::Version;
 use regex::Regex;
 

@@ -1,11 +1,16 @@
-use crate::v1::build::debian::autopkg::Autopkgtest;
-use crate::v1::build::debian::lintian::Lintian;
-use crate::v1::build::debian::piuparts::Piuparts;
-use crate::v1::build::sbuild::normalize_codename;
-use crate::v1::packager::BackendBuildEnv;
-use crate::v1::pkg_config::{LanguageEnv, PackageType};
-use crate::v1::pkg_config_verify::PkgVerifyConfig;
+
+use crate::sbuild::normalize_codename;
 use cargo_metadata::semver::Version;
+use common::build::BackendBuildEnv;
+use common::pkg_config::{LanguageEnv, PackageType};
+use common::pkg_config_verify::PkgVerifyConfig;
+use debian::autopkgtest::Autopkgtest;
+use debian::autopkgtest_image::AutopkgtestImageBuilder;
+use debian::execute::Execute;
+use debian::lintian::Lintian;
+use debian::piuparts::Piuparts;
+use debian::sbuild::SbuildBuilder;
+use debian::sbuild_create_chroot::SbuildCreateChroot;
 use eyre::{eyre, Context, Result};
 use log::{info, warn};
 use rand::random;
@@ -15,10 +20,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, vec};
 
-use super::debian::autopkg_image::AutopkgtestImageBuilder;
-use super::debian::execute::Execute;
-use super::debian::sbuild::SbuildBuilder;
-use super::debian::sbuild_create_chroot::SbuildCreateChroot;
+
 use super::sbuild::Sbuild;
 
 impl BackendBuildEnv for Sbuild {
@@ -228,12 +230,13 @@ impl Sbuild {
         let repo_url = get_repo_url(&self.config.build_env.codename)?;
         let builder = AutopkgtestImageBuilder::new()
             .codename(codename)
+            .unwrap()
             .image_path(&self.cache_dir, codename, &self.config.build_env.arch)
             .mirror(repo_url)
             .arch(&self.config.build_env.arch);
 
         builder.execute()?;
-        Ok(builder.get_image_path().unwrap())
+        Ok(builder.get_image_path().unwrap().clone())
     }
 }
 
@@ -339,7 +342,7 @@ fn remove_file_or_directory(path: &str, is_dir: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::v1::pkg_config::PkgConfig;
+    use common::pkg_config::PkgConfig;
     use env_logger::Env;
     use std::fs::{create_dir_all, File};
     use std::path::Path;

@@ -1,8 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::v1::pkg_config::{
-    DotnetConfig, GoConfig, JavaConfig, JavascriptConfig, LanguageEnv, NimConfig, RustConfig,
-};
+
+use common::pkg_config::{DotnetConfig, GoConfig, JavaConfig, JavascriptConfig, LanguageEnv, NimConfig, RustConfig};
 
 use super::command_builder::CommandBuilder;
 

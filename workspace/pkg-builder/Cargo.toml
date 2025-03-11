@@ -1,0 +1,19 @@
+[package]
+name = "pkg-builder"
+version = "0.1.0"
+edition = "2024"
+build = "src/build.rs"
+
+[[bin]]
+name = "pkg-builder"
+path = "src/main.rs"
+
+
+[build-dependencies]
+eyre = "0.6.12"
+thiserror = "1.0.63"
+serde = { version = "1.0.209", features = ["derive"] }
+toml = "0.8.19"
+
+[dependencies]
+cli = { path = "../cli" }

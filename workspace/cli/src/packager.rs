@@ -1,24 +1,8 @@
+use build::sbuild_packager::SbuildPackager;
+use common::{build::{BackendBuildEnv, Packager}, pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig};
 use eyre::{eyre, Result};
-use crate::v1::build::sbuild_packager::SbuildPackager;
-use crate::v1::pkg_config::PkgConfig;
-use crate::v1::pkg_config_verify::PkgVerifyConfig;
 
-pub trait Packager {
-    type BuildEnv: BackendBuildEnv;
-    fn new(config: PkgConfig, config_root: String) -> Self;
-    fn package(&self) -> Result<()>;
-    fn get_build_env(&self) -> Result<Self::BuildEnv>;
-}
 
-pub trait BackendBuildEnv {
-    fn clean(&self) -> Result<()>;
-    fn create(&self) -> Result<()>;
-    fn package(&self) -> Result<()>;
-    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<()>;
-    fn run_lintian(&self) -> Result<()>;
-    fn run_piuparts(&self) -> Result<()>;
-    fn run_autopkgtests(&self) -> Result<()>;
-}
 
 pub struct DistributionPackager {
     config: PkgConfig,

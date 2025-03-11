@@ -1,6 +1,8 @@
 use eyre::{eyre, Report};
 use serde::Deserialize;
-use crate::v1::pkg_config::{validate_not_empty, Validation};
+
+use crate::pkg_config::{validate_not_empty, Validation};
+
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct PackageHash {

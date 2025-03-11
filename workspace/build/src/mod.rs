@@ -5,4 +5,3 @@ pub mod debcrafter_helper;
 pub mod sbuild;
 pub mod language_installer;
 pub mod command_builder;
-mod debian;

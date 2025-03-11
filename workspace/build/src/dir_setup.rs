@@ -2,10 +2,9 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
 
+use common::pkg_config::SubModule;
 use eyre::{eyre, Result};
 
-use crate::v1::build::debcrafter_helper;
-use crate::v1::pkg_config::SubModule;
 use dirs::home_dir;
 use filetime::FileTime;
 use log::info;
@@ -15,6 +14,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+
+use crate::debcrafter_helper;
 
 pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
     if fs::metadata(build_artifacts_dir).is_ok() {
@@ -600,12 +601,12 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::pkg_config::{PackageType, PkgConfig};
     use httpmock::prelude::*;
     use std::fs::File;
     use std::path::PathBuf;
     // use std::sync::Once;
     // use env_logger::Env;
-    use crate::v1::pkg_config::{PackageType, PkgConfig};
     use tempfile::tempdir;
 
     // static INIT: Once = Once::new();

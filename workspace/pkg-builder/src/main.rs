@@ -1,7 +1,7 @@
-mod v1;
+use cli::cli::run_cli;
 
 fn main() {
-    let result = v1::cli::run_cli();
+    let result = run_cli();
     match result {
         Ok(_) => {
             std::process::exit(0);
