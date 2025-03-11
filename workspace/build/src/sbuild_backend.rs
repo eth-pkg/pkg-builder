@@ -184,7 +184,7 @@ impl BackendBuildEnv for Sbuild {
             )
             .no_built_binaries()
             .apt_upgrade()
-            .test_deps_not_in_debian(&self.get_build_deps_not_in_debian())
+            .test_deps_not_in_debian(&&self.get_test_deps_not_in_debian())
             .qemu(image_path.to_str().ok_or(eyre!("Invalid image path"))?)
             .working_dir(self.get_deb_dir())
             .execute()?;
