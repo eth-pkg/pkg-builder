@@ -1,18 +1,30 @@
-use eyre::{eyre, Result};
 use std::{
     ffi::OsStr,
     io::{BufRead, BufReader},
     path::Path,
     process::{Command, Stdio},
 };
-
+use thiserror::Error;
 use log::info;
 
-pub trait Execute {
-    fn execute(&self) -> Result<()>;
+#[derive(Error, Debug)]
+pub enum ExecuteError {
+    #[error("Command execution failed: {0}")]
+    CommandFailed(#[from] std::io::Error),
+    
+    #[error("Failed to change working directory: {0}")]
+    WorkingDirectoryError(String),
+    
+    #[error("Command '{0}' failed with status: {1}")]
+    CommandStatusError(String, i32),
 }
 
-pub fn execute_command<I, S>(cmd: &str, args: I, dir: Option<&Path>) -> Result<()>
+pub trait Execute {
+    type Error;
+    fn execute(&self) -> Result<(), Self::Error>;
+}
+
+pub fn execute_command<I, S>(cmd: &str, args: I, dir: Option<&Path>) -> Result<(), ExecuteError>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -21,15 +33,19 @@ where
     command.args(args)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
+    
     if let Some(dir) = dir {
         command.current_dir(dir);
     }
-    run_command(&mut command, cmd)?;
-
-    Ok(())
+    
+    run_command(&mut command, cmd)
 }
 
-pub fn execute_command_with_sudo(cmd: &str, args: Vec<String>, dir: Option<&Path>) -> Result<()> {
+pub fn execute_command_with_sudo<I, S>(cmd: &str, args: I, dir: Option<&Path>) -> Result<(), ExecuteError> 
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
     let mut command = Command::new("sudo");
     command
         .arg("-S")
@@ -37,29 +53,30 @@ pub fn execute_command_with_sudo(cmd: &str, args: Vec<String>, dir: Option<&Path
         .args(args)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
+    
     if let Some(dir) = dir {
         command.current_dir(dir);
     }
-
+    
     run_command(&mut command, &format!("sudo -S {}", cmd))
 }
 
-fn run_command(command: &mut Command, cmd_name: &str) -> Result<()> {
+fn run_command(command: &mut Command, cmd_name: &str) -> Result<(), ExecuteError> {
     let mut child = command.spawn()?;
+    
     if let Some(stdout) = child.stdout.take() {
         let reader = BufReader::new(stdout);
         for line in reader.lines() {
             info!("{}", line?);
         }
     }
+    
     let status = child.wait()?;
+    
     if status.success() {
         Ok(())
     } else {
-        Err(eyre!(
-            "Command '{}' failed with status: {}",
-            cmd_name,
-            status
-        ))
+        let code = status.code().unwrap_or(-1);
+        Err(ExecuteError::CommandStatusError(cmd_name.to_string(), code))
     }
 }

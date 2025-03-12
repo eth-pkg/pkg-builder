@@ -520,6 +520,7 @@ version = "0.1.0"
 dependencies = [
  "eyre",
  "serde",
+ "thiserror",
  "toml",
 ]
 
@@ -572,9 +573,10 @@ dependencies = [
 name = "debian"
 version = "0.1.0"
 dependencies = [
- "eyre",
+ "common",
  "log",
  "shellexpand",
+ "thiserror",
 ]
 
 [[package]]

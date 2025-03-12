@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
-use eyre::Result;
 use log::info;
-use super::execute::{execute_command, Execute};
+use super::execute::{execute_command, Execute, ExecuteError};
+use thiserror::Error;
 
 /// A builder for configuring and executing the sbuild command.
 ///
@@ -49,6 +49,14 @@ pub struct SbuildBuilder {
     /// Working directory for the sbuild command
     dir: Option<PathBuf>,
 }
+
+#[derive(Error, Debug)]
+pub enum SbuildError {
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+}
+
+type Result<T> = std::result::Result<T, SbuildError>;
 
 impl SbuildBuilder {
     /// Creates a new SbuildBuilder with default settings.
@@ -276,6 +284,7 @@ impl SbuildBuilder {
 ///
 /// This allows the builder to be executed directly after configuration.
 impl Execute for SbuildBuilder {
+    type Error = SbuildError;
     /// Executes the sbuild command with the configured options.
     ///
     /// # Returns

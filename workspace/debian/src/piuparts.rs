@@ -1,7 +1,7 @@
-use super::execute::{execute_command_with_sudo, Execute};
-use eyre::Result;
+use super::execute::{execute_command_with_sudo, Execute, ExecuteError};
 use log::info;
 use std::path::Path;
+use thiserror::Error;
 
 /// A builder for the piuparts command, which tests Debian package installation,
 /// upgrading, and removal processes.
@@ -59,6 +59,17 @@ pub struct Piuparts<'a> {
     /// Directory containing the .deb file
     deb_path: Option<&'a Path>,
 }
+/// Custom error type for piuparts operations
+#[derive(Error, Debug)]
+pub enum PiupartsError {
+    #[error("Deb file not specified")]
+    MissingDebFile,
+
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+}
+
+type Result<T> = std::result::Result<T, PiupartsError>;
 
 impl<'a> Piuparts<'a> {
     /// Creates a new Piuparts builder with default settings.
@@ -272,13 +283,14 @@ impl<'a> Piuparts<'a> {
 }
 
 impl<'a> Execute for Piuparts<'a> {
+    type Error = PiupartsError;
     /// Executes the piuparts command with the configured options.
     ///
     /// Returns an error if the .deb file is not set or if the command fails.
     fn execute(&self) -> Result<()> {
         let args = self.build_args();
 
-        let deb_file = self.deb_file.ok_or_else(|| eyre::eyre!("No .deb file specified"))?;
+        let deb_file = self.deb_file.ok_or_else(|| PiupartsError::MissingDebFile)?;
 
         info!(
             "Running: sudo -S piuparts {} {:?}",

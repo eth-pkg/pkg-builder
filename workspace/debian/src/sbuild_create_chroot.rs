@@ -1,7 +1,7 @@
 use std::path::Path;
-use eyre::Result;
 use log::info;
-use super::execute::{execute_command, Execute};
+use super::execute::{execute_command, Execute, ExecuteError};
+use thiserror::Error;
 
 /// Represents options for creating an sbuild chroot environment
 ///
@@ -22,6 +22,15 @@ pub struct SbuildCreateChroot {
     /// URL of the repository to use
     repo_url: Option<String>,
 }
+
+/// Custom error type for sbuild-createchroot operations
+#[derive(Error, Debug)]
+pub enum SbuildCreateChrootError {
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+}
+
+type Result<T> = std::result::Result<T, SbuildCreateChrootError>;
 
 impl SbuildCreateChroot {
     /// Creates a new instance with default options
@@ -169,6 +178,7 @@ impl SbuildCreateChroot {
 }
 
 impl Execute for SbuildCreateChroot {
+    type Error = SbuildCreateChrootError;
     /// Executes the sbuild-createchroot command with the configured options
     ///
     /// # Returns
@@ -178,10 +188,11 @@ impl Execute for SbuildCreateChroot {
     /// # Examples
     ///
     /// ```
-    /// # use eyre::Result;
+    /// 
     /// # use debian::sbuild_create_chroot::SbuildCreateChroot;
+    /// # use debian::sbuild_create_chroot::SbuildCreateChrootError;
     /// # use debian::execute::Execute;
-    /// # fn run() -> Result<()> {
+    /// # fn run() -> Result<(), SbuildCreateChrootError> {
     /// let chroot = SbuildCreateChroot::new()
     ///     .chroot_mode("unshare")
     ///     .make_tarball()

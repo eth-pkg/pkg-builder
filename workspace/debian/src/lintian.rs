@@ -1,7 +1,7 @@
 use std::path::Path;
 use log::info;
-use eyre::Result;
-use super::execute::{execute_command, Execute};
+use super::execute::{execute_command, Execute, ExecuteError};
+use thiserror::Error;
 
 /// Represents a wrapper for the Lintian Debian package checker tool.
 /// 
@@ -37,6 +37,15 @@ pub struct Lintian {
     /// Ubuntu/Debian codename for version-specific checks
     codename: Option<String>,
 }
+
+/// Custom error type for lintian operations
+#[derive(Error, Debug)]
+pub enum LintianError {
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+}
+
+type Result<T> = std::result::Result<T, LintianError>;
 
 impl Lintian {
     /// Creates a new Lintian instance with default configuration.
@@ -213,6 +222,7 @@ impl Lintian {
 }
 
 impl Execute for Lintian {
+    type Error = LintianError;
     /// Executes the lintian command with the configured options.
     ///
     /// This method builds the arguments based on the current configuration

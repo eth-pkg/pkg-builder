@@ -1,46 +1,49 @@
+use crate::execute::ExecuteError;
+
 use super::execute::{execute_command_with_sudo, Execute};
+use common::distribution::Distribution;
 /// Provides functionality for building and managing Autopkgtest VM images
 ///
 /// This module contains structures and implementations for creating
 /// virtual machine images compatible with autopkgtest for different
 /// Linux distributions.
-use eyre::{eyre, Result};
 use log::info;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
-/// Represents supported Linux distributions for VM image creation
-///
-/// Each variant contains the specific codename for the distribution
-/// which is used to identify compatible build commands and arguments.
-#[derive(Debug, Clone)]
-enum Distribution {
-    /// Debian distribution with codename (e.g., "bookworm")
-    Debian(String),
-    /// Ubuntu distribution with codename (e.g., "noble", "jammy")
-    Ubuntu(String),
+/// Custom error type for autopkgtest image building operations
+#[derive(Error, Debug)]
+pub enum AutopkgtestImageError {
+    #[error("Distribution not specified")]
+    MissingDistribution,
+    
+    #[error("Image path not specified")]
+    MissingImagePath,
+    
+    #[error("Unsupported or invalid distribution codename: {0}")]
+    UnsupportedDistribution(String),
+    
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+    
+    #[error("Work directory path error: {0}")]
+    PathError(String),
 }
 
-impl Distribution {
-    /// Creates a Distribution from a codename string
-    ///
-    /// # Arguments
-    /// * `codename` - The distribution codename (e.g., "bookworm", "noble")
-    ///
-    /// # Returns
-    /// * `Result<Self>` - A Distribution instance or an error if unsupported
-    pub fn from_codename(codename: &str) -> Result<Self> {
-        match codename {
-            "bookworm" => Ok(Distribution::Debian(codename.to_string())),
-            "noble" | "jammy" => Ok(Distribution::Ubuntu(codename.to_string())),
-            _ => Err(eyre!("Unsupported distribution codename: {}", codename)),
-        }
-    }
+// Type alias for Result with our custom error type
+type Result<T> = std::result::Result<T, AutopkgtestImageError>;
+
+trait BuildCommandProvider {
+    fn get_command(&self) -> &'static str;
+    fn get_codename_arg(&self) -> String;
+}
+impl BuildCommandProvider for Distribution {
 
     /// Returns the appropriate command for building an image for this distribution
     ///
     /// # Returns
     /// * `&'static str` - The command to use for image creation
-    pub fn get_command(&self) -> &'static str {
+    fn get_command(&self) -> &'static str {
         match self {
             Distribution::Debian(_) => "autopkgtest-build-qemu",
             Distribution::Ubuntu(_) => "autopkgtest-buildvm-ubuntu-cloud",
@@ -51,7 +54,7 @@ impl Distribution {
     ///
     /// # Returns
     /// * `String` - The formatted codename argument
-    pub fn get_codename_arg(&self) -> String {
+    fn get_codename_arg(&self) -> String {
         match self {
             Distribution::Debian(codename) => codename.clone(),
             Distribution::Ubuntu(codename) => format!("--release={}", codename),
@@ -94,7 +97,10 @@ impl AutopkgtestImageBuilder {
     /// # Returns
     /// * `Result<Self>` - Modified builder or error if codename is unsupported
     pub fn codename(mut self, codename: &str) -> Result<Self> {
-        self.distribution = Some(Distribution::from_codename(codename)?);
+        // Assuming Distribution::from_codename has been modified to return our Result type
+        // or we're mapping the error here
+        self.distribution = Some(Distribution::from_codename(codename)
+            .map_err(|_| AutopkgtestImageError::UnsupportedDistribution(codename.to_string()))?);
         Ok(self)
     }
 
@@ -158,7 +164,7 @@ impl AutopkgtestImageBuilder {
         if let Some(dist) = &self.distribution {
             args.push(dist.get_codename_arg());
         } else {
-            return Err(eyre!("Distribution not specified"));
+            return Err(AutopkgtestImageError::MissingDistribution);
         }
 
         if let Some(mirror) = &self.mirror {
@@ -178,7 +184,7 @@ impl AutopkgtestImageBuilder {
                 args.push(path.to_string_lossy().to_string());
             }
         } else {
-            return Err(eyre!("Image path not specified"));
+            return Err(AutopkgtestImageError::MissingImagePath);
         }
 
         Ok(args)
@@ -189,6 +195,7 @@ impl AutopkgtestImageBuilder {
 ///
 /// Allows the builder to be executed to create the VM image.
 impl Execute for AutopkgtestImageBuilder {
+    type Error = AutopkgtestImageError;
     /// Executes the VM image creation process
     ///
     /// # Returns
@@ -197,7 +204,7 @@ impl Execute for AutopkgtestImageBuilder {
         let cmd = self
             .distribution
             .as_ref()
-            .ok_or_else(|| eyre!("Distribution not specified"))?
+            .ok_or(AutopkgtestImageError::MissingDistribution)?
             .get_command();
 
         let args = self.build_args()?;

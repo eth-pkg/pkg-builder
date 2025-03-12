@@ -1,8 +1,8 @@
-use eyre::{Result, WrapErr};
 use log::info;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
-use super::execute::{execute_command, Execute};
+use super::execute::{execute_command, Execute, ExecuteError};
 
 /// `Autopkgtest` provides a builder interface for autopkgtest commands.
 ///
@@ -35,6 +35,15 @@ pub struct Autopkgtest {
     qemu_image: Option<String>,
     dir: Option<PathBuf>,
 }
+
+/// Custom error type for autopkgtest operations
+#[derive(Error, Debug)]
+pub enum AutopkgtestError {
+    #[error("Failed to execute command: {0}")]
+    CommandExecutionError(#[from] ExecuteError),
+}
+
+type Result<T> = std::result::Result<T, AutopkgtestError>;
 
 /// Builder for Autopkgtest commands
 impl Autopkgtest {
@@ -213,6 +222,7 @@ impl Autopkgtest {
 ///
 /// This allows an `Autopkgtest` instance to be executed using the `execute()` method.
 impl Execute for Autopkgtest {
+    type Error = AutopkgtestError;
     /// Executes the autopkgtest command with the configured options.
     ///
     /// This method builds the command arguments and runs the autopkgtest command.
@@ -227,8 +237,8 @@ impl Execute for Autopkgtest {
         let args_str = args.join(" ");
         info!("Running: autopkgtest {}", args_str);
         
-        execute_command("autopkgtest", &args, self.dir.as_deref())
-            .wrap_err_with(|| format!("Failed to execute autopkgtest command: {}", args_str))
+        execute_command("autopkgtest", &args, self.dir.as_deref())?;
+        Ok(())
     }
 }
 
