@@ -1,8 +1,9 @@
 use crate::packager::DistributionPackager;
+use crate::validation::get_config;
 
 use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
 use clap::Parser;
-use common::pkg_config::{get_config, PkgConfig};
+use common::pkg_config::PkgConfig;
 use common::pkg_config_verify::PkgVerifyConfig;
 use env_logger::Env;
 use eyre::{eyre, Result};
