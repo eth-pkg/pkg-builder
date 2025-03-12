@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::debcrafter_cmd::DebcrafterCmdError;
+
 #[derive(Debug, Default)]
 pub struct BuildContext {
     pub build_artifacts_dir: String, // package_directory we download and extract
@@ -42,6 +44,29 @@ pub enum BuildError {
     #[error("Checksum verification failed: hashes do not match")]
     HashMismatchError,
     
+    #[error("Extraction error: {0}")]
+    ExtractionError(String),
+
+    #[error(transparent)]
+    DebcrafterError(#[from] DebcrafterCmdError),
+
+    #[error("Failed to copy src directory: {0}")]
+    CopyDirectory(String),
+    
+    #[error("Failed to get debian/rules permission")]
+    RulesPermissionGet,
+    
+    #[error("Failed to set debian/rules permission")]
+    RulesPermissionSet,
+
+    #[error("Home directory not found")]
+    HomeDirNotFound,
+    
+    #[error("Failed to create ~/.sbuildrc: {0}")]
+    FileCreationError(String),
+    
+    #[error("Failed to write to ~/.sbuildrc: {0}")]
+    FileWriteError(String),
 }
 
 

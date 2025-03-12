@@ -8,7 +8,7 @@ use tempfile::tempdir;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum DebcrafterCmdError {
     #[error("Command not found: {0}")]
     CommandNotFound(#[from] io::Error),
 
@@ -59,7 +59,7 @@ impl DebcrafterCmd {
     }
 
     /// Checks if dpkg-parsechangelog is installed on the system
-    pub fn check_if_dpkg_parsechangelog_installed(&self) -> Result<(), Error> {
+    pub fn check_if_dpkg_parsechangelog_installed(&self) -> Result<(), DebcrafterCmdError> {
         let mut cmd = Command::new("which");
         cmd.arg("dpkg-parsechangelog");
 
@@ -70,7 +70,7 @@ impl DebcrafterCmd {
     }
 
     /// Checks if the specified version of debcrafter is installed
-    pub fn check_if_installed(&self) -> Result<(), Error> {
+    pub fn check_if_installed(&self) -> Result<(), DebcrafterCmdError> {
         let mut cmd = Command::new("which");
         cmd.arg(format!("debcrafter_{}", self.version));
 
@@ -81,22 +81,22 @@ impl DebcrafterCmd {
     }
 
     /// Creates a debian directory using the specified specification file
-    pub fn create_debian_dir(&self, specification_file: &str, target_dir: &str) -> Result<(), Error> {
-        let debcrafter_dir = tempdir().map_err(|e| Error::CommandFailed(e.to_string().into()))?;
+    pub fn create_debian_dir(&self, specification_file: &str, target_dir: &str) -> Result<(), DebcrafterCmdError> {
+        let debcrafter_dir = tempdir().map_err(|e| DebcrafterCmdError::CommandFailed(e.to_string().into()))?;
 
         let spec_file_path = fs::canonicalize(PathBuf::from(specification_file))
-            .map_err(|_| Error::FileNotFound(format!("{} spec_file doesn't exist", specification_file)))?;
+            .map_err(|_| DebcrafterCmdError::FileNotFound(format!("{} spec_file doesn't exist", specification_file)))?;
         
         if !spec_file_path.exists() {
-            return Err(Error::FileNotFound(format!("{} spec_file doesn't exist", specification_file)));
+            return Err(DebcrafterCmdError::FileNotFound(format!("{} spec_file doesn't exist", specification_file)));
         }
         
         let spec_dir = spec_file_path.parent().ok_or_else(|| 
-            Error::CommandFailed("Invalid specification file path".to_string().into())
+            DebcrafterCmdError::CommandFailed("Invalid specification file path".to_string().into())
         )?;
         
         let spec_file_name = spec_file_path.file_name().ok_or_else(|| 
-            Error::CommandFailed("Invalid specification file name".to_string().into())
+            DebcrafterCmdError::CommandFailed("Invalid specification file name".to_string().into())
         )?;
         
         info!("Spec directory: {:?}", spec_dir.to_str().unwrap_or_default());
@@ -114,9 +114,9 @@ impl DebcrafterCmd {
             let tmp_debian_dir = first_directory.join("debian");
             let dest_dir = Path::new(target_dir).join("debian");
             self.copy_dir_contents_recursive(&tmp_debian_dir, &dest_dir)
-                .map_err(|err| Error::CommandFailed(err.to_string().into()))?;
+                .map_err(|err| DebcrafterCmdError::CommandFailed(err.to_string().into()))?;
         } else {
-            return Err(Error::CommandFailed(
+            return Err(DebcrafterCmdError::CommandFailed(
                 "Unable to create debian dir: no output directory found".to_string().into(),
             ));
         }
@@ -159,10 +159,10 @@ impl DebcrafterCmd {
     }
 
     /// Handles command execution and processes errors
-    fn handle_command_execution(&self, cmd: &mut Command, error_message: String) -> Result<(), Error> {
+    fn handle_command_execution(&self, cmd: &mut Command, error_message: String) -> Result<(), DebcrafterCmdError> {
         let output = cmd
             .output()
-            .map_err(|e| Error::CommandNotFound(e))?;
+            .map_err(|e| DebcrafterCmdError::CommandNotFound(e))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
@@ -172,7 +172,7 @@ impl DebcrafterCmd {
                 format!("{}: {}", error_message, stderr)
             };
             
-            return Err(Error::CommandFailed(detailed_error.into()));
+            return Err(DebcrafterCmdError::CommandFailed(detailed_error.into()));
         }
         
         Ok(())

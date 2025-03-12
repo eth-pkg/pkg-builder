@@ -11,12 +11,11 @@ use crate::{
     build_pipeline::{BuildContext, BuildPipeline},
     dir_setup::{
         create_debian_dir, create_empty_tar, download_git, expand_path, extract_source,
-        get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url,
+        get_build_artifacts_dir, get_build_files_dir, get_tarball_path,
         patch_source, setup_sbuild,
     },
     handlers::{
-        download_source_handler::DownloadSourceHandler,
-        package_dir_setup_handler::PackageDirSetupHandler, verify_hash_handler::VerifyHashHandler,
+        package_dir_setup_handler::PackageDirSetupHandler, sbuild_setup::SbuildSetupDefault,
     },
     sbuild::Sbuild,
 };
@@ -78,43 +77,16 @@ impl Packager for SbuildPackager {
         let mut pipeline = BuildPipeline::new();
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
-                let package_dir_handle = PackageDirSetupHandler::new();
-                let tarball_path = get_tarball_url(&config.tarball_url, &self.config_root);
-
-                let download_source_handle =
-                    DownloadSourceHandler::new(tarball_path.clone(), config.tarball_url.clone());
-                let verify_hash_handle = VerifyHashHandler::new()
-                    .with_tarball_path(tarball_path)
-                    .with_expected_checksum(config.tarball_hash.clone());
-                // let extract_source_handle = ExtractSourceHandler::new();
-                // let create_debian_dir = CreateDebianDirHandle::new();
-                // let patch_source_handle = VerifyHashHandler::new();
-                // let setup_sbuild_handle = VerifyHashHandler::new();
-                pipeline
-                    .add_step(package_dir_handle)
-                    .add_step(download_source_handle)
-                    .add_step(verify_hash_handle);
-                // .add_handler(extract_source_handle)
-                // .add_handler(create_debian_dir)
-                // .add_handler(patch_source_handle)
-                // .add_handler(setup_sbuild_handle);
-
-                let context = &mut BuildContext::new();
-                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
-                pipeline.execute(context)?;
-
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
+                let sbuild_setup = SbuildSetupDefault::new()
+                    .with_build_files_dir(self.build_files_dir.clone())
+                    .with_config_root(self.config_root.clone())
+                    .with_debcrafter_version(self.config.build_env.debcrafter_version.clone())
+                    .with_build_artifacts_dir(self.debian_artifacts_dir.clone())
+                    .with_homepage(self.config.package_fields.homepage.clone())
+                    .with_spec_file(self.config.package_fields.spec_file.clone())
+                    .with_tarball_hash(config.tarball_hash.clone().unwrap().clone())
+                    .with_tarball_url(config.tarball_url.clone());
+                sbuild_setup.execute()?;
                 Ok(())
             }
             PackageType::Git(config) => {

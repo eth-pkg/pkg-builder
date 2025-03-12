@@ -523,39 +523,14 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
 mod tests {
     use super::*;
     use common::pkg_config::{PackageType, PkgConfig};
-    use httpmock::prelude::*;
     use std::fs::File;
     use std::path::PathBuf;
-    // use std::sync::Once;
-    // use env_logger::Env;
     use tempfile::tempdir;
 
-    // static INIT: Once = Once::new();
 
-    fn setup() {
-        // INIT.call_once(|| {
-        //     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-        // });
-    }
-
-    fn setup_mock_server() -> MockServer {
-        // Start the mock server
-        let server = MockServer::start();
-
-        // Mock the endpoint to serve the tarball file
-        server.mock(|when, then| {
-            when.method(GET).path("/test_package.tar.gz");
-            then.status(200)
-                .header("Content-Type", "application/octet-stream")
-                .body_from_file("tests/misc/test_package.tar.gz");
-        });
-
-        server
-    }
 
     #[test]
     fn expand_path_expands_tilde_correctly() {
-        setup();
         let result = expand_path("~", None);
         assert_ne!(result, "~");
         assert!(!result.contains('~'));
@@ -563,62 +538,25 @@ mod tests {
 
     #[test]
     fn expand_path_handles_absolute_paths() {
-        setup();
         let result = expand_path("/absolute/path", None);
         assert_eq!(result, "/absolute/path");
     }
 
     #[test]
     fn expand_path_expands_relative_paths_with_parent() {
-        setup();
         let result = expand_path("somefile", Some("/tmp"));
         assert_eq!(result, "/tmp/somefile");
     }
 
     #[test]
     fn expand_path_expands_relative_paths_without_parent() {
-        setup();
         let result = expand_path("somefile", None);
         assert!(result.starts_with('/'));
     }
 
-    // #[test]
-    // fn test_create_package_dir() {
-    //     setup();
-
-    //     let temp_dir = tempdir().expect("Failed to create temporary directory");
-
-    //     let build_artifacts_dir = temp_dir.path().join("test_package");
-
-    //     let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
-
-    //     assert!(result.is_ok());
-    //     assert!(build_artifacts_dir.exists());
-    // }
-
-    // #[test]
-    // fn test_create_package_dir_if_already_exists() {
-    //     setup();
-
-    //     let temp_dir = tempdir().expect("Failed to create temporary directory");
-
-    //     let build_artifacts_dir = temp_dir.path().join("test_package");
-    //     let result = fs::create_dir(build_artifacts_dir.clone());
-    //     assert!(result.is_ok());
-    //     let test_file = build_artifacts_dir.clone().join("test_file");
-    //     File::create(test_file.clone()).expect("Failed to create test_file");
-    //     assert!(test_file.clone().exists());
-    //     let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
-
-    //     assert!(result.is_ok());
-    //     assert!(!test_file.clone().exists());
-    //     assert!(build_artifacts_dir.exists());
-    // }
 
     #[test]
     fn test_download_source_virtual_package() {
-        setup();
-
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
         let build_artifacts_dir = String::from(temp_dir.path().to_str().unwrap());
@@ -639,7 +577,6 @@ mod tests {
 
     #[test]
     fn test_extract_source() {
-        setup();
         let package_name = "test_package";
         let temp_dir = tempdir().expect("Failed to create temporary directory");
         let temp_dir = temp_dir.path();
@@ -663,7 +600,6 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_adds_exec_permission() -> Result<(), Box<dyn std::error::Error>> {
-        setup();
 
         let temp_dir = tempdir()?;
         let rules_path = temp_dir.path().join("debian/rules");
@@ -680,7 +616,6 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_handles_nonexistent_directory() {
-        setup();
 
         let result = patch_rules_permission("/nonexistent/dir");
 
@@ -689,7 +624,6 @@ mod tests {
 
     #[test]
     fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
-        setup();
 
         let temp_dir = tempdir()?;
         let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
@@ -708,7 +642,6 @@ mod tests {
 
     #[test]
     fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
-        setup();
 
         let temp_dir = tempdir()?;
         let temp_dir = temp_dir.path();
