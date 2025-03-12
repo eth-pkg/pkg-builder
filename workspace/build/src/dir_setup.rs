@@ -17,41 +17,6 @@ use std::process::Command;
 
 use crate::debcrafter_cmd::DebcrafterCmd;
 
-pub fn create_package_dir(build_artifacts_dir: &String) -> Result<()> {
-    if fs::metadata(build_artifacts_dir).is_ok() {
-        info!("Remove previous package folder {}", &build_artifacts_dir);
-        fs::remove_dir_all(build_artifacts_dir)?;
-    }
-    info!("Creating package folder {}", &build_artifacts_dir);
-    fs::create_dir_all(build_artifacts_dir)?;
-    Ok(())
-}
-
-pub fn download_source(tarball_path: &str, tarball_url: &str, config_root: &str) -> Result<()> {
-    info!("Downloading source {}", tarball_path);
-    let is_web = tarball_url.starts_with("http");
-    let tarball_url = get_tarball_url(tarball_url, config_root);
-    if is_web {
-        info!(
-            "Downloading tar: {} to location: {}",
-            tarball_url, tarball_path
-        );
-        let status = Command::new("wget")
-            .arg("-q")
-            .arg("-O")
-            .arg(tarball_path)
-            .arg(tarball_url)
-            .status()?;
-        if !status.success() {
-            return Err(eyre!("Download failed".to_string()));
-        }
-    } else {
-        info!("Copying tar: {} to location: {}", tarball_url, tarball_path);
-        fs::copy(tarball_url, tarball_path)?;
-    }
-    Ok(())
-}
-
 pub fn update_submodules(git_submodules: &Vec<SubModule>, current_dir: &str) -> Result<()> {
     // DO not use git2, it has very little git supported functionality
     // Initialize all submodules if they are not already initialized
@@ -231,50 +196,6 @@ pub fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
     Ok(hex_digest)
 }
 
-pub fn calculate_sha256<R: Read>(mut reader: R) -> Result<String> {
-    let mut hasher = Sha256::new();
-    io::copy(&mut reader, &mut hasher)?;
-    let digest_bytes = hasher.finalize();
-    let hex_digest = digest_bytes
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>();
-
-    Ok(hex_digest)
-}
-
-pub fn verify_tarball_checksum(tarball_path: &str, expected_checksum: &str) -> Result<bool> {
-    let mut file = fs::File::open(tarball_path).map_err(|_| eyre!("Could not open tarball."))?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)
-        .map_err(|_| eyre!("Could not read tarball."))?;
-
-    let actual_sha512 = calculate_sha512(&*buffer.clone()).unwrap_or_default();
-    info!("sha512 hash {}", &actual_sha512);
-
-    if actual_sha512 == expected_checksum {
-        return Ok(true);
-    }
-
-    let actual_sha256 = calculate_sha256(&*buffer).unwrap_or_default();
-    info!("sha256 hash {}", &actual_sha256);
-
-    if actual_sha256 == expected_checksum {
-        return Ok(true);
-    }
-    Err(eyre!("Hashes do not match."))
-}
-
-pub fn verify_hash(tarball_path: &str, expected_checksum: Option<String>) -> Result<()> {
-    match expected_checksum {
-        Some(tarball_hash) => match verify_tarball_checksum(tarball_path, &tarball_hash) {
-            Ok(true) => Ok(()),
-            Ok(false) => Err(eyre!("Checksum is invalid.")),
-            Err(err) => Err(eyre!("Error checking hash: {}", err)),
-        },
-        None => Ok(()), // If no checksum is provided, consider it verified
-    }
-}
 
 pub fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     info!("Extracting source {}", &build_files_dir);
@@ -661,38 +582,38 @@ mod tests {
         assert!(result.starts_with('/'));
     }
 
-    #[test]
-    fn test_create_package_dir() {
-        setup();
+    // #[test]
+    // fn test_create_package_dir() {
+    //     setup();
 
-        let temp_dir = tempdir().expect("Failed to create temporary directory");
+    //     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        let build_artifacts_dir = temp_dir.path().join("test_package");
+    //     let build_artifacts_dir = temp_dir.path().join("test_package");
 
-        let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
+    //     let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
 
-        assert!(result.is_ok());
-        assert!(build_artifacts_dir.exists());
-    }
+    //     assert!(result.is_ok());
+    //     assert!(build_artifacts_dir.exists());
+    // }
 
-    #[test]
-    fn test_create_package_dir_if_already_exists() {
-        setup();
+    // #[test]
+    // fn test_create_package_dir_if_already_exists() {
+    //     setup();
 
-        let temp_dir = tempdir().expect("Failed to create temporary directory");
+    //     let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        let build_artifacts_dir = temp_dir.path().join("test_package");
-        let result = fs::create_dir(build_artifacts_dir.clone());
-        assert!(result.is_ok());
-        let test_file = build_artifacts_dir.clone().join("test_file");
-        File::create(test_file.clone()).expect("Failed to create test_file");
-        assert!(test_file.clone().exists());
-        let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
+    //     let build_artifacts_dir = temp_dir.path().join("test_package");
+    //     let result = fs::create_dir(build_artifacts_dir.clone());
+    //     assert!(result.is_ok());
+    //     let test_file = build_artifacts_dir.clone().join("test_file");
+    //     File::create(test_file.clone()).expect("Failed to create test_file");
+    //     assert!(test_file.clone().exists());
+    //     let result = create_package_dir(&String::from(build_artifacts_dir.to_str().unwrap()));
 
-        assert!(result.is_ok());
-        assert!(!test_file.clone().exists());
-        assert!(build_artifacts_dir.exists());
-    }
+    //     assert!(result.is_ok());
+    //     assert!(!test_file.clone().exists());
+    //     assert!(build_artifacts_dir.exists());
+    // }
 
     #[test]
     fn test_download_source_virtual_package() {
@@ -711,23 +632,6 @@ mod tests {
         assert!(tarball_path.exists());
     }
 
-    #[test]
-    fn test_download_source_non_virtual_package() {
-        setup();
-
-        let server = setup_mock_server();
-
-        let temp_dir = tempdir().expect("Failed to create temporary directory");
-
-        let tarball_name = "test_package.tar.gz";
-        let tarball_path = temp_dir.path().join(tarball_name);
-        let tarball_url = format!("{}/{}", server.base_url(), tarball_name);
-
-        let result = download_source(tarball_path.to_str().unwrap(), &tarball_url, "/examples");
-
-        assert!(result.is_ok());
-        assert!(tarball_path.exists());
-    }
 
     #[test]
     #[ignore]
@@ -822,57 +726,7 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_verify_hash_valid_checksum_512() {
-        setup();
-        let tarball_path = "tests/misc/test_package.tar.gz";
-        let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
 
-        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_verify_hash_invalid_checksum_512() {
-        setup();
-        let tarball_path = "tests/misc/test_package.tar.gz";
-        let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab2";
-
-        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
-
-        assert!(result.is_err());
-        assert_eq!(
-            result.err().unwrap().to_string(),
-            "Error checking hash: Hashes do not match."
-        );
-    }
-
-    #[test]
-    fn test_verify_hash_valid_checksum_256() {
-        setup();
-        let tarball_path = "tests/misc/test_package.tar.gz";
-        let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478d";
-
-        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
-
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_verify_hash_invalid_checksum_256() {
-        setup();
-        let tarball_path = "tests/misc/test_package.tar.gz";
-        let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478_";
-
-        let result = verify_hash(tarball_path, Some(expected_checksum.to_string()));
-
-        assert!(result.is_err());
-        assert_eq!(
-            result.err().unwrap().to_string(),
-            "Error checking hash: Hashes do not match."
-        );
-    }
 
     #[test]
     #[ignore]

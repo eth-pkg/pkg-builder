@@ -1,9 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use common::pkg_config::{LanguageEnv, PkgConfig};
+use common::pkg_config::PkgConfig;
 use eyre::{eyre, Result};
 
-use super::language_installer::{get_installer, LanguageInstaller};
+use crate::installers::language_installer::LanguageInstaller;
+
 
 pub struct Sbuild {
     pub(crate) config: PkgConfig,
@@ -63,15 +64,11 @@ impl Sbuild {
         deb_dir.join(filename)
     }
 
-    fn get_installer(&self, lang_env: &LanguageEnv) -> Box<dyn LanguageInstaller> {
-        get_installer(lang_env)
-    }
-
     pub fn get_build_deps_not_in_debian(&self) -> Vec<String> {
         let lang_env = self.config.package_type.get_language_env();
         match lang_env {
             Some(env) => {
-                let installer = self.get_installer(env);
+                let installer: Box<dyn LanguageInstaller> = env.into();
                 installer.get_build_deps(&self.config.build_env.arch, &self.config.build_env.codename)
             }
             None => vec![],
@@ -82,7 +79,7 @@ impl Sbuild {
         let lang_env = self.config.package_type.get_language_env();
         match lang_env {
             Some(env) => {
-                let installer = self.get_installer(env);
+                let installer: Box<dyn LanguageInstaller> = env.into();
                 installer.get_test_deps(&self.config.build_env.codename)
             }
             None => vec![],

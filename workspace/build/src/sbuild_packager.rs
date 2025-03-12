@@ -8,10 +8,15 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
+    build_pipeline::{BuildContext, BuildPipeline},
     dir_setup::{
-        create_debian_dir, create_empty_tar, create_package_dir, download_git, download_source,
-        expand_path, extract_source, get_build_artifacts_dir, get_build_files_dir,
-        get_tarball_path, patch_source, setup_sbuild, verify_hash,
+        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source,
+        get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url,
+        patch_source, setup_sbuild,
+    },
+    handlers::{
+        download_source_handler::DownloadSourceHandler,
+        package_dir_setup_handler::PackageDirSetupHandler, verify_hash_handler::VerifyHashHandler,
     },
     sbuild::Sbuild,
 };
@@ -70,15 +75,34 @@ impl Packager for SbuildPackager {
     }
 
     fn package(&self) -> Result<()> {
+        let mut pipeline = BuildPipeline::new();
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
-                download_source(
-                    &self.debian_orig_tarball_path,
-                    &config.tarball_url,
-                    &self.config_root,
-                )?;
-                verify_hash(&self.debian_orig_tarball_path, config.tarball_hash.clone())?;
+                let package_dir_handle = PackageDirSetupHandler::new();
+                let tarball_path = get_tarball_url(&config.tarball_url, &self.config_root);
+
+                let download_source_handle =
+                    DownloadSourceHandler::new(tarball_path.clone(), config.tarball_url.clone());
+                let verify_hash_handle = VerifyHashHandler::new()
+                    .with_tarball_path(tarball_path)
+                    .with_expected_checksum(config.tarball_hash.clone());
+                // let extract_source_handle = ExtractSourceHandler::new();
+                // let create_debian_dir = CreateDebianDirHandle::new();
+                // let patch_source_handle = VerifyHashHandler::new();
+                // let setup_sbuild_handle = VerifyHashHandler::new();
+                pipeline
+                    .add_step(package_dir_handle)
+                    .add_step(download_source_handle)
+                    .add_step(verify_hash_handle);
+                // .add_handler(extract_source_handle)
+                // .add_handler(create_debian_dir)
+                // .add_handler(patch_source_handle)
+                // .add_handler(setup_sbuild_handle);
+
+                let context = &mut BuildContext::new();
+                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
+                pipeline.execute(context)?;
+
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
                     &self.build_files_dir.clone(),
@@ -94,7 +118,13 @@ impl Packager for SbuildPackager {
                 Ok(())
             }
             PackageType::Git(config) => {
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
+                let package_dir_handle = PackageDirSetupHandler::new();
+                pipeline.add_step(package_dir_handle);
+
+                let context = &mut BuildContext::new();
+                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
+                pipeline.execute(context)?;
+
                 download_git(
                     &self.debian_artifacts_dir,
                     &self.debian_orig_tarball_path,
@@ -119,7 +149,13 @@ impl Packager for SbuildPackager {
             }
             PackageType::Virtual => {
                 info!("creating virtual package");
-                create_package_dir(&self.debian_artifacts_dir.clone())?;
+                let package_dir_handle = PackageDirSetupHandler::new();
+                pipeline.add_step(package_dir_handle);
+
+                let context = &mut BuildContext::new();
+                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
+                pipeline.execute(context)?;
+
                 create_empty_tar(&self.debian_artifacts_dir, &self.debian_orig_tarball_path)?;
                 extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
                 create_debian_dir(
