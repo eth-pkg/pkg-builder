@@ -8,7 +8,7 @@ use eyre::{eyre, Result};
 use dirs::home_dir;
 use filetime::FileTime;
 use log::info;
-use sha2::{Digest, Sha256, Sha512};
+use sha2::{Digest, Sha512};
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -183,19 +183,6 @@ pub fn create_empty_tar(build_artifacts_dir: &str, tarball_path: &str) -> Result
 
     Ok(())
 }
-
-pub fn calculate_sha512<R: Read>(mut reader: R) -> Result<String> {
-    let mut hasher = Sha512::new();
-    io::copy(&mut reader, &mut hasher)?;
-    let digest_bytes = hasher.finalize();
-    let hex_digest = digest_bytes
-        .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect::<String>();
-
-    Ok(hex_digest)
-}
-
 
 pub fn extract_source(tarball_path: &str, build_files_dir: &str) -> Result<()> {
     info!("Extracting source {}", &build_files_dir);

@@ -3,6 +3,6 @@ mod debcrafter_cmd;
 mod dir_setup;
 mod installers;
 mod sbuild;
-mod handlers;
+mod steps;
 pub mod sbuild_backend;
 pub mod sbuild_packager;

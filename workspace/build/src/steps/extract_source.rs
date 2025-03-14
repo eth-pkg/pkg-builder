@@ -1,26 +1,13 @@
 use std::{fs, path::PathBuf, process::Command, io};
 use log::info;
-use crate::build_pipeline::{BuildContext, BuildError, BuildHandler};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
-pub struct ExtractSourceHandler {
-    build_files_dir: String,
-    tarball_path: String,
-}
+pub struct ExtractSource {}
 
-impl ExtractSourceHandler {
+impl ExtractSource {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn with_tarball_path(mut self, path: String) -> Self {
-        self.tarball_path = path;
-        self
-    }
-
-    pub fn with_build_files_dir(mut self, build_files_dir: String) -> Self {
-        self.build_files_dir = build_files_dir;
-        self
     }
 
     fn longest_common_prefix(strings: &[&str]) -> String {
@@ -65,13 +52,13 @@ impl ExtractSourceHandler {
     }
 }
 
-impl BuildHandler for ExtractSourceHandler {
-    fn handle(&self, _context: &mut BuildContext) -> Result<(), BuildError> {
-        info!("Extracting source {}", &self.build_files_dir);
-        fs::create_dir_all(&self.build_files_dir).map_err(BuildError::IoError)?;
+impl BuildStep for ExtractSource {
+    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+        info!("Extracting source {}", &context.build_files_dir);
+        fs::create_dir_all(&context.build_files_dir).map_err(BuildError::IoError)?;
         
-        let mut args = vec!["zxvf", &self.tarball_path, "-C", &self.build_files_dir];
-        let numbers_to_strip = self.components_to_strip(self.tarball_path.clone())
+        let mut args = vec!["zxvf", &context.tarball_path, "-C", &context.build_files_dir];
+        let numbers_to_strip = self.components_to_strip(context.tarball_path.clone())
             .map_err(BuildError::IoError)?;
         
         let strip = format!("--strip-components={}", numbers_to_strip);
@@ -88,7 +75,7 @@ impl BuildHandler for ExtractSourceHandler {
             return Err(BuildError::ExtractionError(error_message));
         }
         
-        info!("Extracted source to build_files_dir: {:?}", self.build_files_dir);
+        info!("Extracted source to build_files_dir: {:?}", context.build_files_dir);
         Ok(())
     }
 }
@@ -101,36 +88,18 @@ mod tests {
     use tempfile::tempdir;
 
 
-    #[test]
-    fn test_new() {
-        let handler = ExtractSourceHandler::new();
-        assert_eq!(handler.build_files_dir, "");
-        assert_eq!(handler.tarball_path, "");
-    }
-
-    #[test]
-    fn test_with_tarball_path() {
-        let handler = ExtractSourceHandler::new().with_tarball_path("path/to/tarball.tar.gz".to_string());
-        assert_eq!(handler.tarball_path, "path/to/tarball.tar.gz");
-    }
-
-    #[test]
-    fn test_with_build_files_dir() {
-        let handler = ExtractSourceHandler::new().with_build_files_dir("build/files/dir".to_string());
-        assert_eq!(handler.build_files_dir, "build/files/dir");
-    }
 
     #[test]
     fn test_longest_common_prefix_empty() {
         let strings: Vec<&str> = vec![];
-        let prefix = ExtractSourceHandler::longest_common_prefix(&strings);
+        let prefix = ExtractSource::longest_common_prefix(&strings);
         assert_eq!(prefix, "");
     }
 
     #[test]
     fn test_longest_common_prefix_single() {
         let strings = vec!["folder/file.txt"];
-        let prefix = ExtractSourceHandler::longest_common_prefix(&strings);
+        let prefix = ExtractSource::longest_common_prefix(&strings);
         assert_eq!(prefix, "folder");
     }
 
@@ -141,14 +110,14 @@ mod tests {
             "project/src/lib.rs",
             "project/Cargo.toml",
         ];
-        let prefix = ExtractSourceHandler::longest_common_prefix(&strings);
+        let prefix = ExtractSource::longest_common_prefix(&strings);
         assert_eq!(prefix, "project/");
     }
 
     #[test]
     fn test_longest_common_prefix_no_common() {
         let strings = vec!["abc/def", "xyz/uvw"];
-        let prefix = ExtractSourceHandler::longest_common_prefix(&strings);
+        let prefix = ExtractSource::longest_common_prefix(&strings);
         assert_eq!(prefix, "");
     }
 
@@ -161,15 +130,15 @@ mod tests {
         
         File::create(&tarball_path)?;
         
-        let handler = ExtractSourceHandler::new()
-            .with_build_files_dir(build_dir.to_str().unwrap().to_string())
-            .with_tarball_path(tarball_path.to_str().unwrap().to_string());
+        let handler = ExtractSource::new();
         
         
         let mut context = BuildContext::default(); 
+        context.build_files_dir = build_dir.to_str().unwrap().to_string();
+        context.tarball_path = tarball_path.to_str().unwrap().to_string();
     
         if !Path::new(&build_dir).exists() {
-            let result = handler.handle(&mut context);
+            let result = handler.step(&mut context);
             assert!(result.is_err());
         }
         
@@ -184,13 +153,12 @@ mod tests {
         let build_dir = temp_dir.path().join("build");
         let tarball_path = temp_dir.path().join("nonexistent.tar.gz");
         
-        let handler = ExtractSourceHandler::new()
-            .with_build_files_dir(build_dir.to_str().unwrap().to_string())
-            .with_tarball_path(tarball_path.to_str().unwrap().to_string());
+        let handler = ExtractSource::new();
         
         let mut context = BuildContext::default();
-        
-        let result = handler.handle(&mut context);
+        context.build_files_dir = build_dir.to_str().unwrap().to_string();
+        context.tarball_path = tarball_path.to_str().unwrap().to_string();
+        let result = handler.step(&mut context);
         assert!(result.is_err());
         
         // match result {

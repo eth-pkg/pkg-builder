@@ -1,18 +1,18 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildHandler};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use std::{fs, path::Path};
 
 #[derive(Default)]
-pub struct PackageDirSetupHandler {}
+pub struct PackageDirSetup {}
 
-impl PackageDirSetupHandler {
+impl PackageDirSetup {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl BuildHandler for PackageDirSetupHandler {
-    fn handle(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+impl BuildStep for PackageDirSetup {
+    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
         let build_artifacts_dir = &context.build_artifacts_dir;
 
         if Path::new(build_artifacts_dir).exists() {
@@ -40,9 +40,8 @@ mod tests {
         let temp_dir = TempDir::new().expect("Failed to create temp directory");
         let artifacts_dir = temp_dir.path().join("artifacts");
 
-        let context = BuildContext {
-            build_artifacts_dir: artifacts_dir.to_string_lossy().to_string(),
-        };
+        let mut context = BuildContext::new();
+        context.build_artifacts_dir = artifacts_dir.to_string_lossy().to_string();
 
         (context, temp_dir)
     }
@@ -50,9 +49,9 @@ mod tests {
     #[test]
     fn test_handle_creates_new_directory() {
         let (mut context, _temp_dir) = setup_test_context();
-        let handler = PackageDirSetupHandler::new();
+        let handler = PackageDirSetup::new();
 
-        let result = handler.handle(&mut context);
+        let result = handler.step(&mut context);
 
         assert!(result.is_ok());
         assert!(Path::new(&context.build_artifacts_dir).exists());
@@ -70,8 +69,8 @@ mod tests {
 
         assert!(test_file.exists());
 
-        let handler = PackageDirSetupHandler::new();
-        let result = handler.handle(&mut context);
+        let handler = PackageDirSetup::new();
+        let result = handler.step(&mut context);
 
         assert!(result.is_ok());
         assert!(Path::new(&context.build_artifacts_dir).exists());
@@ -90,8 +89,8 @@ mod tests {
 
         context.build_artifacts_dir = "/root/forbidden_dir".to_string();
 
-        let handler = PackageDirSetupHandler::new();
-        let result = handler.handle(&mut context);
+        let handler = PackageDirSetup::new();
+        let result = handler.step(&mut context);
 
         assert!(result.is_err());
 

@@ -8,16 +8,11 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
-    build_pipeline::{BuildContext, BuildPipeline},
-    dir_setup::{
-        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source,
-        get_build_artifacts_dir, get_build_files_dir, get_tarball_path,
-        patch_source, setup_sbuild,
-    },
-    handlers::{
-        package_dir_setup_handler::PackageDirSetupHandler, sbuild_setup::SbuildSetupDefault,
-    },
-    sbuild::Sbuild,
+    build_pipeline::{BuildContext, BuildPipeline}, dir_setup::{
+        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source, get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url, patch_source, setup_sbuild
+    }, sbuild::Sbuild, steps::{
+        package_dir_setup::PackageDirSetup, sbuild_setup::SbuildSetupDefault,
+    }
 };
 
 pub struct SbuildPackager {
@@ -77,20 +72,26 @@ impl Packager for SbuildPackager {
         let mut pipeline = BuildPipeline::new();
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
-                let sbuild_setup = SbuildSetupDefault::new()
-                    .with_build_files_dir(self.build_files_dir.clone())
-                    .with_config_root(self.config_root.clone())
-                    .with_debcrafter_version(self.config.build_env.debcrafter_version.clone())
-                    .with_build_artifacts_dir(self.debian_artifacts_dir.clone())
-                    .with_homepage(self.config.package_fields.homepage.clone())
-                    .with_spec_file(self.config.package_fields.spec_file.clone())
-                    .with_tarball_hash(config.tarball_hash.clone().unwrap().clone())
-                    .with_tarball_url(config.tarball_url.clone());
+                let tarball_path = get_tarball_url(&config.tarball_url, &self.config_root);
+                let context = BuildContext {
+                    build_artifacts_dir: self.debian_artifacts_dir.clone(),
+                    build_files_dir: self.build_files_dir.clone(),
+                    debcrafter_version: self.config.build_env.debcrafter_version.clone(),
+                    homepage: self.config.package_fields.homepage.clone(),
+                    spec_file: self.config.package_fields.spec_file.clone(),
+                    tarball_hash: config.tarball_hash.clone().unwrap().clone(),
+                    tarball_url: config.tarball_url.clone(),
+                    config_root: self.config_root.clone(),
+                    debian_orig_tarball_path: self.debian_orig_tarball_path.clone(),
+                    src_dir: "todo".into(),
+                    tarball_path
+                };
+                let sbuild_setup = SbuildSetupDefault::new(context);
                 sbuild_setup.execute()?;
                 Ok(())
             }
             PackageType::Git(config) => {
-                let package_dir_handle = PackageDirSetupHandler::new();
+                let package_dir_handle = PackageDirSetup::new();
                 pipeline.add_step(package_dir_handle);
 
                 let context = &mut BuildContext::new();
@@ -121,7 +122,7 @@ impl Packager for SbuildPackager {
             }
             PackageType::Virtual => {
                 info!("creating virtual package");
-                let package_dir_handle = PackageDirSetupHandler::new();
+                let package_dir_handle = PackageDirSetup::new();
                 pipeline.add_step(package_dir_handle);
 
                 let context = &mut BuildContext::new();

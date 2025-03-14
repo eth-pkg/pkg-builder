@@ -4,7 +4,17 @@ use crate::debcrafter_cmd::DebcrafterCmdError;
 
 #[derive(Debug, Default)]
 pub struct BuildContext {
-    pub build_artifacts_dir: String, // package_directory we download and extract
+    pub tarball_url: String,
+    pub config_root: String,
+    pub tarball_hash: String,
+    pub debian_orig_tarball_path: String,
+    pub build_files_dir: String,
+    pub debcrafter_version: String,
+    pub homepage: String,
+    pub build_artifacts_dir: String,
+    pub spec_file: String,
+    pub tarball_path: String,
+    pub src_dir: String,
 
 }
 
@@ -17,12 +27,7 @@ impl BuildContext {
 
 #[derive(Error, Debug)]
 pub enum BuildError {
-    #[error("Missing tarball path")]
-    MissingPath,
-    
-    #[error("Missing tarball URL")]
-    MissingUrl,
-    
+
     #[error("Command execution failed: {0}")]
     CommandFailed(String),
     
@@ -71,13 +76,13 @@ pub enum BuildError {
 
 
 
-pub trait BuildHandler {
-    fn handle(&self, context: &mut BuildContext) -> Result<(), BuildError>;
+pub trait BuildStep {
+    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError>;
 }
 
 #[derive(Default)]
 pub struct BuildPipeline {
-    handlers: Vec<Box<dyn BuildHandler>>,
+    handlers: Vec<Box<dyn BuildStep>>,
 }
 
 impl BuildPipeline {
@@ -85,14 +90,14 @@ impl BuildPipeline {
         Self::default()
     }
     
-    pub fn add_step<T: BuildHandler + 'static>(&mut self, handler: T) -> &mut Self {
+    pub fn add_step<T: BuildStep + 'static>(&mut self, handler: T) -> &mut Self {
         self.handlers.push(Box::new(handler));
         self
     }
     
     pub fn execute(&self, context: &mut BuildContext) -> Result<(), BuildError> {
         for handler in &self.handlers {
-            handler.handle(context)?;
+            handler.step(context)?;
         }
         Ok(())
     }

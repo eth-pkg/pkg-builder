@@ -1,33 +1,20 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildHandler};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::io::Read;
 
 #[derive(Default)]
-pub struct VerifyHashHandler {
-    tarball_path: String,
-    expected_checksum: Option<String>,
-}
+pub struct VerifyHash {}
 
-impl VerifyHashHandler {
+impl VerifyHash {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_tarball_path(mut self, path: String) -> Self {
-        self.tarball_path = path;
-        self
-    }
-
-    pub fn with_expected_checksum(mut self, checksum: Option<String>) -> Self {
-        self.expected_checksum = checksum;
-        self
-    }
-
-    fn calculate_sha256(buffer: &[u8]) -> Result<String, BuildError> {
+    fn calculate_sha256<R: Read>(mut reader: R) -> Result<String, BuildError> {
         let mut hasher = Sha256::new();
-        hasher.update(buffer);
+        std::io::copy(&mut reader, &mut hasher)?;
         let digest_bytes = hasher.finalize();
         let hex_digest = digest_bytes
             .iter()
@@ -36,9 +23,9 @@ impl VerifyHashHandler {
         Ok(hex_digest)
     }
 
-    fn calculate_sha512(buffer: &[u8]) -> Result<String, BuildError> {
+    fn calculate_sha512<R: Read>(mut reader: R) -> Result<String, BuildError> {
         let mut hasher = Sha512::new();
-        hasher.update(buffer);
+        std::io::copy(&mut reader, &mut hasher)?;
         let digest_bytes = hasher.finalize();
         let hex_digest = digest_bytes
             .iter()
@@ -60,14 +47,14 @@ impl VerifyHashHandler {
             .map_err(|err| BuildError::TarballReadError(err.to_string()))?;
 
         // Try SHA-512 first
-        let actual_sha512 = Self::calculate_sha512(&buffer).unwrap_or_default();
+        let actual_sha512 = Self::calculate_sha512(&*buffer).unwrap_or_default();
         info!("sha512 hash {}", &actual_sha512);
         if actual_sha512 == expected_checksum {
             return Ok(true);
         }
 
         // If SHA-512 doesn't match, try SHA-256
-        let actual_sha256 = Self::calculate_sha256(&buffer).unwrap_or_default();
+        let actual_sha256 = Self::calculate_sha256(&*buffer).unwrap_or_default();
         info!("sha256 hash {}", &actual_sha256);
         if actual_sha256 == expected_checksum {
             return Ok(true);
@@ -77,16 +64,11 @@ impl VerifyHashHandler {
     }
 }
 
-impl BuildHandler for VerifyHashHandler {
-    fn handle(&self, _context: &mut BuildContext) -> Result<(), BuildError> {
-        match &self.expected_checksum {
-            Some(tarball_hash) => {
-                match self.verify_tarball_checksum(&self.tarball_path, tarball_hash) {
-                    Ok(_) => Ok(()),
-                    Err(err) => Err(err),
-                }
-            }
-            None => Ok(()), // If no checksum is provided, consider it verified
+impl BuildStep for VerifyHash {
+    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+        match self.verify_tarball_checksum(&context.tarball_path, &context.tarball_hash) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
         }
     }
 }
@@ -113,13 +95,12 @@ mod tests {
         Ok(buffer)
     }
 
-
     #[test]
     fn test_calculate_sha256() {
         let data = b"abc";
         let expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
-        let result = VerifyHashHandler::calculate_sha256(data).unwrap();
+        let result = VerifyHash::calculate_sha256(&data[..]).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -128,7 +109,7 @@ mod tests {
         let data = b"abc";
         let expected = "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f";
 
-        let result = VerifyHashHandler::calculate_sha512(data).unwrap();
+        let result = VerifyHash::calculate_sha512(&data[..]).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -138,14 +119,12 @@ mod tests {
         let (_dir, file_path) = create_temp_file(content).unwrap();
         let buffer = read_tarball(&file_path).unwrap();
 
-        let expected_checksum = VerifyHashHandler::calculate_sha256(&buffer).unwrap();
+        let expected_checksum = VerifyHash::calculate_sha256(&*buffer).unwrap();
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(file_path.clone())
-            .with_expected_checksum(Some(expected_checksum));
+        let handler = VerifyHash::new();
 
         let result = handler
-            .verify_tarball_checksum(&file_path, &handler.expected_checksum.as_ref().unwrap());
+            .verify_tarball_checksum(&file_path, &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -156,14 +135,12 @@ mod tests {
         let (_dir, file_path) = create_temp_file(content).unwrap();
         let buffer = read_tarball(&file_path).unwrap();
 
-        let expected_checksum = VerifyHashHandler::calculate_sha512(&buffer).unwrap();
+        let expected_checksum = VerifyHash::calculate_sha512(&*buffer).unwrap();
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(file_path.clone())
-            .with_expected_checksum(Some(expected_checksum));
+        let handler = VerifyHash::new();
 
         let result = handler
-            .verify_tarball_checksum(&file_path, &handler.expected_checksum.as_ref().unwrap());
+            .verify_tarball_checksum(&file_path, &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -175,12 +152,10 @@ mod tests {
 
         let incorrect_checksum = "0000000000000000000000000000000000000000000000000000000000000000";
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(file_path.clone())
-            .with_expected_checksum(Some(incorrect_checksum.to_string()));
+        let handler = VerifyHash::new();
 
         let result = handler
-            .verify_tarball_checksum(&file_path, &handler.expected_checksum.as_ref().unwrap());
+            .verify_tarball_checksum(&file_path, &incorrect_checksum);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), BuildError::HashMismatchError));
     }
@@ -191,36 +166,37 @@ mod tests {
         let (_dir, file_path) = create_temp_file(content).unwrap();
         let buffer = read_tarball(&file_path).unwrap();
 
-        let expected_checksum = VerifyHashHandler::calculate_sha256(&buffer).unwrap();
+        let expected_checksum = VerifyHash::calculate_sha256(&*buffer).unwrap();
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(file_path)
-            .with_expected_checksum(Some(expected_checksum));
+        let handler = VerifyHash::new();
 
         let mut context = BuildContext::default();
-        let result = handler.handle(&mut context);
+        context.tarball_hash = expected_checksum;
+        context.tarball_path = file_path;
+        let result = handler.step(&mut context);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_handle_without_checksum() {
-        let handler = VerifyHashHandler::new().with_tarball_path("some/path".to_string());
+        let handler = VerifyHash::new();
 
         let mut context: BuildContext = BuildContext::default();
-        let result = handler.handle(&mut context);
-        assert!(result.is_ok());
+        context.tarball_path = "some/path".to_string();
+        let result = handler.step(&mut context);
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_verify_hash_valid_checksum_512() {
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(tarball_path.to_string())
-            .with_expected_checksum(Some(expected_checksum.to_string()));
+        let handler = VerifyHash::new();
         let mut context: BuildContext = BuildContext::default();
+        context.tarball_hash = expected_checksum.to_string();
+        context.tarball_path = tarball_path.to_string();
 
-        let result = handler.handle(&mut context);
+        let result = handler.step(&mut context);
 
         assert!(result.is_ok());
     }
@@ -230,12 +206,12 @@ mod tests {
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab2";
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(tarball_path.to_string())
-            .with_expected_checksum(Some(expected_checksum.to_string()));
+        let handler = VerifyHash::new();
         let mut context: BuildContext = BuildContext::default();
+        context.tarball_hash = expected_checksum.to_string();
+        context.tarball_path = tarball_path.to_string();
 
-        let result = handler.handle(&mut context);
+        let result = handler.step(&mut context);
 
         assert!(result.is_err());
         assert_eq!(
@@ -249,12 +225,12 @@ mod tests {
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478d";
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(tarball_path.to_string())
-            .with_expected_checksum(Some(expected_checksum.to_string()));
+        let handler = VerifyHash::new();
         let mut context: BuildContext = BuildContext::default();
+        context.tarball_hash = expected_checksum.to_string();
+        context.tarball_path = tarball_path.to_string();
 
-        let result = handler.handle(&mut context);
+        let result = handler.step(&mut context);
 
         assert!(result.is_ok());
     }
@@ -264,12 +240,12 @@ mod tests {
         let tarball_path = "tests/misc/test_package.tar.gz";
         let expected_checksum = "b610e83c026d4c465636779240b6ed40a076593a61df5f6b9f9f59f1a929478_";
 
-        let handler = VerifyHashHandler::new()
-            .with_tarball_path(tarball_path.to_string())
-            .with_expected_checksum(Some(expected_checksum.to_string()));
+        let handler = VerifyHash::new();
         let mut context: BuildContext = BuildContext::default();
+        context.tarball_hash = expected_checksum.to_string();
+        context.tarball_path = tarball_path.to_string();
 
-        let result = handler.handle(&mut context);
+        let result = handler.step(&mut context);
 
         assert!(result.is_err());
         assert_eq!(

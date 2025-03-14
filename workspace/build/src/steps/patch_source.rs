@@ -7,32 +7,15 @@ use std::{
 
 use log::info;
 
-use crate::build_pipeline::{BuildContext, BuildError, BuildHandler};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
-pub struct PatchSourceHandle {
-    build_files_dir: String,
-    homepage: String,
-    src_dir: String,
+pub struct PatchSource {
 }
 
-impl PatchSourceHandle {
+impl PatchSource {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn with_build_files_dir(mut self, build_files_dir: String) -> Self {
-        self.build_files_dir = build_files_dir;
-        self
-    }
-
-    pub fn with_homepage(mut self, homepage: String) -> Self {
-        self.homepage = homepage;
-        self
-    }
-    pub fn with_src_dir(mut self, src_dir: String) -> Self {
-        self.src_dir = src_dir;
-        self
     }
 
     pub fn patch_quilt(build_files_dir: &String) -> Result<(), BuildError> {
@@ -178,21 +161,21 @@ impl PatchSourceHandle {
     }
 }
 
-impl BuildHandler for PatchSourceHandle {
-    fn handle(&self, _context: &mut BuildContext) -> Result<(), BuildError> {
+impl BuildStep for PatchSource {
+    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
         // Patch quilt
-        Self::patch_quilt(&self.build_files_dir)?;
+        Self::patch_quilt(&context.build_files_dir)?;
 
         // Patch .pc dir setup
-        Self::patch_pc_dir(&self.build_files_dir)?;
+        Self::patch_pc_dir(&context.build_files_dir)?;
 
         // Patch .pc patch version number
-        Self::patch_standards_version(&self.build_files_dir, &self.homepage)?;
+        Self::patch_standards_version(&context.build_files_dir, &context.homepage)?;
 
         // Only copy if src dir exists
-        Self::copy_src_dir(&self.build_files_dir, &self.src_dir)?;
+        Self::copy_src_dir(&context.build_files_dir, &context.src_dir)?;
 
-        Self::patch_rules_permission(&self.build_files_dir)?;
+        Self::patch_rules_permission(&context.build_files_dir)?;
 
         info!("Patching finished successfully!");
         Ok(()) // Added missing return value

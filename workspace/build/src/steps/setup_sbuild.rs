@@ -1,19 +1,19 @@
 use std::fs;
 use std::io::Write;
-use crate::build_pipeline::{BuildContext, BuildError, BuildHandler};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use dirs::home_dir;
 
 #[derive(Default)]
-pub struct SetupSbuildHandle {}
+pub struct SetupSbuild {}
 
-impl SetupSbuildHandle {
+impl SetupSbuild {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl BuildHandler for SetupSbuildHandle {
-    fn handle(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+impl BuildStep for SetupSbuild {
+    fn step(&self, _context: &mut BuildContext) -> Result<(), BuildError> {
         let home_dir = home_dir().ok_or(BuildError::HomeDirNotFound)?;
         let dest_path = home_dir.join(".sbuildrc");
         let content = include_str!("../.sbuildrc");
