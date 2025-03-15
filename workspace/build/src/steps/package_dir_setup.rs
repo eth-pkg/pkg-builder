@@ -13,17 +13,17 @@ impl PackageDirSetup {
 
 impl BuildStep for PackageDirSetup {
     fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
-        let build_artifacts_dir = &context.build_artifacts_dir;
+        let debian_artifacts_dir = &context.debian_artifacts_dir;
 
-        if Path::new(build_artifacts_dir).exists() {
-            info!("Removing previous package folder {}", build_artifacts_dir);
+        if Path::new(debian_artifacts_dir).exists() {
+            info!("Removing previous package folder {}", debian_artifacts_dir);
 
-            fs::remove_dir_all(build_artifacts_dir)?;
+            fs::remove_dir_all(debian_artifacts_dir)?;
         }
 
-        info!("Creating package folder {}", build_artifacts_dir);
+        info!("Creating package folder {}", debian_artifacts_dir);
 
-        fs::create_dir_all(build_artifacts_dir)?;
+        fs::create_dir_all(debian_artifacts_dir)?;
 
         Ok(())
     }

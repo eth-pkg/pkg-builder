@@ -83,9 +83,11 @@ impl Packager for SbuildPackager {
                     tarball_url: config.tarball_url.clone(),
                     config_root: self.config_root.clone(),
                     debian_orig_tarball_path: self.debian_orig_tarball_path.clone(),
-                    src_dir: "todo".into(),
-                    tarball_path
+                    src_dir: self.source_to_patch_from_path.clone(),
+                    tarball_path,
+                    debian_artifacts_dir: self.debian_artifacts_dir.clone(),
                 };
+                info!("Using build context: {:?}", context);
                 let sbuild_setup = SbuildSetupDefault::new(context);
                 sbuild_setup.execute()?;
                 Ok(())

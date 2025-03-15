@@ -12,6 +12,7 @@ pub struct BuildContext {
     pub debcrafter_version: String,
     pub homepage: String,
     pub build_artifacts_dir: String,
+    pub debian_artifacts_dir: String,
     pub spec_file: String,
     pub tarball_path: String,
     pub src_dir: String,
