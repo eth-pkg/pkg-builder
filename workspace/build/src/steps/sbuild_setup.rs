@@ -35,9 +35,38 @@ impl SbuildSetupDefault {
             .add_step(patch_source_handle)
             .add_step(setup_sbuild_handle);
 
-        let context = &mut BuildContext::new();
-        context.build_artifacts_dir = self.context.build_artifacts_dir.clone();
-        pipeline.execute(context)?;
+        pipeline.execute(&mut self.context.clone())?;
         Ok(())
     }
 }
+
+// #[derive(Default)]
+// pub struct SbuildSetupGit {
+//     context: BuildContext,
+// }
+
+// impl SbuildSetupGit {
+//     pub fn new(context: BuildContext) -> Self {
+//         SbuildSetupGit { context }
+//     }
+
+//     pub fn execute(self) -> Result<(), BuildError> {
+//         Ok(())
+//     }
+// }
+
+// #[derive(Default)]
+// pub struct SbuildSetupVirtual {
+//     context: BuildContext,
+// }
+
+// impl SbuildSetupVirtual {
+//     pub fn new(context: BuildContext) -> Self {
+//         SbuildSetupVirtual { context }
+//     }
+
+//     pub fn execute(self) -> Result<(), BuildError> {
+     
+//         Ok(())
+//     }
+// }

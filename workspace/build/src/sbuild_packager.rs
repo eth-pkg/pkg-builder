@@ -72,7 +72,7 @@ impl Packager for SbuildPackager {
         let mut pipeline = BuildPipeline::new();
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
-                let tarball_path = get_tarball_url(&config.tarball_url, &self.config_root);
+                let tarball_url = get_tarball_url(&config.tarball_url, &self.config_root);
                 let context = BuildContext {
                     build_artifacts_dir: self.debian_artifacts_dir.clone(),
                     build_files_dir: self.build_files_dir.clone(),
@@ -80,14 +80,12 @@ impl Packager for SbuildPackager {
                     homepage: self.config.package_fields.homepage.clone(),
                     spec_file: self.config.package_fields.spec_file.clone(),
                     tarball_hash: config.tarball_hash.clone().unwrap().clone(),
-                    tarball_url: config.tarball_url.clone(),
-                    config_root: self.config_root.clone(),
-                    debian_orig_tarball_path: self.debian_orig_tarball_path.clone(),
+                    tarball_url: tarball_url.clone(),
                     src_dir: self.source_to_patch_from_path.clone(),
-                    tarball_path,
                     debian_artifacts_dir: self.debian_artifacts_dir.clone(),
+                    tarball_path: self.debian_orig_tarball_path.clone()
                 };
-                info!("Using build context: {:?}", context);
+                info!("Using build context: {:#?}", context);
                 let sbuild_setup = SbuildSetupDefault::new(context);
                 sbuild_setup.execute()?;
                 Ok(())

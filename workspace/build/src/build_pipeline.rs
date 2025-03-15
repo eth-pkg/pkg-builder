@@ -2,19 +2,17 @@ use thiserror::Error;
 
 use crate::debcrafter_cmd::DebcrafterCmdError;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct BuildContext {
     pub tarball_url: String,
-    pub config_root: String,
     pub tarball_hash: String,
-    pub debian_orig_tarball_path: String,
+    pub tarball_path: String,
     pub build_files_dir: String,
     pub debcrafter_version: String,
     pub homepage: String,
     pub build_artifacts_dir: String,
     pub debian_artifacts_dir: String,
     pub spec_file: String,
-    pub tarball_path: String,
     pub src_dir: String,
 
 }
