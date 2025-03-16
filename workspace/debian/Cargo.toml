@@ -8,8 +8,8 @@ name = "debian"
 path = "src/mod.rs"  
 
 [dependencies]
-types = { path = "../types" }
-log = "0.4"
-shellexpand = "3.1.0"
-thiserror = "1.0"
-tempfile = "3.1"
+types = { workspace = true}
+log = { workspace = true}
+shellexpand = { workspace = true}
+thiserror = { workspace = true}
+tempfile = { workspace = true}
