@@ -16,7 +16,6 @@ use std::fs::{self, create_dir_all};
 use std::process::Command;
 use std::{env, vec};
 use thiserror::Error;
-use types::build::BackendBuildEnv;
 use types::pkg_config::PkgConfig;
 use types::pkg_config::{LanguageEnv, PackageType};
 use types::pkg_config_verify::PkgVerifyConfig;
@@ -72,16 +71,15 @@ pub enum SbuildError {
     GenericError(String),
 }
 
-impl BackendBuildEnv for Sbuild {
-    type Error = SbuildError;
-    fn clean(&self) -> Result<(), SbuildError> {
+impl Sbuild {
+    pub fn clean(&self) -> Result<(), SbuildError> {
         let cache_file = self.get_cache_file();
         info!("Cleaning cached build: {}", cache_file);
         remove_file_or_directory(&cache_file, false)?;
         Ok(())
     }
 
-    fn create(&self) -> Result<(), SbuildError> {
+    pub fn create(&self) -> Result<(), SbuildError> {
         let temp_dir = env::temp_dir().join(format!("temp_{}", random::<u32>()));
         fs::create_dir(&temp_dir)?;
 
@@ -103,7 +101,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
-    fn package(&self) -> Result<(), SbuildError> {
+    pub fn package(&self) -> Result<(), SbuildError> {
         let codename = Self::normalize_codename(&self.config.build_env.codename)?;
         let cache_file = self.get_cache_file();
         let build_chroot_setup_commands = self.build_chroot_setup_commands();
@@ -135,7 +133,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
-    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), SbuildError> {
+    pub fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), SbuildError> {
         let output_dir =
             Path::new(&self.build_files_dir)
                 .parent()
@@ -183,7 +181,7 @@ impl BackendBuildEnv for Sbuild {
         }
     }
 
-    fn run_lintian(&self) -> Result<(), SbuildError> {
+    pub fn run_lintian(&self) -> Result<(), SbuildError> {
         check_tool_version("lintian", &self.config.build_env.lintian_version)?;
 
         let changes_file = self.get_changes_file();
@@ -203,7 +201,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
-    fn run_piuparts(&self) -> Result<(), SbuildError> {
+    pub fn run_piuparts(&self) -> Result<(), SbuildError> {
         info!("Running piuparts (requires sudo)...");
         check_tool_version("piuparts", &self.config.build_env.piuparts_version)?;
 
@@ -229,7 +227,7 @@ impl BackendBuildEnv for Sbuild {
         Ok(())
     }
 
-    fn run_autopkgtests(&self) -> Result<(), SbuildError> {
+    pub fn run_autopkgtests(&self) -> Result<(), SbuildError> {
         info!("Running autopkgtests...");
         check_tool_version("autopkgtest", &self.config.build_env.autopkgtest_version)?;
 

@@ -1,4 +1,3 @@
-use crate::packager::DistributionPackager;
 use crate::validation::get_config;
 
 use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
@@ -6,12 +5,14 @@ use cargo_metadata::semver;
 use clap::Parser;
 use env_logger::Env;
 use log::{error, info, warn};
+use packager_deb::sbuild_packager::{PackageError, SbuildPackager};
 use regex::Regex;
 use semver::Version;
 use std::io;
 use std::process::Command;
 use std::{env, fs, path::Path};
 use thiserror::Error;
+use types::build::Packager;
 use types::pkg_config::PkgConfig;
 use types::pkg_config_verify::PkgVerifyConfig;
 
@@ -37,6 +38,12 @@ pub enum PkgBuilderError {
 
     #[error("Failed to parse config: {0}")]
     ConfigParse(String),
+
+    #[error("Invalid codename '{0}' specified")]
+    InvalidCodename(String),
+
+    #[error(transparent)]
+    PackageError(#[from] PackageError),
 }
 
 type Result<T> = std::result::Result<T, PkgBuilderError>;
@@ -46,129 +53,69 @@ pub fn run_cli() -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let program_name: &str = env!("CARGO_PKG_NAME");
     let program_version: &str = env!("CARGO_PKG_VERSION");
+    let config_path = match &args.action {
+        ActionType::Verify(command) => command.config.clone(),
+        ActionType::Package(command) => command.config.clone(),
+        ActionType::Env(command) => match &command.build_env_sub_command {
+            BuildEnvSubCommand::Create(sub_command) => sub_command.config.clone(),
+            BuildEnvSubCommand::Clean(sub_command) => sub_command.config.clone(),
+        },
+        ActionType::Piuparts(command) => command.config.clone(),
+        ActionType::Autopkgtest(command) => command.config.clone(),
+        ActionType::Lintian(command) => command.config.clone(),
+        ActionType::Version => None, // Special case
+    };
+    let config_file = get_config_file(config_path.clone(), CONFIG_FILE_NAME)?;
+    let mut config = get_config::<PkgConfig>(config_file.clone())
+        .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+    fail_compare_versions(
+        config.build_env.pkg_builder_version.clone(),
+        program_version,
+        program_name,
+    )?;
+    let sbuild_version = config.build_env.sbuild_version.clone();
+    if let ActionType::Package(command) = &args.action {
+        if let Some(run_piuparts) = command.run_piuparts {
+            config.build_env.run_piuparts = Some(run_piuparts);
+        }
+        if let Some(run_autopkgttests) = command.run_autopkgtest {
+            config.build_env.run_autopkgtest = Some(run_autopkgttests);
+        }
+        if let Some(run_lintian) = command.run_lintian {
+            config.build_env.run_lintian = Some(run_lintian);
+        }
+    }
+    let distribution = get_distribution(config, config_file)?;
+
     match args.action {
         ActionType::Verify(command) => {
-            let config_file = get_config_file(command.config, CONFIG_FILE_NAME)?;
-            let config = get_config::<PkgConfig>(config_file.clone())
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-
-            fail_compare_versions(
-                config.build_env.pkg_builder_version.clone(),
-                program_version,
-                program_name,
-            )?;
-
-            let distribution = get_distribution(config, config_file)?;
             let verify_config_file =
                 get_config_file(command.verify_config, VERIFY_CONFIG_FILE_NAME)?;
             let verify_config_file = get_config::<PkgVerifyConfig>(verify_config_file.clone())
                 .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
             let no_package = command.no_package.unwrap_or_default();
-            distribution
-                .verify(verify_config_file, !no_package)
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+            distribution.verify(verify_config_file, !no_package)?;
         }
-        ActionType::Lintian(command) => {
-            let config_file = get_config_file(command.config, CONFIG_FILE_NAME)?;
-            let config = get_config::<PkgConfig>(config_file.clone())
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-
-            fail_compare_versions(
-                config.build_env.pkg_builder_version.clone(),
-                program_version,
-                program_name,
-            )?;
-
-            let distribution = get_distribution(config, config_file)?;
-            distribution
-                .run_lintian()
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+        ActionType::Lintian(_) => {
+            distribution.run_lintian()?;
         }
-        ActionType::Piuparts(command) => {
-            let config_file = get_config_file(command.config, CONFIG_FILE_NAME)?;
-            let config = get_config::<PkgConfig>(config_file.clone())
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-            fail_compare_versions(
-                config.build_env.pkg_builder_version.clone(),
-                program_version,
-                program_name,
-            )?;
-
-            let distribution = get_distribution(config, config_file)?;
-            distribution
-                .run_piuparts()
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+        ActionType::Piuparts(_) => {
+            distribution.run_piuparts()?;
         }
-        ActionType::Autopkgtest(command) => {
-            let config_file = get_config_file(command.config, CONFIG_FILE_NAME)?;
-            let config = get_config::<PkgConfig>(config_file.clone())
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-            fail_compare_versions(
-                config.build_env.pkg_builder_version.clone(),
-                program_version,
-                program_name,
-            )?;
-
-            let distribution = get_distribution(config, config_file)?;
-            distribution
-                .run_autopkgtests()
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+        ActionType::Autopkgtest(_) => {
+            distribution.run_autopkgtests()?;
         }
-        ActionType::Package(command) => {
-            let config_file = get_config_file(command.config, CONFIG_FILE_NAME)?;
-            let mut config = get_config::<PkgConfig>(config_file.clone())
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-            fail_compare_versions(
-                config.build_env.pkg_builder_version.clone(),
-                program_version,
-                program_name,
-            )?;
-
-            check_sbuild_version(config.build_env.sbuild_version.clone())?;
-            if let Some(run_piuparts) = command.run_piuparts {
-                config.build_env.run_piuparts = Some(run_piuparts);
-            }
-            if let Some(run_autopkgttests) = command.run_autopkgtest {
-                config.build_env.run_autopkgtest = Some(run_autopkgttests);
-            }
-            if let Some(run_lintian) = command.run_lintian {
-                config.build_env.run_lintian = Some(run_lintian);
-            }
-            let distribution = get_distribution(config, config_file)?;
-            distribution
-                .package()
-                .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+        ActionType::Package(_) => {
+            check_sbuild_version(sbuild_version)?;
+            distribution.package()?;
         }
         ActionType::Env(build_env_action) => {
             match build_env_action.build_env_sub_command {
-                BuildEnvSubCommand::Create(sub_command) => {
-                    let config_file = get_config_file(sub_command.config, CONFIG_FILE_NAME)?;
-                    let config = get_config::<PkgConfig>(config_file.clone())
-                        .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-                    fail_compare_versions(
-                        config.build_env.pkg_builder_version.clone(),
-                        program_version,
-                        program_name,
-                    )?;
-
-                    let distribution = get_distribution(config, config_file)?;
-                    distribution
-                        .create_build_env()
-                        .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+                BuildEnvSubCommand::Create(_) => {
+                    distribution.create()?;
                 }
-                BuildEnvSubCommand::Clean(sub_command) => {
-                    let config_file = get_config_file(sub_command.config, CONFIG_FILE_NAME)?;
-                    let config = get_config::<PkgConfig>(config_file.clone())
-                        .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
-                    fail_compare_versions(
-                        config.build_env.pkg_builder_version.clone(),
-                        program_version,
-                        program_name,
-                    )?;
-                    let distribution = get_distribution(config, config_file)?;
-                    distribution
-                        .clean_build_env()
-                        .map_err(|e| PkgBuilderError::ConfigParse(e.to_string()))?;
+                BuildEnvSubCommand::Clean(_) => {
+                    distribution.clean()?;
                 }
             };
         }
@@ -249,10 +196,7 @@ pub fn fail_compare_versions(
     }
 }
 
-pub fn get_distribution(
-    config: PkgConfig,
-    config_file_path: String,
-) -> Result<DistributionPackager> {
+pub fn get_distribution(config: PkgConfig, config_file_path: String) -> Result<SbuildPackager> {
     let path = Path::new(&config_file_path);
     let config_file_path = fs::canonicalize(path)?;
     let config_root = config_file_path
@@ -261,7 +205,12 @@ pub fn get_distribution(
         .to_str()
         .unwrap()
         .to_string();
-    Ok(DistributionPackager::new(config, config_root))
+    match config.build_env.codename.as_str() {
+        "bookworm" | "noble numbat" | "jammy jellyfish" => {
+            Ok(SbuildPackager::new(config.clone(), config_root.clone()))
+        }
+        _ => Err(PkgBuilderError::InvalidCodename(config.build_env.codename)),
+    }
 }
 
 pub fn get_config_file(config: Option<String>, config_file_name: &str) -> Result<String> {

@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 use thiserror::Error;
 use types::{
-    build::{BackendBuildEnv, Packager},
+    build::Packager,
     pkg_config::{PackageType, PkgConfig},
 };
 
@@ -25,8 +25,33 @@ pub enum PackageError {
     SbuildError(#[from] SbuildError),
 }
 
+impl SbuildPackager {
+    fn get_build_env(&self) -> Result<Sbuild, PackageError> {
+        let context = build_context(&self.config, &self.config_root);
+        let backend_build_env = Sbuild::new(self.config.clone(), context.build_files_dir.clone());
+        Ok(backend_build_env)
+    }
+
+    pub fn run_lintian(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_lintian()?;
+        Ok(())
+    }
+
+    pub fn run_autopkgtests(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_autopkgtests()?;
+        Ok(())
+    }
+
+    pub fn run_piuparts(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_piuparts()?;
+        Ok(())
+    }
+}
+
 impl Packager for SbuildPackager {
-    type BuildEnv = Sbuild;
     type Error = PackageError;
 
     fn new(config: PkgConfig, config_root: String) -> Self {
@@ -74,11 +99,29 @@ impl Packager for SbuildPackager {
         Ok(())
     }
 
-    fn get_build_env(&self) -> Result<Self::BuildEnv, PackageError> {
-        let context = build_context(&self.config, &self.config_root);
-        let backend_build_env =
-            Sbuild::new(self.config.clone(), context.build_files_dir.clone());
-        Ok(backend_build_env)
+    fn clean(&self) -> Result<(), Self::Error> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.clean()?;
+        Ok(())
+    }
+
+    fn create(&self) -> Result<(), Self::Error> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.create()?;
+        Ok(())
+    }
+
+    fn verify(
+        &self,
+        verify_config: types::pkg_config_verify::PkgVerifyConfig,
+        no_package: bool,
+    ) -> Result<(), Self::Error> {
+        let sbuild = self.get_build_env().unwrap();
+        if !no_package {
+            self.package()?;
+        }
+        sbuild.verify(verify_config)?;
+        Ok(())
     }
 }
 
