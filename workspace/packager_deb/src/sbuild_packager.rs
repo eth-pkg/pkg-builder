@@ -15,7 +15,7 @@ use crate::{
 
 pub struct SbuildPackager {
     config: PkgConfig,
-    context: BuildContext,
+    config_root: String,
 }
 #[derive(Debug, Error)]
 pub enum PackageError {
@@ -46,28 +46,26 @@ impl Packager for SbuildPackager {
         updated_config.package_fields.spec_file = spec_file_canonical.to_str().unwrap().to_string();
 
         // Build the complete context based on the package type
-        let context = build_context(&updated_config, &config_root);
         SbuildPackager {
             config: updated_config,
-            context,
+            config_root,
         }
     }
 
     fn package(&self) -> Result<(), PackageError> {
+        let context = build_context(&self.config, &self.config_root);
+        info!("Using build context: {:#?}", context);
         match &self.config.package_type {
             PackageType::Default(_) => {
-                info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildSourcePipeline::new(self.context.clone());
+                let sbuild_setup = SbuildSourcePipeline::new(context.clone());
                 sbuild_setup.execute()?;
             }
             PackageType::Git(_) => {
-                info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildGitPipeline::new(self.context.clone());
+                let sbuild_setup = SbuildGitPipeline::new(context.clone());
                 sbuild_setup.execute()?;
             }
             PackageType::Virtual => {
-                info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildVirtualPipeline::new(self.context.clone());
+                let sbuild_setup = SbuildVirtualPipeline::new(context.clone());
                 sbuild_setup.execute()?;
             }
         };
@@ -77,8 +75,9 @@ impl Packager for SbuildPackager {
     }
 
     fn get_build_env(&self) -> Result<Self::BuildEnv, PackageError> {
+        let context = build_context(&self.config, &self.config_root);
         let backend_build_env =
-            Sbuild::new(self.config.clone(), self.context.build_files_dir.clone());
+            Sbuild::new(self.config.clone(), context.build_files_dir.clone());
         Ok(backend_build_env)
     }
 }
