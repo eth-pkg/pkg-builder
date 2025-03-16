@@ -33,6 +33,7 @@ sha2 = "0.11.0-pre.3"
 whoami = "1.5.1"
 sha1 = "0.11.0-pre.3"
 filetime = "0.2.23"
+httpmock = "0.7.0"
 
 
 # Local crates

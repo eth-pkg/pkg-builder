@@ -8,6 +8,5 @@ name = "types"
 path = "src/mod.rs"  
 
 [dependencies]
-toml = { workspace = true}
 serde ={ workspace = true}
 thiserror = { workspace = true}
