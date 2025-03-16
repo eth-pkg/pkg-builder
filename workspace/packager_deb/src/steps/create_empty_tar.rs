@@ -9,20 +9,26 @@ pub enum CreateEmptyTarError {
     TarballCreationFailed,
 }
 #[derive(Default)]
-pub struct CreateEmptyTar {}
+pub struct CreateEmptyTar {
+    tarball_path: String,
+    build_artifacts_dir: String,
+}
 
-impl CreateEmptyTar {
-    pub fn new() -> Self {
-        Self::default()
+impl From<BuildContext> for CreateEmptyTar {
+    fn from(context: BuildContext) -> Self {
+        CreateEmptyTar {
+            build_artifacts_dir: context.build_artifacts_dir.clone(),
+            tarball_path: context.tarball_path.clone(),
+        }
     }
 }
 
 impl BuildStep for CreateEmptyTar {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+    fn step(&self) -> Result<(), BuildError> {
         info!("Creating empty .tar.gz for virtual package");
         let output = Command::new("tar")
-            .args(["czvf", &context.tarball_path, "--files-from", "/dev/null"])
-            .current_dir(&context.build_artifacts_dir)
+            .args(["czvf", &self.tarball_path, "--files-from", "/dev/null"])
+            .current_dir(&self.build_artifacts_dir)
             .output()?;
 
         if !output.status.success() {
@@ -47,11 +53,12 @@ mod tests {
         let tarball_path = temp_dir.path().join(tarball_name);
         let tarball_path_str = String::from(temp_dir.path().join(tarball_name).to_str().unwrap());
 
-        let step = CreateEmptyTar::new();
         let mut context = BuildContext::new();
         context.tarball_path = tarball_path_str;
         context.build_artifacts_dir = build_artifacts_dir;
-        let result = step.step(&mut context);
+        let step = CreateEmptyTar::from(context);
+
+        let result = step.step();
 
         assert!(result.is_ok());
         assert!(tarball_path.exists());

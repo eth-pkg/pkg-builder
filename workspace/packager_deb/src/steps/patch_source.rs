@@ -10,13 +10,23 @@ use log::info;
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
-pub struct PatchSource {}
+pub struct PatchSource {
+    build_files_dir: String,
+    homepage: String,
+    src_dir: String,
+}
+
+impl From<BuildContext> for PatchSource {
+    fn from(context: BuildContext) -> Self {
+        PatchSource {
+            build_files_dir: context.build_files_dir.clone(),
+            homepage: context.homepage.clone(),
+            src_dir: context.src_dir.clone(),
+        }
+    }
+}
 
 impl PatchSource {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn patch_quilt(build_files_dir: &String) -> Result<(), BuildError> {
         let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
         info!(
@@ -161,20 +171,20 @@ impl PatchSource {
 }
 
 impl BuildStep for PatchSource {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+    fn step(&self) -> Result<(), BuildError> {
         // Patch quilt
-        Self::patch_quilt(&context.build_files_dir)?;
+        Self::patch_quilt(&self.build_files_dir)?;
 
         // Patch .pc dir setup
-        Self::patch_pc_dir(&context.build_files_dir)?;
+        Self::patch_pc_dir(&self.build_files_dir)?;
 
         // Patch .pc patch version number
-        Self::patch_standards_version(&context.build_files_dir, &context.homepage)?;
+        Self::patch_standards_version(&self.build_files_dir, &self.homepage)?;
 
         // Only copy if src dir exists
-        Self::copy_src_dir(&context.build_files_dir, &context.src_dir)?;
+        Self::copy_src_dir(&self.build_files_dir, &self.src_dir)?;
 
-        Self::patch_rules_permission(&context.build_files_dir)?;
+        Self::patch_rules_permission(&self.build_files_dir)?;
 
         info!("Patching finished successfully!");
         Ok(()) // Added missing return value

@@ -3,13 +3,23 @@ use log::info;
 use std::{fs, io, path::PathBuf, process::Command};
 
 #[derive(Default)]
-pub struct ExtractSource {}
+pub struct ExtractSource {
+    build_files_dir: String,
+    tarball_path: String,
+}
+
+impl From<BuildContext> for ExtractSource {
+    fn from(context: BuildContext) -> Self {
+        ExtractSource {
+            build_files_dir: context.build_files_dir.clone(),
+            tarball_path: context.tarball_path.clone(),
+            // debcrafter_version: context.debcrafter_version.clone(),
+            // spec_file: context.spec_file.clone(),
+        }
+    }
+}
 
 impl ExtractSource {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     fn longest_common_prefix(strings: &[&str]) -> String {
         if strings.is_empty() {
             return String::new();
@@ -53,18 +63,13 @@ impl ExtractSource {
 }
 
 impl BuildStep for ExtractSource {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
-        info!("Extracting source {}", &context.build_files_dir);
-        fs::create_dir_all(&context.build_files_dir).map_err(BuildError::IoError)?;
+    fn step(&self) -> Result<(), BuildError> {
+        info!("Extracting source {}", &self.build_files_dir);
+        fs::create_dir_all(&self.build_files_dir).map_err(BuildError::IoError)?;
 
-        let mut args = vec![
-            "zxvf",
-            &context.tarball_path,
-            "-C",
-            &context.build_files_dir,
-        ];
+        let mut args = vec!["zxvf", &self.tarball_path, "-C", &self.build_files_dir];
         let numbers_to_strip = self
-            .components_to_strip(context.tarball_path.clone())
+            .components_to_strip(self.tarball_path.clone())
             .map_err(BuildError::IoError)?;
 
         let strip = format!("--strip-components={}", numbers_to_strip);
@@ -86,7 +91,7 @@ impl BuildStep for ExtractSource {
 
         info!(
             "Extracted source to build_files_dir: {:?}",
-            context.build_files_dir
+            self.build_files_dir
         );
         Ok(())
     }
@@ -139,14 +144,14 @@ mod tests {
 
         File::create(&tarball_path)?;
 
-        let handler = ExtractSource::new();
-
         let mut context = BuildContext::default();
         context.build_files_dir = build_dir.to_str().unwrap().to_string();
         context.tarball_path = tarball_path.to_str().unwrap().to_string();
 
+        let handler = ExtractSource::from(context);
+
         if !Path::new(&build_dir).exists() {
-            let result = handler.step(&mut context);
+            let result = handler.step();
             assert!(result.is_err());
         }
 
@@ -161,12 +166,12 @@ mod tests {
         let build_dir = temp_dir.path().join("build");
         let tarball_path = temp_dir.path().join("nonexistent.tar.gz");
 
-        let handler = ExtractSource::new();
-
         let mut context = BuildContext::default();
         context.build_files_dir = build_dir.to_str().unwrap().to_string();
         context.tarball_path = tarball_path.to_str().unwrap().to_string();
-        let result = handler.step(&mut context);
+        let handler = ExtractSource::from(context);
+
+        let result = handler.step();
         assert!(result.is_err());
 
         // match result {
@@ -186,12 +191,13 @@ mod tests {
         let build_files_dir = temp_dir.join(package_name).to_string_lossy().to_string();
 
         assert!(tarball_path.exists());
-        let handler = ExtractSource::new();
 
         let mut context = BuildContext::default();
         context.build_files_dir = build_files_dir.clone();
         context.tarball_path = tarball_path.to_str().unwrap().into();
-        let result = handler.step(&mut context);
+        let handler = ExtractSource::from(context);
+
+        let result = handler.step();
 
         assert!(result.is_ok(), "{:?}", result);
         assert!(Path::new(&build_files_dir).exists());

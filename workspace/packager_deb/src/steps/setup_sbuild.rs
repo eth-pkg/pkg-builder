@@ -6,14 +6,13 @@ use std::io::Write;
 #[derive(Default)]
 pub struct SetupSbuild {}
 
-impl SetupSbuild {
-    pub fn new() -> Self {
-        Self::default()
+impl From<BuildContext> for SetupSbuild {
+    fn from(_context: BuildContext) -> Self {
+        SetupSbuild {}
     }
 }
-
 impl BuildStep for SetupSbuild {
-    fn step(&self, _context: &mut BuildContext) -> Result<(), BuildError> {
+    fn step(&self) -> Result<(), BuildError> {
         let home_dir = home_dir().ok_or(BuildError::HomeDirNotFound)?;
         let dest_path = home_dir.join(".sbuildrc");
         let content = include_str!("../.sbuildrc");

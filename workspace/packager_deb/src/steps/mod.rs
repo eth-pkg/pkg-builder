@@ -5,6 +5,5 @@ pub mod download_source;
 pub mod extract_source;
 pub mod package_dir_setup;
 pub mod patch_source;
-pub mod sbuild_setup;
 pub mod setup_sbuild;
 pub mod verify_hash;

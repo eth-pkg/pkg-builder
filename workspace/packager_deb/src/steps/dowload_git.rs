@@ -40,13 +40,29 @@ pub enum DownloadGitError {
 }
 
 #[derive(Default)]
-pub struct DownloadGit {}
+pub struct DownloadGit {
+    build_artifacts_dir: String,
+    package_name: String,
+    git_tag: String,
+    git_url: String,
+    submodules: Vec<SubModule>,
+    tarball_path: String,
+}
+
+impl From<BuildContext> for DownloadGit {
+    fn from(context: BuildContext) -> Self {
+        DownloadGit {
+            build_artifacts_dir: context.build_artifacts_dir.clone(),
+            package_name: context.package_name.clone(),
+            git_tag: context.git_tag.clone(),
+            git_url: context.git_url.clone(),
+            submodules: context.submodules.clone(),
+            tarball_path: context.tarball_path.clone(),
+        }
+    }
+}
 
 impl DownloadGit {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn clone_and_checkout_tag(
         git_url: &str,
         tag_version: &str,
@@ -152,18 +168,18 @@ impl DownloadGit {
 }
 
 impl BuildStep for DownloadGit {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
-        let path = Path::new(&context.build_artifacts_dir).join(&context.package_name);
+    fn step(&self) -> Result<(), BuildError> {
+        let path = Path::new(&self.build_artifacts_dir).join(&self.package_name);
         if path.exists() {
             fs::remove_dir_all(path.clone()).map_err(DownloadGitError::IoError)?;
         }
         fs::create_dir_all(&path.clone()).map_err(DownloadGitError::IoError)?;
         //let path = Path::new("/tmp/nimbus");
         Self::clone_and_checkout_tag(
-            &context.git_url,
-            &context.git_tag,
+            &self.git_url,
+            &self.git_tag,
             path.clone().to_str().unwrap(),
-            &context.submodules,
+            &self.submodules,
         )?;
         // remove .git directory, no need to package it
         fs::remove_dir_all(path.join(".git")).map_err(DownloadGitError::IoError)?;
@@ -183,10 +199,10 @@ impl BuildStep for DownloadGit {
                 // "--mtime='2019-01-01 00:00'",
                 "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
                 "-czf",
-                &context.tarball_path,
-                &context.package_name,
+                &self.tarball_path,
+                &self.package_name,
             ])
-            .current_dir(&context.build_artifacts_dir)
+            .current_dir(&self.build_artifacts_dir)
             .output()
             .map_err(DownloadGitError::IoError)?;
 

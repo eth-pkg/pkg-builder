@@ -83,7 +83,7 @@ pub enum BuildError {
 }
 
 pub trait BuildStep {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError>;
+    fn step(&self) -> Result<(), BuildError>;
 }
 
 #[derive(Default)]
@@ -101,9 +101,9 @@ impl BuildPipeline {
         self
     }
 
-    pub fn execute(&self, context: &mut BuildContext) -> Result<(), BuildError> {
+    pub fn execute(&self) -> Result<(), BuildError> {
         for handler in &self.handlers {
-            handler.step(context)?;
+            handler.step()?;
         }
         Ok(())
     }

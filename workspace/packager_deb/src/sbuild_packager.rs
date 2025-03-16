@@ -10,7 +10,7 @@ use log::info;
 use crate::{
     build_pipeline::{BuildContext, BuildError},
     sbuild::{Sbuild, SbuildError},
-    steps::sbuild_setup::{SbuildSetupDefault, SbuildSetupGit, SbuildSetupVirtual},
+    sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
 };
 
 pub struct SbuildPackager {
@@ -57,17 +57,17 @@ impl Packager for SbuildPackager {
         match &self.config.package_type {
             PackageType::Default(_) => {
                 info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildSetupDefault::new(self.context.clone());
+                let sbuild_setup = SbuildSourcePipeline::new(self.context.clone());
                 sbuild_setup.execute()?;
             }
             PackageType::Git(_) => {
                 info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildSetupGit::new(self.context.clone());
+                let sbuild_setup = SbuildGitPipeline::new(self.context.clone());
                 sbuild_setup.execute()?;
             }
             PackageType::Virtual => {
                 info!("Using build context: {:#?}", self.context);
-                let sbuild_setup = SbuildSetupVirtual::new(self.context.clone());
+                let sbuild_setup = SbuildVirtualPipeline::new(self.context.clone());
                 sbuild_setup.execute()?;
             }
         };

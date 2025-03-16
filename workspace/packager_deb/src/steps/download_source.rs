@@ -3,29 +3,34 @@ use log::info;
 use std::{fs, process::Command};
 
 #[derive(Default)]
-pub struct DownloadSource {}
-
-impl DownloadSource {
-    pub fn new() -> Self {
-        Self::default()
-    }
+pub struct DownloadSource {
+    tarball_url: String,
+    tarball_path: String,
 }
 
+impl From<BuildContext> for DownloadSource {
+    fn from(context: BuildContext) -> Self {
+        DownloadSource {
+            tarball_url: context.tarball_url.clone(),
+            tarball_path: context.tarball_path.clone(),
+        }
+    }
+}
 impl BuildStep for DownloadSource {
-    fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
-        info!("Downloading source {}", context.tarball_path);
-        let is_web = context.tarball_url.starts_with("http");
+    fn step(&self) -> Result<(), BuildError> {
+        info!("Downloading source {}", self.tarball_path);
+        let is_web = self.tarball_url.starts_with("http");
 
         if is_web {
             info!(
                 "Downloading tar: {} to location: {}",
-                context.tarball_url, context.tarball_path
+                self.tarball_url, self.tarball_path
             );
             let status = Command::new("wget")
                 .arg("-q")
                 .arg("-O")
-                .arg(&context.tarball_path)
-                .arg(&context.tarball_url)
+                .arg(&self.tarball_path)
+                .arg(&self.tarball_url)
                 .status()
                 .map_err(|e| BuildError::CommandFailed(e.to_string()))?;
 
@@ -35,9 +40,9 @@ impl BuildStep for DownloadSource {
         } else {
             info!(
                 "Copying tar: {} to location: {}",
-                context.tarball_url, context.tarball_path
+                self.tarball_url, self.tarball_path
             );
-            fs::copy(&context.tarball_url, &context.tarball_path)
+            fs::copy(&self.tarball_url, &self.tarball_path)
                 .map_err(|e| BuildError::FileCopyFailed(e.to_string()))?;
         }
 
@@ -47,6 +52,8 @@ impl BuildStep for DownloadSource {
 
 #[cfg(test)]
 mod tests {
+    use crate::build_pipeline::BuildContext;
+
     use super::*;
     use std::fs::File;
     use std::io::Write;
@@ -79,12 +86,12 @@ mod tests {
         let tarball_path = temp_dir.path().join(tarball_name);
         let tarball_url = format!("{}/{}", server.base_url(), tarball_name);
 
-        let handler = DownloadSource::new();
         let mut context = BuildContext::default();
         context.tarball_path = tarball_path.to_string_lossy().to_string();
         context.tarball_url = tarball_url;
+        let handler = DownloadSource::from(context);
 
-        let result = handler.step(&mut context);
+        let result = handler.step();
 
         assert!(result.is_ok());
         assert!(tarball_path.exists());
@@ -103,12 +110,12 @@ mod tests {
             writeln!(file, "test content").unwrap();
         }
 
-        let handler = DownloadSource::new();
-
         let mut context = BuildContext::default();
         context.tarball_path = dest_path.to_string_lossy().to_string();
         context.tarball_url = source_path.to_string_lossy().to_string();
-        let result = handler.step(&mut context);
+        let handler = DownloadSource::from(context);
+
+        let result = handler.step();
         assert!(result.is_ok());
 
         // Verify the file was copied
@@ -124,12 +131,12 @@ mod tests {
 
         // No source file exists
 
-        let handler = DownloadSource::new();
-
         let mut context = BuildContext::default();
         context.tarball_path = dest_path.to_string_lossy().to_string();
         context.tarball_url = source_path.to_string_lossy().to_string();
-        let result = handler.step(&mut context);
+        let handler = DownloadSource::from(context);
+
+        let result = handler.step();
         assert!(result.is_err());
 
         match result {
