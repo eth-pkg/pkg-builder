@@ -1,7 +1,7 @@
 
 [workspace]
 members = [
-    "workspace/build",
+    "workspace/packager_deb",
     "workspace/cli",
     "workspace/types",
     "workspace/debian",

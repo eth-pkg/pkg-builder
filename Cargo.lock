@@ -365,32 +365,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "build"
-version = "0.1.0"
-dependencies = [
- "cargo_metadata",
- "debian",
- "dirs",
- "env_logger",
- "filetime",
- "git2",
- "glob",
- "httpmock",
- "log",
- "rand",
- "serde",
- "sha1",
- "sha2",
- "shellexpand",
- "tempfile",
- "test-case",
- "thiserror",
- "toml",
- "types",
- "whoami",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -495,11 +469,11 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 name = "cli"
 version = "0.3.0"
 dependencies = [
- "build",
  "cargo_metadata",
  "clap",
  "env_logger",
  "log",
+ "packager_deb",
  "regex",
  "serde",
  "thiserror",
@@ -1421,6 +1395,32 @@ name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+
+[[package]]
+name = "packager_deb"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata",
+ "debian",
+ "dirs",
+ "env_logger",
+ "filetime",
+ "git2",
+ "glob",
+ "httpmock",
+ "log",
+ "rand",
+ "serde",
+ "sha1",
+ "sha2",
+ "shellexpand",
+ "tempfile",
+ "test-case",
+ "thiserror",
+ "toml",
+ "types",
+ "whoami",
+]
 
 [[package]]
 name = "parking"

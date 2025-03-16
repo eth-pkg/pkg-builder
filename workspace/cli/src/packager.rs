@@ -1,5 +1,5 @@
-use build::sbuild_packager::{PackageError, SbuildPackager};
-use build::sbuild::SbuildError;
+use packager_deb::sbuild_packager::{PackageError, SbuildPackager};
+use packager_deb::sbuild::SbuildError;
 use thiserror::Error;
 use types::{
     build::{BackendBuildEnv, Packager},

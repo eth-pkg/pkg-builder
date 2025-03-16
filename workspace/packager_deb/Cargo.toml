@@ -1,10 +1,10 @@
 [package]
-name = "build"
+name = "packager_deb"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "build"
+name = "packager_deb"
 path = "src/mod.rs"
 
 [build-dependencies]

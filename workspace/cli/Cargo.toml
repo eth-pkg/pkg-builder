@@ -9,7 +9,7 @@ path = "src/mod.rs"
 
 [dependencies]
 types = { path = "../types" }
-build = { path = "../build" }
+packager_deb = { path = "../packager_deb" }
 clap = { version = "4.5.4", features = ["derive"] }
 toml = "0.8.12"
 serde = { version = "1.0", features = ["derive"] }
