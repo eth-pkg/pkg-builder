@@ -2,7 +2,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::{env, fs, io};
 
-use common::pkg_config::SubModule;
+use types::pkg_config::SubModule;
 use eyre::{eyre, Result};
 
 use dirs::home_dir;
@@ -508,7 +508,7 @@ pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::pkg_config::{PackageType, PkgConfig};
+    use types::pkg_config::{PackageType, PkgConfig};
     use std::fs::File;
     use std::path::PathBuf;
     use tempfile::tempdir;

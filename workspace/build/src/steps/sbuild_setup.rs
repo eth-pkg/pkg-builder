@@ -40,20 +40,20 @@ impl SbuildSetupDefault {
     }
 }
 
-// #[derive(Default)]
-// pub struct SbuildSetupGit {
-//     context: BuildContext,
-// }
+#[derive(Default)]
+pub struct SbuildSetupGit {
+    context: BuildContext,
+}
 
-// impl SbuildSetupGit {
-//     pub fn new(context: BuildContext) -> Self {
-//         SbuildSetupGit { context }
-//     }
+impl SbuildSetupGit {
+    pub fn new(context: BuildContext) -> Self {
+        SbuildSetupGit { context }
+    }
 
-//     pub fn execute(self) -> Result<(), BuildError> {
-//         Ok(())
-//     }
-// }
+    pub fn execute(self) -> Result<(), BuildError> {
+        Ok(())
+    }
+}
 
 // #[derive(Default)]
 // pub struct SbuildSetupVirtual {

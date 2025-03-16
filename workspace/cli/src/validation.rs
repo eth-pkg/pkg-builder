@@ -1,4 +1,4 @@
-use common::{
+use types::{
     pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, DotnetConfig, DotnetPackage, GitPackageTypeConfig,
         GoConfig, GradleConfig, JavaConfig, JavascriptConfig, LanguageEnv, NimConfig,

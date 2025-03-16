@@ -8,7 +8,7 @@ name = "cli"
 path = "src/mod.rs"  
 
 [dependencies]
-common = { path = "../common" }
+types = { path = "../types" }
 build = { path = "../build" }
 clap = { version = "4.5.4", features = ["derive"] }
 toml = "0.8.12"

@@ -1,6 +1,6 @@
 
 use std::{borrow::Cow, collections::HashMap};
-use common::pkg_config::LanguageEnv;
+use types::pkg_config::LanguageEnv;
 use super::{
     command_builder::CommandBuilder, dotnet_installer::DotnetInstaller,
     empty_installer::EmptyInstaller, go_installer::GoInstaller, java_installer::JavaInstaller,

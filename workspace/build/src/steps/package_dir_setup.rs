@@ -41,7 +41,7 @@ mod tests {
         let artifacts_dir = temp_dir.path().join("artifacts");
 
         let mut context = BuildContext::new();
-        context.build_artifacts_dir = artifacts_dir.to_string_lossy().to_string();
+        context.debian_artifacts_dir = artifacts_dir.to_string_lossy().to_string();
 
         (context, temp_dir)
     }
@@ -54,17 +54,17 @@ mod tests {
         let result = handler.step(&mut context);
 
         assert!(result.is_ok());
-        assert!(Path::new(&context.build_artifacts_dir).exists());
-        assert!(Path::new(&context.build_artifacts_dir).is_dir());
+        assert!(Path::new(&context.debian_artifacts_dir).exists());
+        assert!(Path::new(&context.debian_artifacts_dir).is_dir());
     }
 
     #[test]
     fn test_handle_removes_existing_directory() {
         let (mut context, _temp_dir) = setup_test_context();
 
-        fs::create_dir_all(&context.build_artifacts_dir).expect("Failed to create test directory");
+        fs::create_dir_all(&context.debian_artifacts_dir).expect("Failed to create test directory");
 
-        let test_file = PathBuf::from(&context.build_artifacts_dir).join("test_file.txt");
+        let test_file = PathBuf::from(&context.debian_artifacts_dir).join("test_file.txt");
         fs::write(&test_file, "test content").expect("Failed to write test file");
 
         assert!(test_file.exists());
@@ -73,8 +73,8 @@ mod tests {
         let result = handler.step(&mut context);
 
         assert!(result.is_ok());
-        assert!(Path::new(&context.build_artifacts_dir).exists());
-        assert!(Path::new(&context.build_artifacts_dir).is_dir());
+        assert!(Path::new(&context.debian_artifacts_dir).exists());
+        assert!(Path::new(&context.debian_artifacts_dir).is_dir());
 
         assert!(!test_file.exists());
     }
@@ -87,7 +87,7 @@ mod tests {
 
         let (mut context, _temp_dir) = setup_test_context();
 
-        context.build_artifacts_dir = "/root/forbidden_dir".to_string();
+        context.debian_artifacts_dir = "/root/forbidden_dir".to_string();
 
         let handler = PackageDirSetup::new();
         let result = handler.step(&mut context);

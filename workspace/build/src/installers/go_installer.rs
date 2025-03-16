@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use common::pkg_config::GoConfig;
+use types::pkg_config::GoConfig;
 
 use super::language_installer::LanguageInstaller;
 

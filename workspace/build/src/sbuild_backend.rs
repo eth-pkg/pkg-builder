@@ -1,8 +1,8 @@
 use crate::sbuild::normalize_codename;
 use cargo_metadata::semver::Version;
-use common::build::BackendBuildEnv;
-use common::pkg_config::{LanguageEnv, PackageType};
-use common::pkg_config_verify::PkgVerifyConfig;
+use types::build::BackendBuildEnv;
+use types::pkg_config::{LanguageEnv, PackageType};
+use types::pkg_config_verify::PkgVerifyConfig;
 use debian::autopkgtest::Autopkgtest;
 use debian::autopkgtest_image::AutopkgtestImageBuilder;
 use debian::execute::Execute;
@@ -366,7 +366,7 @@ fn remove_file_or_directory(path: &str, is_dir: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::pkg_config::PkgConfig;
+    use types::pkg_config::PkgConfig;
     use env_logger::Env;
     use std::fs::{create_dir_all, File};
     use std::path::Path;

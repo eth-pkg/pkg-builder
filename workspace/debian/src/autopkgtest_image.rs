@@ -1,7 +1,7 @@
 use crate::execute::ExecuteError;
 
 use super::execute::{execute_command_with_sudo, Execute};
-use common::distribution::Distribution;
+use types::distribution::Distribution;
 /// Provides functionality for building and managing Autopkgtest VM images
 ///
 /// This module contains structures and implementations for creating

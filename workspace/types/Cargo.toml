@@ -1,10 +1,10 @@
 [package]
-name = "common"
+name = "types"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "common"
+name = "types"
 path = "src/mod.rs"  
 
 [dependencies]

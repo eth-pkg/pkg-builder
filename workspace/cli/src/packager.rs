@@ -1,5 +1,5 @@
 use build::sbuild_packager::SbuildPackager;
-use common::{build::{BackendBuildEnv, Packager}, pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig};
+use types::{build::{BackendBuildEnv, Packager}, pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig};
 use eyre::{eyre, Result};
 
 

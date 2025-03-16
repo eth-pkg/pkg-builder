@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use common::pkg_config::JavaConfig;
+use types::pkg_config::JavaConfig;
 
 use super::language_installer::LanguageInstaller;
 

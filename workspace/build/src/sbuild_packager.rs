@@ -1,4 +1,4 @@
-use common::{
+use types::{
     build::{BackendBuildEnv, Packager},
     pkg_config::{PackageType, PkgConfig},
 };
@@ -8,11 +8,14 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
-    build_pipeline::{BuildContext, BuildPipeline}, dir_setup::{
-        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source, get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url, patch_source, setup_sbuild
-    }, sbuild::Sbuild, steps::{
-        package_dir_setup::PackageDirSetup, sbuild_setup::SbuildSetupDefault,
-    }
+    build_pipeline::{BuildContext, BuildPipeline},
+    dir_setup::{
+        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source,
+        get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url,
+        patch_source, setup_sbuild,
+    },
+    sbuild::Sbuild,
+    steps::{package_dir_setup::PackageDirSetup, sbuild_setup::SbuildSetupDefault},
 };
 
 pub struct SbuildPackager {
@@ -83,7 +86,7 @@ impl Packager for SbuildPackager {
                     tarball_url: tarball_url.clone(),
                     src_dir: self.source_to_patch_from_path.clone(),
                     debian_artifacts_dir: self.debian_artifacts_dir.clone(),
-                    tarball_path: self.debian_orig_tarball_path.clone()
+                    tarball_path: self.debian_orig_tarball_path.clone(),
                 };
                 info!("Using build context: {:#?}", context);
                 let sbuild_setup = SbuildSetupDefault::new(context);

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use common::pkg_config::DotnetConfig;
+use types::pkg_config::DotnetConfig;
 
 use super::{command_builder::CommandBuilder, language_installer::LanguageInstaller};
 

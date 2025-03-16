@@ -3,7 +3,7 @@
 members = [
     "workspace/build",
     "workspace/cli",
-    "workspace/common",
+    "workspace/types",
     "workspace/debian",
     "workspace/pkg_builder",
 ]

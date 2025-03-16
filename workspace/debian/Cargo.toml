@@ -8,7 +8,7 @@ name = "debian"
 path = "src/mod.rs"  
 
 [dependencies]
-common = { path = "../common" }
+types = { path = "../types" }
 log = "0.4"
 shellexpand = "3.1.0"
 thiserror = "1.0"
