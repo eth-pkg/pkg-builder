@@ -1,6 +1,6 @@
-use std::{fs, path::PathBuf, process::Command, io};
-use log::info;
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use log::info;
+use std::{fs, io, path::PathBuf, process::Command};
 
 #[derive(Default)]
 pub struct ExtractSource {}
@@ -56,26 +56,38 @@ impl BuildStep for ExtractSource {
     fn step(&self, context: &mut BuildContext) -> Result<(), BuildError> {
         info!("Extracting source {}", &context.build_files_dir);
         fs::create_dir_all(&context.build_files_dir).map_err(BuildError::IoError)?;
-        
-        let mut args = vec!["zxvf", &context.tarball_path, "-C", &context.build_files_dir];
-        let numbers_to_strip = self.components_to_strip(context.tarball_path.clone())
+
+        let mut args = vec![
+            "zxvf",
+            &context.tarball_path,
+            "-C",
+            &context.build_files_dir,
+        ];
+        let numbers_to_strip = self
+            .components_to_strip(context.tarball_path.clone())
             .map_err(BuildError::IoError)?;
-        
+
         let strip = format!("--strip-components={}", numbers_to_strip);
         if numbers_to_strip > 0 {
             args.push(&strip);
         }
-        
+
         info!("Stripping components: {} {:?}", numbers_to_strip, args);
-        let output = Command::new("tar").args(args).output().map_err(BuildError::IoError)?;
-        
+        let output = Command::new("tar")
+            .args(args)
+            .output()
+            .map_err(BuildError::IoError)?;
+
         if !output.status.success() {
             let error_message = String::from_utf8(output.stderr)
                 .unwrap_or_else(|_| "Unknown error occurred during extraction".to_string());
             return Err(BuildError::ExtractionError(error_message));
         }
-        
-        info!("Extracted source to build_files_dir: {:?}", context.build_files_dir);
+
+        info!(
+            "Extracted source to build_files_dir: {:?}",
+            context.build_files_dir
+        );
         Ok(())
     }
 }
@@ -83,11 +95,9 @@ impl BuildStep for ExtractSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
     use fs::File;
+    use std::path::Path;
     use tempfile::tempdir;
-
-
 
     #[test]
     fn test_longest_common_prefix_empty() {
@@ -121,29 +131,27 @@ mod tests {
         assert_eq!(prefix, "");
     }
 
-
     #[test]
     fn test_handle_success() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = tempdir()?;
         let build_dir = temp_dir.path().join("build");
         let tarball_path = temp_dir.path().join("source.tar.gz");
-        
+
         File::create(&tarball_path)?;
-        
+
         let handler = ExtractSource::new();
-        
-        
-        let mut context = BuildContext::default(); 
+
+        let mut context = BuildContext::default();
         context.build_files_dir = build_dir.to_str().unwrap().to_string();
         context.tarball_path = tarball_path.to_str().unwrap().to_string();
-    
+
         if !Path::new(&build_dir).exists() {
             let result = handler.step(&mut context);
             assert!(result.is_err());
         }
-        
+
         assert!(Path::new(&build_dir).exists());
-        
+
         Ok(())
     }
 
@@ -152,22 +160,21 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let build_dir = temp_dir.path().join("build");
         let tarball_path = temp_dir.path().join("nonexistent.tar.gz");
-        
+
         let handler = ExtractSource::new();
-        
+
         let mut context = BuildContext::default();
         context.build_files_dir = build_dir.to_str().unwrap().to_string();
         context.tarball_path = tarball_path.to_str().unwrap().to_string();
         let result = handler.step(&mut context);
         assert!(result.is_err());
-        
+
         // match result {
         //     Err(BuildError::IoError(_)) => (), // Expected
         //     Err(e) => panic!("Unexpected error type: {:?}", e),
         //     Ok(_) => panic!("Expected an error but got Ok"),
         // }
     }
-
 
     #[test]
     fn test_extract_source() {

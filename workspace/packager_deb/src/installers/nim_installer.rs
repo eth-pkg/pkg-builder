@@ -6,7 +6,6 @@ use super::language_installer::LanguageInstaller;
 
 pub struct NimInstaller(pub(crate) NimConfig);
 
-
 impl LanguageInstaller for NimInstaller {
     fn recipe(&self) -> Cow<'static, str> {
         let recipe = include_str!("../recipes/nim_installer.sh");

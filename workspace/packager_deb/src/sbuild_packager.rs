@@ -1,9 +1,9 @@
 use std::{env, fs, path::PathBuf};
+use thiserror::Error;
 use types::{
     build::{BackendBuildEnv, Packager},
     pkg_config::{PackageType, PkgConfig},
 };
-use thiserror::Error;
 
 use log::info;
 
@@ -18,7 +18,7 @@ pub struct SbuildPackager {
     context: BuildContext,
 }
 #[derive(Debug, Error)]
-pub enum PackageError{
+pub enum PackageError {
     #[error(transparent)]
     BuildError(#[from] BuildError),
     #[error(transparent)]

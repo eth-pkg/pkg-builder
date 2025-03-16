@@ -1,3 +1,7 @@
+use serde::de::DeserializeOwned;
+use std::fs;
+use std::path::Path;
+use thiserror::Error;
 use types::{
     pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, DotnetConfig, DotnetPackage, GitPackageTypeConfig,
@@ -6,25 +10,21 @@ use types::{
     },
     pkg_config_verify::{PackageHash, PkgVerifyConfig, VerifyConfig},
 };
-use thiserror::Error;
-use serde::de::DeserializeOwned;
-use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Error)]
 pub enum ValidationError {
     #[error("Field: '{0}' cannot be empty")]
     EmptyField(String),
-    
+
     #[error("Validation failed: {0}")]
     Multiple(String),
-    
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     #[error("TOML parsing error: {0}")]
     TomlParse(#[from] toml::de::Error),
-    
+
     #[error("Package hash cannot be empty")]
     EmptyPackageHash,
 }
@@ -240,15 +240,14 @@ where
     T: Validation + DeserializeOwned,
 {
     let configuration = toml::from_str::<T>(config_str)?;
-    configuration
-        .validate()
-        .map_err(|errors| {
-            let error_messages = errors.iter()
-                .map(|e| format!("{}", e))
-                .collect::<Vec<_>>()
-                .join("; ");
-            ValidationError::Multiple(error_messages)
-        })?;
+    configuration.validate().map_err(|errors| {
+        let error_messages = errors
+            .iter()
+            .map(|e| format!("{}", e))
+            .collect::<Vec<_>>()
+            .join("; ");
+        ValidationError::Multiple(error_messages)
+    })?;
     Ok(configuration)
 }
 

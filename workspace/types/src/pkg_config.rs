@@ -1,7 +1,6 @@
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 
-
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct RustConfig {
     pub rust_version: String,
@@ -54,7 +53,6 @@ pub struct DotnetConfig {
     pub deps: Option<Vec<String>>,
 }
 
-
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct NimConfig {
     pub nim_version: String,
@@ -76,7 +74,6 @@ pub enum LanguageEnv {
     C,
     Python,
 }
-
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct DefaultPackageTypeConfig {
@@ -118,8 +115,6 @@ impl PackageType {
     }
 }
 
-
-
 #[derive(Debug, Deserialize, PartialEq, Default, Clone)]
 pub struct PackageFields {
     pub spec_file: String,
@@ -154,7 +149,6 @@ pub struct PkgConfig {
     pub package_type: PackageType,
     pub build_env: BuildEnv,
 }
-
 
 pub fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
 where

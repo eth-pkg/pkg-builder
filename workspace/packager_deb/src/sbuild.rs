@@ -1,11 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use types::pkg_config::PkgConfig;
 use crate::installers::language_installer::LanguageInstaller;
 use cargo_metadata::semver::Version;
-use types::build::BackendBuildEnv;
-use types::pkg_config::{LanguageEnv, PackageType};
-use types::pkg_config_verify::PkgVerifyConfig;
 use debian::autopkgtest::{Autopkgtest, AutopkgtestError};
 use debian::autopkgtest_image::{AutopkgtestImageBuilder, AutopkgtestImageError};
 use debian::execute::Execute;
@@ -20,7 +16,10 @@ use std::fs::{self, create_dir_all};
 use std::process::Command;
 use std::{env, vec};
 use thiserror::Error;
-
+use types::build::BackendBuildEnv;
+use types::pkg_config::PkgConfig;
+use types::pkg_config::{LanguageEnv, PackageType};
+use types::pkg_config_verify::PkgVerifyConfig;
 
 pub struct Sbuild {
     pub(crate) config: PkgConfig,
@@ -45,7 +44,7 @@ impl Sbuild {
 }
 
 #[derive(Debug, Error)]
-pub enum SbuildError{
+pub enum SbuildError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -72,7 +71,6 @@ pub enum SbuildError{
     #[error("{0}")]
     GenericError(String),
 }
-
 
 impl BackendBuildEnv for Sbuild {
     type Error = SbuildError;
@@ -138,9 +136,12 @@ impl BackendBuildEnv for Sbuild {
     }
 
     fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), SbuildError> {
-        let output_dir = Path::new(&self.build_files_dir)
-            .parent()
-            .ok_or(SbuildError::GenericError("Invalid build files dir".to_string()))?;
+        let output_dir =
+            Path::new(&self.build_files_dir)
+                .parent()
+                .ok_or(SbuildError::GenericError(
+                    "Invalid build files dir".to_string(),
+                ))?;
 
         let errors: Vec<_> = verify_config
             .verify
@@ -156,18 +157,18 @@ impl BackendBuildEnv for Sbuild {
                     Ok(buf) => buf,
                     Err(_) => return Some(format!("Failed to read file: {}", output.name)),
                 };
-                
+
                 let actual_sha1 = match calculate_sha1(&buffer) {
                     Ok(hash) => hash,
-                    Err(_) => return Some(format!("Failed to calculate hash for: {}", output.name)),
+                    Err(_) => {
+                        return Some(format!("Failed to calculate hash for: {}", output.name))
+                    }
                 };
 
                 (actual_sha1 != output.hash).then(|| {
                     format!(
                         "SHA1 mismatch for {}: expected {}, got {}",
-                        output.name,
-                        output.hash,
-                        actual_sha1
+                        output.name, output.hash, actual_sha1
                     )
                 })
             })
@@ -237,15 +238,17 @@ impl BackendBuildEnv for Sbuild {
         let changes_file = self.get_changes_file();
 
         Autopkgtest::new()
-            .changes_file(
-                changes_file
-                    .to_str()
-                    .ok_or(SbuildError::GenericError("Invalid changes file path".to_string()))?,
-            )
+            .changes_file(changes_file.to_str().ok_or(SbuildError::GenericError(
+                "Invalid changes file path".to_string(),
+            ))?)
             .no_built_binaries()
             .apt_upgrade()
             .test_deps_not_in_debian(&&self.get_test_deps_not_in_debian())
-            .qemu(image_path.to_str().ok_or(SbuildError::GenericError("Invalid image path".to_string()))?)
+            .qemu(
+                image_path
+                    .to_str()
+                    .ok_or(SbuildError::GenericError("Invalid image path".to_string()))?,
+            )
             .working_dir(self.get_deb_dir())
             .execute()?;
         Ok(())
@@ -256,8 +259,8 @@ impl BackendBuildEnv for Sbuild {
 impl Sbuild {
     pub fn get_cache_file(&self) -> String {
         let dir = shellexpand::tilde(&self.cache_dir).to_string();
-        let codename = Self::normalize_codename(&self.config.build_env.codename)
-            .unwrap_or_else(|_| "unknown");
+        let codename =
+            Self::normalize_codename(&self.config.build_env.codename).unwrap_or_else(|_| "unknown");
         let cache_file_name = format!("{}-{}.tar.gz", codename, self.config.build_env.arch);
         Path::new(&dir)
             .join(cache_file_name)
@@ -296,7 +299,8 @@ impl Sbuild {
         match lang_env {
             Some(env) => {
                 let installer: Box<dyn LanguageInstaller> = env.into();
-                installer.get_build_deps(&self.config.build_env.arch, &self.config.build_env.codename)
+                installer
+                    .get_build_deps(&self.config.build_env.arch, &self.config.build_env.codename)
             }
             None => vec![],
         }
@@ -317,7 +321,10 @@ impl Sbuild {
             "bookworm" => Ok("bookworm"),
             "noble numbat" => Ok("noble"),
             "jammy jellyfish" => Ok("jammy"),
-            _ => Err(SbuildError::GenericError(format!("Not supported distribution: {}", codename))),
+            _ => Err(SbuildError::GenericError(format!(
+                "Not supported distribution: {}",
+                codename
+            ))),
         }
     }
     fn build_chroot_setup_commands(&self) -> Vec<String> {
@@ -356,7 +363,7 @@ impl Sbuild {
 
         let image_path = builder.get_image_path().unwrap();
         let image_path_parent = image_path.parent().unwrap();
-        if image_path.exists(){
+        if image_path.exists() {
             return Ok(image_path.clone());
         }
 
@@ -373,12 +380,20 @@ fn check_tool_version(tool: &str, expected_version: &str) -> Result<(), SbuildEr
     let (cmd, args) = match tool {
         "lintian" | "piuparts" => (tool, vec!["--version"]),
         "autopkgtest" => ("apt", vec!["list", "--installed", "autopkgtest"]),
-        _ => return Err(SbuildError::GenericError(format!("Unsupported tool: {}", tool))),
+        _ => {
+            return Err(SbuildError::GenericError(format!(
+                "Unsupported tool: {}",
+                tool
+            )))
+        }
     };
 
     let output = Command::new(cmd).args(args).output()?;
     if !output.status.success() {
-        return Err(SbuildError::GenericError(format!("Failed to check {} version", tool)));
+        return Err(SbuildError::GenericError(format!(
+            "Failed to check {} version",
+            tool
+        )));
     }
 
     let version_str = String::from_utf8_lossy(&output.stdout);
@@ -424,10 +439,11 @@ fn warn_compare_versions(expected: &str, actual: &str, tool: &str) -> Result<(),
         actual.to_string()
     };
 
-    let expected_ver =
-        Version::parse(&expected_normalized).map_err(|e| SbuildError::GenericError(format!("Failed parsing expected version: {}", e)))?;
-    let actual_ver =
-        Version::parse(&actual_normalized).map_err(|e| SbuildError::GenericError(format!("Failed to parse actual version: {}", e)))?;
+    let expected_ver = Version::parse(&expected_normalized).map_err(|e| {
+        SbuildError::GenericError(format!("Failed parsing expected version: {}", e))
+    })?;
+    let actual_ver = Version::parse(&actual_normalized)
+        .map_err(|e| SbuildError::GenericError(format!("Failed to parse actual version: {}", e)))?;
 
     match expected_ver.cmp(&actual_ver) {
         std::cmp::Ordering::Less => warn!(
@@ -448,7 +464,10 @@ fn get_keyring(codename: &str) -> Result<&str, SbuildError> {
     match codename {
         "bookworm" => Ok("/usr/share/keyrings/debian-archive-keyring.gpg"),
         "noble numbat" | "jammy jellyfish" => Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg"),
-        _ => Err(SbuildError::GenericError(format!("Unsupported codename: {}", codename))),
+        _ => Err(SbuildError::GenericError(format!(
+            "Unsupported codename: {}",
+            codename
+        ))),
     }
 }
 
@@ -456,7 +475,10 @@ fn get_repo_url(codename: &str) -> Result<&str, SbuildError> {
     match codename {
         "bookworm" => Ok("http://deb.debian.org/debian"),
         "noble numbat" | "jammy jellyfish" => Ok("http://archive.ubuntu.com/ubuntu"),
-        _ => Err(SbuildError::GenericError(format!("Unsupported codename: {}", codename))),
+        _ => Err(SbuildError::GenericError(format!(
+            "Unsupported codename: {}",
+            codename
+        ))),
     }
 }
 
@@ -473,7 +495,10 @@ fn calculate_sha1(data: &[u8]) -> Result<String, SbuildError> {
 fn ensure_parent_dir<T: AsRef<Path>>(path: T) -> Result<(), SbuildError> {
     let parent = Path::new(path.as_ref())
         .parent()
-        .ok_or(SbuildError::GenericError(format!("Invalid path: {:?}", path.as_ref())))?;
+        .ok_or(SbuildError::GenericError(format!(
+            "Invalid path: {:?}",
+            path.as_ref()
+        )))?;
     create_dir_all(parent)?;
     Ok(())
 }
@@ -492,12 +517,12 @@ fn remove_file_or_directory(path: &str, is_dir: bool) -> Result<(), SbuildError>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use types::pkg_config::PkgConfig;
     use env_logger::Env;
     use std::fs::{create_dir_all, File};
     use std::path::Path;
     use std::sync::Once;
     use tempfile::tempdir;
+    use types::pkg_config::PkgConfig;
 
     static INIT: Once = Once::new();
 

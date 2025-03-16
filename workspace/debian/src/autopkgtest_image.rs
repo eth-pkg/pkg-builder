@@ -1,7 +1,6 @@
 use crate::execute::ExecuteError;
 
 use super::execute::{execute_command_with_sudo, Execute};
-use types::distribution::Distribution;
 /// Provides functionality for building and managing Autopkgtest VM images
 ///
 /// This module contains structures and implementations for creating
@@ -10,22 +9,23 @@ use types::distribution::Distribution;
 use log::info;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use types::distribution::Distribution;
 
 /// Custom error type for autopkgtest image building operations
 #[derive(Error, Debug)]
 pub enum AutopkgtestImageError {
     #[error("Distribution not specified")]
     MissingDistribution,
-    
+
     #[error("Image path not specified")]
     MissingImagePath,
-    
+
     #[error("Unsupported or invalid distribution codename: {0}")]
     UnsupportedDistribution(String),
-    
+
     #[error("Failed to execute command: {0}")]
     CommandExecutionError(#[from] ExecuteError),
-    
+
     #[error("Work directory path error: {0}")]
     PathError(String),
 }
@@ -38,7 +38,6 @@ trait BuildCommandProvider {
     fn get_codename_arg(&self) -> String;
 }
 impl BuildCommandProvider for Distribution {
-
     /// Returns the appropriate command for building an image for this distribution
     ///
     /// # Returns
@@ -99,8 +98,10 @@ impl AutopkgtestImageBuilder {
     pub fn codename(mut self, codename: &str) -> Result<Self> {
         // Assuming Distribution::from_codename has been modified to return our Result type
         // or we're mapping the error here
-        self.distribution = Some(Distribution::from_codename(codename)
-            .map_err(|_| AutopkgtestImageError::UnsupportedDistribution(codename.to_string()))?);
+        self.distribution =
+            Some(Distribution::from_codename(codename).map_err(|_| {
+                AutopkgtestImageError::UnsupportedDistribution(codename.to_string())
+            })?);
         Ok(self)
     }
 

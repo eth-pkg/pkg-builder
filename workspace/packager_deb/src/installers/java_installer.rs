@@ -6,7 +6,6 @@ use super::language_installer::LanguageInstaller;
 
 pub struct JavaInstaller(pub(crate) JavaConfig);
 
-
 impl LanguageInstaller for JavaInstaller {
     fn recipe(&self) -> Cow<'static, str> {
         let java_installer = include_str!("../recipes/java_installer.sh");

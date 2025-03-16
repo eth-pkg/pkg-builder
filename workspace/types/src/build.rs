@@ -3,7 +3,7 @@ use crate::{pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig};
 pub trait Packager {
     type Error;
     type BuildEnv: BackendBuildEnv;
-    
+
     fn new(config: PkgConfig, config_root: String) -> Self;
     fn package(&self) -> Result<(), Self::Error>;
     fn get_build_env(&self) -> Result<Self::BuildEnv, Self::Error>;
@@ -11,7 +11,7 @@ pub trait Packager {
 
 pub trait BackendBuildEnv {
     type Error;
-    
+
     fn clean(&self) -> Result<(), Self::Error>;
     fn create(&self) -> Result<(), Self::Error>;
     fn package(&self) -> Result<(), Self::Error>;

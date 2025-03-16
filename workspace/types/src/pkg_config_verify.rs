@@ -1,6 +1,5 @@
 use serde::Deserialize;
 
-
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct PackageHash {
     pub name: String,
@@ -11,7 +10,6 @@ pub struct PackageHash {
 pub struct VerifyConfig {
     pub package_hash: Vec<PackageHash>,
 }
-
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
 pub struct PkgVerifyConfig {

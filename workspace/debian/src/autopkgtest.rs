@@ -187,33 +187,33 @@ impl Autopkgtest {
     /// A vector of strings containing the command arguments.
     fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
-        
+
         // Add changes file if provided
         if let Some(file) = &self.changes_file {
             args.push(file.clone());
         }
-        
+
         // Add flags based on boolean options
         if self.no_built_binaries {
             args.push("--no-built-binaries".to_string());
         }
-        
+
         if self.apt_upgrade {
             args.push("--apt-upgrade".to_string());
         }
-        
+
         // Add setup commands
         for cmd in &self.setup_commands {
             args.push(format!("--setup-commands={}", cmd));
         }
-        
+
         // Add QEMU configuration if provided
         if let Some(image) = &self.qemu_image {
             args.push("--".to_string());
             args.push("qemu".to_string());
             args.push(image.clone());
         }
-        
+
         args
     }
 }
@@ -236,7 +236,7 @@ impl Execute for Autopkgtest {
         let args = self.build_args();
         let args_str = args.join(" ");
         info!("Running: autopkgtest {}", args_str);
-        
+
         execute_command("autopkgtest", &args, self.dir.as_deref())?;
         Ok(())
     }
@@ -246,7 +246,6 @@ impl Execute for Autopkgtest {
 mod tests {
     use super::*;
     use std::path::PathBuf;
-
 
     #[test]
     fn test_new() {
@@ -282,7 +281,7 @@ mod tests {
         let autopkgtest = Autopkgtest::new()
             .setup_commands("apt-get install foo")
             .setup_commands("echo 'test'");
-        
+
         assert_eq!(
             autopkgtest.setup_commands,
             vec!["apt-get install foo".to_string(), "echo 'test'".to_string()]
@@ -299,7 +298,10 @@ mod tests {
     #[test]
     fn test_qemu() {
         let autopkgtest = Autopkgtest::new().qemu("/path/to/image.img");
-        assert_eq!(autopkgtest.qemu_image, Some("/path/to/image.img".to_string()));
+        assert_eq!(
+            autopkgtest.qemu_image,
+            Some("/path/to/image.img".to_string())
+        );
     }
 
     #[test]
@@ -318,9 +320,9 @@ mod tests {
             .setup_commands("apt-get install pkg1")
             .setup_commands("apt-get install pkg2")
             .qemu("/path/to/image.img");
-        
+
         let args = autopkgtest.build_args();
-        
+
         assert_eq!(
             args,
             vec![
@@ -342,9 +344,9 @@ mod tests {
             .setup_commands("cmd1")
             .setup_commands("cmd2")
             .setup_commands("cmd3");
-        
+
         let args = autopkgtest.build_args();
-        
+
         assert_eq!(
             args,
             vec![

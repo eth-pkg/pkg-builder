@@ -123,8 +123,7 @@ mod tests {
 
         let handler = VerifyHash::new();
 
-        let result = handler
-            .verify_tarball_checksum(&file_path, &expected_checksum);
+        let result = handler.verify_tarball_checksum(&file_path, &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -139,8 +138,7 @@ mod tests {
 
         let handler = VerifyHash::new();
 
-        let result = handler
-            .verify_tarball_checksum(&file_path, &expected_checksum);
+        let result = handler.verify_tarball_checksum(&file_path, &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -154,8 +152,7 @@ mod tests {
 
         let handler = VerifyHash::new();
 
-        let result = handler
-            .verify_tarball_checksum(&file_path, &incorrect_checksum);
+        let result = handler.verify_tarball_checksum(&file_path, &incorrect_checksum);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), BuildError::HashMismatchError));
     }

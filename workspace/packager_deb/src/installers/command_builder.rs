@@ -4,7 +4,9 @@ pub struct CommandBuilder {
 
 impl CommandBuilder {
     pub fn new() -> Self {
-        Self { commands: Vec::new() }
+        Self {
+            commands: Vec::new(),
+        }
     }
 
     pub fn add(&mut self, cmd: impl Into<String>) -> &mut Self {
@@ -24,13 +26,12 @@ impl CommandBuilder {
         for arg in args {
             // Replace the first occurrence of {} with the argument
             if let Some(pos) = result.find("{}") {
-                result.replace_range(pos..pos+2, arg);
+                result.replace_range(pos..pos + 2, arg);
             }
         }
         self.commands.push(result);
         self
     }
-
 
     pub fn build(self) -> Vec<String> {
         self.commands

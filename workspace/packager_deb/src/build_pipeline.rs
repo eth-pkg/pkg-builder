@@ -20,7 +20,6 @@ pub struct BuildContext {
     pub git_tag: String,
     pub git_url: String,
     pub submodules: Vec<SubModule>,
-
 }
 
 impl BuildContext {
@@ -29,31 +28,29 @@ impl BuildContext {
     }
 }
 
-
 #[derive(Error, Debug)]
 pub enum BuildError {
-
     #[error("Command execution failed: {0}")]
     CommandFailed(String),
-    
+
     #[error("Download failed")]
     DownloadFailed,
-    
+
     #[error("File copy failed: {0}")]
     FileCopyFailed(String),
-    
+
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 
     #[error("Failed to open tarball: {0}")]
     TarballOpenError(String),
-    
+
     #[error("Failed to read tarball: {0}")]
     TarballReadError(String),
-    
+
     #[error("Checksum verification failed: hashes do not match")]
     HashMismatchError,
-    
+
     #[error("Extraction error: {0}")]
     ExtractionError(String),
 
@@ -62,19 +59,19 @@ pub enum BuildError {
 
     #[error("Failed to copy src directory: {0}")]
     CopyDirectory(String),
-    
+
     #[error("Failed to get debian/rules permission")]
     RulesPermissionGet,
-    
+
     #[error("Failed to set debian/rules permission")]
     RulesPermissionSet,
 
     #[error("Home directory not found")]
     HomeDirNotFound,
-    
+
     #[error("Failed to create ~/.sbuildrc: {0}")]
     FileCreationError(String),
-    
+
     #[error("Failed to write to ~/.sbuildrc: {0}")]
     FileWriteError(String),
 
@@ -84,8 +81,6 @@ pub enum BuildError {
     #[error(transparent)]
     CreateEmptyTarStepError(#[from] CreateEmptyTarError),
 }
-
-
 
 pub trait BuildStep {
     fn step(&self, context: &mut BuildContext) -> Result<(), BuildError>;
@@ -100,12 +95,12 @@ impl BuildPipeline {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn add_step<T: BuildStep + 'static>(&mut self, handler: T) -> &mut Self {
         self.handlers.push(Box::new(handler));
         self
     }
-    
+
     pub fn execute(&self, context: &mut BuildContext) -> Result<(), BuildError> {
         for handler in &self.handlers {
             handler.step(context)?;
@@ -113,4 +108,3 @@ impl BuildPipeline {
         Ok(())
     }
 }
-

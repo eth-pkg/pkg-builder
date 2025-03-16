@@ -6,7 +6,6 @@ use super::{command_builder::CommandBuilder, language_installer::LanguageInstall
 
 pub struct DotnetInstaller(pub(crate) DotnetConfig);
 
-
 impl LanguageInstaller for DotnetInstaller {
     fn recipe(&self) -> Cow<'static, str> {
         let recipe = include_str!("../recipes/dotnet_installer.sh");

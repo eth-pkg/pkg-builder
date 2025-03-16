@@ -6,8 +6,8 @@ use thiserror::Error;
 /// A builder for the piuparts command, which tests Debian package installation,
 /// upgrading, and removal processes.
 ///
-/// Piuparts (Package Installation, UPgrading And Removal Testing Suite) helps validate 
-/// Debian packages by testing their installation, upgrade paths, and purging in a clean 
+/// Piuparts (Package Installation, UPgrading And Removal Testing Suite) helps validate
+/// Debian packages by testing their installation, upgrade paths, and purging in a clean
 /// chroot environment. This struct implements a builder pattern to configure and execute
 /// piuparts with various options.
 ///
@@ -73,16 +73,16 @@ type Result<T> = std::result::Result<T, PiupartsError>;
 
 impl<'a> Piuparts<'a> {
     /// Creates a new Piuparts builder with default settings.
-///
-/// Default values:
-/// - No distribution specified
-/// - No mirror specified
-/// - No bind mounts
-/// - No keyring specified
-/// - Verbose mode disabled
-/// - No extra repositories
-/// - Package signature verification enabled
-/// - No .deb file or path specified
+    ///
+    /// Default values:
+    /// - No distribution specified
+    /// - No mirror specified
+    /// - No bind mounts
+    /// - No keyring specified
+    /// - Verbose mode disabled
+    /// - No extra repositories
+    /// - Package signature verification enabled
+    /// - No .deb file or path specified
     pub fn new() -> Self {
         Self {
             distribution: None,
@@ -98,94 +98,94 @@ impl<'a> Piuparts<'a> {
     }
 
     /// Sets the distribution codename (e.g., "bookworm", "jammy").
-///
-/// This corresponds to the `-d` option in piuparts and specifies the 
-/// Debian/Ubuntu distribution to use for testing. The distribution must
-/// be available in the specified mirror.
-///
-/// # Arguments
-///
-/// * `codename` - The distribution codename (e.g., "bookworm", "jammy", "bullseye")
+    ///
+    /// This corresponds to the `-d` option in piuparts and specifies the
+    /// Debian/Ubuntu distribution to use for testing. The distribution must
+    /// be available in the specified mirror.
+    ///
+    /// # Arguments
+    ///
+    /// * `codename` - The distribution codename (e.g., "bookworm", "jammy", "bullseye")
     pub fn distribution(mut self, codename: &str) -> Self {
         self.distribution = Some(codename.to_string());
         self
     }
 
     /// Sets the mirror URL for the package repository.
-///
-/// This corresponds to the `-m` option in piuparts and specifies the
-/// package repository mirror to use for downloading packages.
-///
-/// # Arguments
-///
-/// * `url` - The URL of the repository mirror (e.g., "http://deb.debian.org/debian")
+    ///
+    /// This corresponds to the `-m` option in piuparts and specifies the
+    /// package repository mirror to use for downloading packages.
+    ///
+    /// # Arguments
+    ///
+    /// * `url` - The URL of the repository mirror (e.g., "http://deb.debian.org/debian")
     pub fn mirror(mut self, url: &str) -> Self {
         self.mirror = Some(url.to_string());
         self
     }
 
     /// Adds /dev to the list of directories to bind mount into the chroot.
-///
-/// This corresponds to the `--bindmount=/dev` option in piuparts and allows
-/// the chroot environment to access the host's /dev directory. This can be
-/// necessary for certain packages that need access to device files.
-///
-/// # Note
-///
-/// Binding /dev can introduce security risks by giving the chroot
-/// environment access to the host's devices.
+    ///
+    /// This corresponds to the `--bindmount=/dev` option in piuparts and allows
+    /// the chroot environment to access the host's /dev directory. This can be
+    /// necessary for certain packages that need access to device files.
+    ///
+    /// # Note
+    ///
+    /// Binding /dev can introduce security risks by giving the chroot
+    /// environment access to the host's devices.
     pub fn bindmount_dev(mut self) -> Self {
         self.bindmounts.push("/dev".to_string());
         self
     }
 
     /// Sets the keyring file to use for package verification.
-///
-/// This corresponds to the `--keyring` option in piuparts and specifies the
-/// GPG keyring file to use for package signature verification.
-///
-/// # Arguments
-///
-/// * `keyring` - The path to the keyring file
+    ///
+    /// This corresponds to the `--keyring` option in piuparts and specifies the
+    /// GPG keyring file to use for package signature verification.
+    ///
+    /// # Arguments
+    ///
+    /// * `keyring` - The path to the keyring file
     pub fn keyring(mut self, keyring: &str) -> Self {
         self.keyring = Some(keyring.to_string());
         self
     }
 
     /// Enables verbose output.
-///
-/// This corresponds to the `--verbose` option in piuparts and causes
-/// piuparts to output more detailed information during testing, which
-/// can be helpful for debugging.
+    ///
+    /// This corresponds to the `--verbose` option in piuparts and causes
+    /// piuparts to output more detailed information during testing, which
+    /// can be helpful for debugging.
     pub fn verbose(mut self) -> Self {
         self.verbose = true;
         self
     }
 
     /// Adds an additional repository to use.
-///
-/// This corresponds to the `--extra-repo` option in piuparts and allows
-/// specifying additional package repositories beyond the main mirror.
-///
-/// # Arguments
-///
-/// * `repo` - The repository definition in sources.list format 
-///            (e.g., "deb http://security.debian.org/debian-security bookworm-security main")
+    ///
+    /// This corresponds to the `--extra-repo` option in piuparts and allows
+    /// specifying additional package repositories beyond the main mirror.
+    ///
+    /// # Arguments
+    ///
+    /// * `repo` - The repository definition in sources.list format
+    ///            (e.g., "deb http://security.debian.org/debian-security bookworm-security main")
     pub fn extra_repo(mut self, repo: &str) -> Self {
         self.extra_repos.push(repo.to_string());
         self
     }
 
     /// Disables package signature verification.
-///
-/// This corresponds to the `--do-not-verify-signatures` option in piuparts
-/// and disables GPG signature verification for packages. This can be necessary
-/// when using unofficial repositories that don't provide properly signed packages.
-///
-/// # Security Note
-///
-/// Disabling signature verification reduces security by allowing potentially
-/// tampered packages to be installed.
+    ///
+    /// This corresponds to the `--do-not-verify-signatures` option in piuparts
+    /// and disables GPG signature verification for packages. This can be necessary
+    /// when using unofficial repositories that don't provide properly signed packages.
+    ///
+    /// # Security Note
+    ///
+    /// Disabling signature verification reduces security by allowing potentially
+    /// tampered packages to be installed.
     pub fn no_verify_signatures(mut self) -> Self {
         self.verify_signatures = false;
         self
@@ -207,40 +207,40 @@ impl<'a> Piuparts<'a> {
     }
 
     /// Sets the .deb file to test.
-///
-/// This specifies the Debian package file that piuparts will test.
-/// This is a required parameter for executing piuparts.
-///
-/// # Arguments
-///
-/// * `deb_file` - Path to the .deb file to test
+    ///
+    /// This specifies the Debian package file that piuparts will test.
+    /// This is a required parameter for executing piuparts.
+    ///
+    /// # Arguments
+    ///
+    /// * `deb_file` - Path to the .deb file to test
     pub fn deb_file(mut self, deb_file: &'a Path) -> Self {
         self.deb_file = Some(deb_file);
         self
     }
 
     /// Sets the directory containing the .deb file.
-///
-/// This specifies the directory where the .deb file is located.
-/// It can be useful when the execution needs to know the context directory.
-///
-/// # Arguments
-///
-/// * `deb_path` - Path to the directory containing the .deb file
+    ///
+    /// This specifies the directory where the .deb file is located.
+    /// It can be useful when the execution needs to know the context directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `deb_path` - Path to the directory containing the .deb file
     pub fn deb_path(mut self, deb_path: &'a Path) -> Self {
         self.deb_path = Some(deb_path);
         self
     }
 
     /// Builds the command-line arguments for piuparts based on the configured options.
-///
-/// This method converts the builder's state into a vector of string arguments
-/// that can be passed to the piuparts command. It's called internally by the
-/// `execute()` method.
-///
-/// # Returns
-///
-/// A vector of strings representing the command-line arguments
+    ///
+    /// This method converts the builder's state into a vector of string arguments
+    /// that can be passed to the piuparts command. It's called internally by the
+    /// `execute()` method.
+    ///
+    /// # Returns
+    ///
+    /// A vector of strings representing the command-line arguments
     fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
 
@@ -349,8 +349,11 @@ mod tests {
     fn test_dotnet_env_bookworm() {
         let piuparts = Piuparts::new().with_dotnet_env(true, "bookworm");
         let args = piuparts.build_args();
-        
-        assert!(args.contains(&"--extra-repo=deb https://packages.microsoft.com/debian/12/prod bookworm main".to_string()));
+
+        assert!(args.contains(
+            &"--extra-repo=deb https://packages.microsoft.com/debian/12/prod bookworm main"
+                .to_string()
+        ));
         assert!(args.contains(&"--do-not-verify-signatures".to_string()));
     }
 
@@ -358,7 +361,7 @@ mod tests {
     fn test_dotnet_env_no_effect() {
         let piuparts = Piuparts::new().with_dotnet_env(true, "bullseye");
         assert_eq!(piuparts.build_args(), Vec::<String>::new());
-        
+
         let piuparts = Piuparts::new().with_dotnet_env(false, "bookworm");
         assert_eq!(piuparts.build_args(), Vec::<String>::new());
     }

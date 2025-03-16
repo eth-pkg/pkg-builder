@@ -6,7 +6,6 @@ use super::language_installer::LanguageInstaller;
 
 pub struct RustInstaller(pub(crate) RustConfig);
 
-
 impl LanguageInstaller for RustInstaller {
     fn recipe(&self) -> Cow<'static, str> {
         let recipe = include_str!("../recipes/rust_installer.sh");

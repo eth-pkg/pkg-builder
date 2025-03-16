@@ -1,16 +1,16 @@
-use std::path::Path;
-use log::info;
 use super::execute::{execute_command, Execute, ExecuteError};
+use log::info;
+use std::path::Path;
 use thiserror::Error;
 
 /// Represents a wrapper for the Lintian Debian package checker tool.
-/// 
+///
 /// Lintian is used to check Debian packages for compliance with the Debian policy
 /// and other quality assurance checks. This struct provides a builder pattern
 /// interface to configure and execute Lintian commands.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use debian::lintian::Lintian;
 /// use debian::execute::Execute;
@@ -130,7 +130,7 @@ impl Lintian {
     }
 
     /// Configures Lintian to fail on warnings.
-    /// 
+    ///
     /// Can be combined with `fail_on_error()`.
     ///
     /// # Returns
@@ -142,7 +142,7 @@ impl Lintian {
     }
 
     /// Configures Lintian to fail on errors.
-    /// 
+    ///
     /// Can be combined with `fail_on_warning()`.
     ///
     /// # Returns
@@ -168,13 +168,13 @@ impl Lintian {
     pub fn with_codename<S: AsRef<str>>(mut self, codename: S) -> Self {
         let codename_str = codename.as_ref().to_string();
         self.codename = Some(codename_str.clone());
-        
+
         if codename_str == "jammy" || codename_str == "noble" {
             self.suppress_tags.push("malformed-deb-archive".to_string());
         }
         self
     }
-    
+
     /// Builds the command arguments from struct fields.
     ///
     /// This method constructs a vector of command-line arguments
@@ -185,38 +185,38 @@ impl Lintian {
     /// A vector of strings representing the command-line arguments.
     fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
-        
+
         // Add suppress tags
         for tag in &self.suppress_tags {
             args.push("--suppress-tags".to_string());
             args.push(tag.clone());
         }
-        
+
         // Add info flag
         if self.show_info {
             args.push("-i".to_string());
         }
-        
+
         // Add extended info flag
         if self.extended_info {
             args.push("-I".to_string());
         }
-        
+
         // Add changes file
         if let Some(file) = &self.changes_file_path {
             args.push(file.clone());
         }
-        
+
         // Add tag display limit
         if let Some(limit) = self.tag_display_limit {
             args.push(format!("--tag-display-limit={}", limit));
         }
-        
+
         // Add fail-on options
         for level in &self.fail_on {
             args.push(format!("--fail-on={}", level));
         }
-        
+
         args
     }
 }
@@ -243,7 +243,6 @@ impl Execute for Lintian {
 mod tests {
     use super::*;
     use std::path::PathBuf;
-
 
     #[test]
     fn test_new() {
@@ -299,25 +298,32 @@ mod tests {
         let lintian = Lintian::new().fail_on_error();
         assert_eq!(lintian.fail_on, vec!["error".to_string()]);
     }
-    
+
     #[test]
     fn test_fail_on_both() {
         let lintian = Lintian::new().fail_on_warning().fail_on_error();
-        assert_eq!(lintian.fail_on, vec!["warning".to_string(), "error".to_string()]);
+        assert_eq!(
+            lintian.fail_on,
+            vec!["warning".to_string(), "error".to_string()]
+        );
     }
 
     #[test]
     fn test_with_codename_jammy() {
         let lintian = Lintian::new().with_codename("jammy");
         assert_eq!(lintian.codename, Some("jammy".to_string()));
-        assert!(lintian.suppress_tags.contains(&"malformed-deb-archive".to_string()));
+        assert!(lintian
+            .suppress_tags
+            .contains(&"malformed-deb-archive".to_string()));
     }
 
     #[test]
     fn test_with_codename_other() {
         let lintian = Lintian::new().with_codename("focal");
         assert_eq!(lintian.codename, Some("focal".to_string()));
-        assert!(!lintian.suppress_tags.contains(&"malformed-deb-archive".to_string()));
+        assert!(!lintian
+            .suppress_tags
+            .contains(&"malformed-deb-archive".to_string()));
     }
 
     #[test]
@@ -330,9 +336,9 @@ mod tests {
             .changes_file("/path/to/file.changes")
             .tag_display_limit(5)
             .fail_on_warning();
-        
+
         let args = lintian.build_args();
-        
+
         assert!(args.contains(&"--suppress-tags".to_string()));
         assert!(args.contains(&"tag1".to_string()));
         assert!(args.contains(&"tag2".to_string()));
@@ -355,13 +361,13 @@ mod tests {
     //         )
     //         .times(1)
     //         .returning(|_, _, _| Ok(()));
-        
+
     //     // We'd normally replace the actual execute_command with our mock
     //     // For this test, we're just verifying the arguments
-        
+
     //     let lintian = Lintian::new().info();
     //     let args = lintian.build_args();
-        
+
     //     assert_eq!(args, vec!["-i".to_string()]);
     // }
 
@@ -374,11 +380,14 @@ mod tests {
             .changes_file("file.changes")
             .fail_on_error()
             .with_codename("noble");
-        
+
         assert!(lintian.show_info);
         assert!(lintian.extended_info);
         assert_eq!(lintian.suppress_tags, vec!["tag1", "malformed-deb-archive"]);
-        assert_eq!(lintian.changes_file_path, Some(format!("{:?}", PathBuf::from("file.changes"))));
+        assert_eq!(
+            lintian.changes_file_path,
+            Some(format!("{:?}", PathBuf::from("file.changes")))
+        );
         assert_eq!(lintian.fail_on, vec!["error".to_string()]);
         assert_eq!(lintian.codename, Some("noble".to_string()));
     }

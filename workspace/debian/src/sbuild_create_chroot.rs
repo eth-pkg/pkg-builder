@@ -1,6 +1,6 @@
-use std::path::Path;
-use log::info;
 use super::execute::{execute_command, Execute, ExecuteError};
+use log::info;
+use std::path::Path;
 use thiserror::Error;
 
 /// Represents options for creating an sbuild chroot environment
@@ -188,7 +188,7 @@ impl Execute for SbuildCreateChroot {
     /// # Examples
     ///
     /// ```
-    /// 
+    ///
     /// # use debian::sbuild_create_chroot::SbuildCreateChroot;
     /// # use debian::sbuild_create_chroot::SbuildCreateChrootError;
     /// # use debian::execute::Execute;
@@ -255,7 +255,7 @@ mod tests {
             .repo_url("http://deb.debian.org/debian");
 
         let args = chroot.build_args();
-        
+
         assert_eq!(args.len(), 6);
         assert_eq!(args[0], "--chroot-mode=unshare");
         assert_eq!(args[1], "--make-sbuild-tarball");
@@ -268,7 +268,7 @@ mod tests {
     // #[test]
     // fn test_execute() {
     //     let mut mock = MockExecuteCommand::new();
-        
+
     //     // Set up expectations
     //     mock.expect_execute_command()
     //         .with(
@@ -283,7 +283,7 @@ mod tests {
     //     let chroot = SbuildCreateChroot::new()
     //         .chroot_mode("unshare")
     //         .codename("bullseye");
-            
+
     //     // This would fail without mocking the actual command execution
     //     // Here we'd need a way to inject our mock into the execution
     //     // For a real test, you might use dependency injection or function pointers

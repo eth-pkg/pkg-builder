@@ -14,7 +14,7 @@ pub enum DebcrafterCmdError {
 
     #[error("Failed to execute command: {0}")]
     CommandFailed(CommandError),
-    
+
     #[error("File not found: {0}")]
     FileNotFound(String),
 }
@@ -78,28 +78,43 @@ impl DebcrafterCmd {
     }
 
     /// Creates a debian directory using the specified specification file
-    pub fn create_debian_dir(&self, specification_file: &str, target_dir: &str) -> Result<(), DebcrafterCmdError> {
-        let debcrafter_dir = tempdir().map_err(|e| DebcrafterCmdError::CommandFailed(e.to_string().into()))?;
+    pub fn create_debian_dir(
+        &self,
+        specification_file: &str,
+        target_dir: &str,
+    ) -> Result<(), DebcrafterCmdError> {
+        let debcrafter_dir =
+            tempdir().map_err(|e| DebcrafterCmdError::CommandFailed(e.to_string().into()))?;
 
-        let spec_file_path = fs::canonicalize(PathBuf::from(specification_file))
-            .map_err(|_| DebcrafterCmdError::FileNotFound(format!("{} spec_file doesn't exist", specification_file)))?;
-        
+        let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| {
+            DebcrafterCmdError::FileNotFound(format!(
+                "{} spec_file doesn't exist",
+                specification_file
+            ))
+        })?;
+
         if !spec_file_path.exists() {
-            return Err(DebcrafterCmdError::FileNotFound(format!("{} spec_file doesn't exist", specification_file)));
+            return Err(DebcrafterCmdError::FileNotFound(format!(
+                "{} spec_file doesn't exist",
+                specification_file
+            )));
         }
-        
-        let spec_dir = spec_file_path.parent().ok_or_else(|| 
+
+        let spec_dir = spec_file_path.parent().ok_or_else(|| {
             DebcrafterCmdError::CommandFailed("Invalid specification file path".to_string().into())
-        )?;
-        
-        let spec_file_name = spec_file_path.file_name().ok_or_else(|| 
+        })?;
+
+        let spec_file_name = spec_file_path.file_name().ok_or_else(|| {
             DebcrafterCmdError::CommandFailed("Invalid specification file name".to_string().into())
-        )?;
-        
-        info!("Spec directory: {:?}", spec_dir.to_str().unwrap_or_default());
+        })?;
+
+        info!(
+            "Spec directory: {:?}",
+            spec_dir.to_str().unwrap_or_default()
+        );
         info!("Spec file: {:?}", spec_file_name);
         info!("Debcrafter directory: {:?}", debcrafter_dir.path());
-        
+
         let mut cmd = Command::new(format!("debcrafter_{}", self.version));
         cmd.arg(spec_file_name)
             .current_dir(spec_dir)
@@ -114,10 +129,12 @@ impl DebcrafterCmd {
                 .map_err(|err| DebcrafterCmdError::CommandFailed(err.to_string().into()))?;
         } else {
             return Err(DebcrafterCmdError::CommandFailed(
-                "Unable to create debian dir: no output directory found".to_string().into(),
+                "Unable to create debian dir: no output directory found"
+                    .to_string()
+                    .into(),
             ));
         }
-        
+
         Ok(())
     }
 
@@ -132,7 +149,7 @@ impl DebcrafterCmd {
         if !src_dir.is_dir() {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("Source path is not a directory: {}", src_dir.display())
+                format!("Source path is not a directory: {}", src_dir.display()),
             ));
         }
 
@@ -156,7 +173,11 @@ impl DebcrafterCmd {
     }
 
     /// Handles command execution and processes errors
-    fn handle_command_execution(&self, cmd: &mut Command, error_message: String) -> Result<(), DebcrafterCmdError> {
+    fn handle_command_execution(
+        &self,
+        cmd: &mut Command,
+        error_message: String,
+    ) -> Result<(), DebcrafterCmdError> {
         let output = cmd
             .output()
             .map_err(|e| DebcrafterCmdError::CommandNotFound(e))?;
@@ -168,10 +189,10 @@ impl DebcrafterCmd {
             } else {
                 format!("{}: {}", error_message, stderr)
             };
-            
+
             return Err(DebcrafterCmdError::CommandFailed(detailed_error.into()));
         }
-        
+
         Ok(())
     }
 
@@ -180,7 +201,7 @@ impl DebcrafterCmd {
         if !dir.is_dir() {
             return None;
         }
-        
+
         fs::read_dir(dir)
             .ok()?
             .filter_map(Result::ok)
@@ -188,8 +209,6 @@ impl DebcrafterCmd {
             .map(|entry| entry.path())
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -216,7 +235,7 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let path = temp_file.path();
         let cmd = DebcrafterCmd::new("test");
-        
+
         assert_eq!(cmd.get_first_directory(path), None);
     }
 
@@ -226,7 +245,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path();
         let cmd = DebcrafterCmd::new("test");
-        
+
         assert_eq!(cmd.get_first_directory(path), None);
     }
 
@@ -237,7 +256,7 @@ mod tests {
         let sub_dir_path = temp_dir.path().join("subdir");
         fs::create_dir(&sub_dir_path).unwrap();
         let cmd = DebcrafterCmd::new("test");
-        
+
         let result = cmd.get_first_directory(temp_dir.path());
         assert!(result.is_some());
         assert_eq!(result.unwrap(), sub_dir_path);
@@ -250,30 +269,36 @@ mod tests {
         let src_file1_path = src_dir.path().join("file1.txt");
         let src_subdir_path = src_dir.path().join("subdir");
         let src_file2_path = src_subdir_path.join("file2.txt");
-        
+
         fs::create_dir(&src_subdir_path).unwrap();
         fs::write(&src_file1_path, b"test content 1").unwrap();
         fs::write(&src_file2_path, b"test content 2").unwrap();
-        
+
         // Create destination directory
         let dest_dir = TempDir::new().unwrap();
         let cmd = DebcrafterCmd::new("test");
-        
+
         // Copy the directory contents
         let result = cmd.copy_dir_contents_recursive(src_dir.path(), dest_dir.path());
         assert!(result.is_ok());
-        
+
         // Verify the destination has the same structure and content
         let dest_file1_path = dest_dir.path().join("file1.txt");
         let dest_subdir_path = dest_dir.path().join("subdir");
         let dest_file2_path = dest_subdir_path.join("file2.txt");
-        
+
         assert!(dest_file1_path.exists());
         assert!(dest_subdir_path.exists());
         assert!(dest_file2_path.exists());
-        
-        assert_eq!(fs::read_to_string(&dest_file1_path).unwrap(), "test content 1");
-        assert_eq!(fs::read_to_string(&dest_file2_path).unwrap(), "test content 2");
+
+        assert_eq!(
+            fs::read_to_string(&dest_file1_path).unwrap(),
+            "test content 1"
+        );
+        assert_eq!(
+            fs::read_to_string(&dest_file2_path).unwrap(),
+            "test content 2"
+        );
     }
 
     #[test]
@@ -282,13 +307,13 @@ mod tests {
         let temp_file = NamedTempFile::new().unwrap();
         let dest_dir = TempDir::new().unwrap();
         let cmd = DebcrafterCmd::new("test");
-        
+
         let result = cmd.copy_dir_contents_recursive(temp_file.path(), dest_dir.path());
         assert!(result.is_err());
     }
 
     // Integration tests that would run with actual commands should be marked as ignored by default
-    
+
     #[test]
     #[ignore]
     fn test_check_if_dpkg_parsechangelog_installed_success() {
@@ -297,7 +322,7 @@ mod tests {
         let result = cmd.check_if_dpkg_parsechangelog_installed();
         assert!(result.is_ok());
     }
-    
+
     #[test]
     #[ignore]
     fn test_check_if_installed_version_nonexistent() {

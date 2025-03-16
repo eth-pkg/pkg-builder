@@ -10,8 +10,7 @@ use log::info;
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
-pub struct PatchSource {
-}
+pub struct PatchSource {}
 
 impl PatchSource {
     pub fn new() -> Self {
@@ -190,7 +189,6 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_handles_nonexistent_directory() {
-
         let result = PatchSource::patch_rules_permission("/nonexistent/dir");
 
         assert!(result.is_err());
@@ -198,7 +196,6 @@ mod tests {
 
     #[test]
     fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
-
         let temp_dir = tempdir()?;
         let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
 
@@ -216,7 +213,6 @@ mod tests {
 
     #[test]
     fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
-
         let temp_dir = tempdir()?;
         let temp_dir = temp_dir.path();
         let build_files_dir = temp_dir.to_str().unwrap().to_string();
@@ -233,10 +229,8 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn patch_rules_permission_adds_exec_permission() -> Result<(), Box<dyn std::error::Error>> {
-
         let temp_dir = tempdir()?;
         let rules_path = temp_dir.path().join("debian/rules");
         fs::create_dir_all(temp_dir.path().join("debian")).expect("Could not create dir");
@@ -249,6 +243,4 @@ mod tests {
 
         Ok(())
     }
-
-
 }

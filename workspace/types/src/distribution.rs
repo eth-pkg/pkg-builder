@@ -29,7 +29,10 @@ impl Distribution {
     pub fn from_codename(codename: &str) -> Result<Self, DistributionError> {
         match codename {
             "bookworm" => Ok(Distribution::Debian(codename.to_string())),
-            "noble" | "noble numbat" | "jammy" | "jammy jellyfish" => Ok(Distribution::Ubuntu(codename.to_string())),
-            _ => Err(DistributionError::UnsupportedCodename(codename.to_string())),        }
+            "noble" | "noble numbat" | "jammy" | "jammy jellyfish" => {
+                Ok(Distribution::Ubuntu(codename.to_string()))
+            }
+            _ => Err(DistributionError::UnsupportedCodename(codename.to_string())),
+        }
     }
 }

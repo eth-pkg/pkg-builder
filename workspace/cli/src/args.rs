@@ -23,7 +23,7 @@ pub enum ActionType {
     /// Verify package against hashes, it also rebuilds the package
     Verify(VerifyConfig),
     // pkg-builder version
-    Version
+    Version,
 }
 
 #[derive(Debug, Args)]

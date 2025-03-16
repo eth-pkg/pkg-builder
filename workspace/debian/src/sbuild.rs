@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
-use log::info;
 use super::execute::{execute_command, Execute, ExecuteError};
+use log::info;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 /// A builder for configuring and executing the sbuild command.
@@ -153,7 +153,8 @@ impl SbuildBuilder {
     ///
     /// * `commands` - List of additional commands to pass to sbuild
     pub fn setup_commands(mut self, commands: &[String]) -> Self {
-        self.setup_commands.extend(commands.iter().map(|s| s.to_string()));
+        self.setup_commands
+            .extend(commands.iter().map(|s| s.to_string()));
         self
     }
 
@@ -214,45 +215,45 @@ impl SbuildBuilder {
     /// A vector of strings representing the sbuild command-line arguments.
     fn build_args(&self) -> Vec<String> {
         let mut args = Vec::new();
-        
+
         if let Some(dist) = &self.distribution {
             args.push("-d".to_string());
             args.push(dist.clone());
         }
-        
+
         if self.build_arch_all {
             args.push("-A".to_string());
         }
-        
+
         if self.build_source {
             args.push("-s".to_string());
             args.push("--source-only-changes".to_string());
         }
-        
+
         if let Some(cache) = &self.cache_file {
             args.push("-c".to_string());
             args.push(cache.clone());
         }
-        
+
         if self.verbose {
             args.push("-v".to_string());
         }
-        
+
         if self.chroot_mode_unshare {
             args.push("--chroot-mode=unshare".to_string());
         }
-        
+
         args.extend(self.setup_commands.clone());
-        
+
         if !self.run_piuparts {
             args.push("--no-run-piuparts".to_string());
         }
-        
+
         if !self.apt_upgrades {
             args.push("--no-apt-upgrade".to_string());
             args.push("--no-apt-distupgrade".to_string());
         }
-        
+
         if let Some(enabled) = self.run_lintian {
             if enabled {
                 args.extend([
@@ -271,11 +272,11 @@ impl SbuildBuilder {
                 args.push("--no-run-lintian".to_string());
             }
         }
-        
+
         if !self.run_autopkgtest {
             args.push("--no-run-autopkgtest".to_string());
         }
-        
+
         args
     }
 }
@@ -347,7 +348,10 @@ mod tests {
         assert_eq!(builder.cache_file, Some("cache.txt".to_string()));
         assert!(builder.verbose);
         assert!(builder.chroot_mode_unshare);
-        assert_eq!(builder.setup_commands, vec!["--foo".to_string(), "--bar".to_string()]);
+        assert_eq!(
+            builder.setup_commands,
+            vec!["--foo".to_string(), "--bar".to_string()]
+        );
         assert!(!builder.run_piuparts);
         assert!(!builder.apt_upgrades);
         assert_eq!(builder.run_lintian, Some(true));
@@ -384,10 +388,10 @@ mod tests {
             "--baz".to_string(),
             "--qux=quux".to_string(),
         ];
-        
+
         let builder = SbuildBuilder::new().setup_commands(&commands);
         let args = builder.build_args();
-        
+
         for cmd in commands {
             assert!(args.contains(&cmd));
         }

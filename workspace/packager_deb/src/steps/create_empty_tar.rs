@@ -47,13 +47,11 @@ mod tests {
         let tarball_path = temp_dir.path().join(tarball_name);
         let tarball_path_str = String::from(temp_dir.path().join(tarball_name).to_str().unwrap());
 
-
         let step = CreateEmptyTar::new();
         let mut context = BuildContext::new();
         context.tarball_path = tarball_path_str;
         context.build_artifacts_dir = build_artifacts_dir;
         let result = step.step(&mut context);
-
 
         assert!(result.is_ok());
         assert!(tarball_path.exists());
