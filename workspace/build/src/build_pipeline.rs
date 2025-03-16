@@ -1,6 +1,7 @@
 use thiserror::Error;
+use types::pkg_config::SubModule;
 
-use crate::debcrafter_cmd::DebcrafterCmdError;
+use crate::{debcrafter_cmd::DebcrafterCmdError, steps::{create_empty_tar::CreateEmptyTarError, dowload_git::DownloadGitError}};
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildContext {
@@ -11,9 +12,13 @@ pub struct BuildContext {
     pub debcrafter_version: String,
     pub homepage: String,
     pub build_artifacts_dir: String,
-    pub debian_artifacts_dir: String,
     pub spec_file: String,
     pub src_dir: String,
+    // only for git package
+    pub package_name: String,
+    pub git_tag: String,
+    pub git_url: String,
+    pub submodules: Vec<SubModule>,
 
 }
 
@@ -71,6 +76,12 @@ pub enum BuildError {
     
     #[error("Failed to write to ~/.sbuildrc: {0}")]
     FileWriteError(String),
+
+    #[error(transparent)]
+    DownloadGitStepError(#[from] DownloadGitError),
+
+    #[error(transparent)]
+    CreateEmptyTarStepError(#[from] CreateEmptyTarError),
 }
 
 

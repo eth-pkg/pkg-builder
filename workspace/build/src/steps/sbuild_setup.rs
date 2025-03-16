@@ -1,9 +1,10 @@
 use crate::build_pipeline::{BuildContext, BuildError, BuildPipeline};
 
 use super::{
-    create_debian_dir::CreateDebianDir, download_source::DownloadSource,
-    extract_source::ExtractSource, package_dir_setup::PackageDirSetup, patch_source::PatchSource,
-    setup_sbuild::SetupSbuild, verify_hash::VerifyHash,
+    create_debian_dir::CreateDebianDir, create_empty_tar::CreateEmptyTar, dowload_git::DownloadGit,
+    download_source::DownloadSource, extract_source::ExtractSource,
+    package_dir_setup::PackageDirSetup, patch_source::PatchSource, setup_sbuild::SetupSbuild,
+    verify_hash::VerifyHash,
 };
 
 #[derive(Default)]
@@ -51,22 +52,55 @@ impl SbuildSetupGit {
     }
 
     pub fn execute(self) -> Result<(), BuildError> {
+        let mut pipeline = BuildPipeline::new();
+
+        let package_dir_handle = PackageDirSetup::new();
+        let download_git_step = DownloadGit::new();
+        let extract_source_handle = ExtractSource::new();
+        let create_deb_dir: CreateDebianDir = CreateDebianDir::new();
+        let patch_source_handle = PatchSource::new();
+        let setup_sbuild_handle = SetupSbuild::new();
+        pipeline
+            .add_step(package_dir_handle)
+            .add_step(download_git_step)
+            .add_step(extract_source_handle)
+            .add_step(create_deb_dir)
+            .add_step(patch_source_handle)
+            .add_step(setup_sbuild_handle);
+
+        pipeline.execute(&mut self.context.clone())?;
         Ok(())
     }
 }
 
-// #[derive(Default)]
-// pub struct SbuildSetupVirtual {
-//     context: BuildContext,
-// }
+#[derive(Default)]
+pub struct SbuildSetupVirtual {
+    context: BuildContext,
+}
 
-// impl SbuildSetupVirtual {
-//     pub fn new(context: BuildContext) -> Self {
-//         SbuildSetupVirtual { context }
-//     }
+impl SbuildSetupVirtual {
+    pub fn new(context: BuildContext) -> Self {
+        SbuildSetupVirtual { context }
+    }
 
-//     pub fn execute(self) -> Result<(), BuildError> {
-     
-//         Ok(())
-//     }
-// }
+    pub fn execute(self) -> Result<(), BuildError> {
+        let mut pipeline = BuildPipeline::new();
+
+        let package_dir_handle = PackageDirSetup::new();
+        let empty_tar_handle = CreateEmptyTar::new();
+        let extract_source_handle = ExtractSource::new();
+        let create_deb_dir: CreateDebianDir = CreateDebianDir::new();
+        let patch_source_handle = PatchSource::new();
+        let setup_sbuild_handle = SetupSbuild::new();
+        pipeline
+            .add_step(package_dir_handle)
+            .add_step(empty_tar_handle)
+            .add_step(extract_source_handle)
+            .add_step(create_deb_dir)
+            .add_step(patch_source_handle)
+            .add_step(setup_sbuild_handle);
+
+        pipeline.execute(&mut self.context.clone())?;
+        Ok(())
+    }
+}

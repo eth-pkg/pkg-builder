@@ -167,4 +167,33 @@ mod tests {
         //     Ok(_) => panic!("Expected an error but got Ok"),
         // }
     }
+
+
+    #[test]
+    fn test_extract_source() {
+        let package_name = "test_package";
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
+        let temp_dir = temp_dir.path();
+        let tarball_path: PathBuf = PathBuf::from("tests/misc/test_package.tar.gz");
+
+        let build_files_dir = temp_dir.join(package_name).to_string_lossy().to_string();
+
+        assert!(tarball_path.exists());
+        let handler = ExtractSource::new();
+
+        let mut context = BuildContext::default();
+        context.build_files_dir = build_files_dir.clone();
+        context.tarball_path = tarball_path.to_str().unwrap().into();
+        let result = handler.step(&mut context);
+
+        assert!(result.is_ok(), "{:?}", result);
+        assert!(Path::new(&build_files_dir).exists());
+
+        let test_file_path = PathBuf::from(build_files_dir.clone()).join("empty_file.txt");
+
+        assert!(
+            test_file_path.exists(),
+            "Empty file not found after extraction"
+        );
+    }
 }

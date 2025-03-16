@@ -6,3 +6,5 @@ pub mod create_debian_dir;
 pub mod patch_source;
 pub mod setup_sbuild;
 pub mod sbuild_setup;
+pub mod dowload_git;
+pub mod create_empty_tar;

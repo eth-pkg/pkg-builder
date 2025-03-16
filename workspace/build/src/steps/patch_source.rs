@@ -181,3 +181,74 @@ impl BuildStep for PatchSource {
         Ok(()) // Added missing return value
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use tempfile::tempdir;
+
+    #[test]
+    fn patch_rules_permission_handles_nonexistent_directory() {
+
+        let result = PatchSource::patch_rules_permission("/nonexistent/dir");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
+
+        let temp_dir = tempdir()?;
+        let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
+
+        PatchSource::patch_quilt(&build_files_dir)?;
+
+        let debian_source_dir = temp_dir.path().join("debian/source");
+        assert!(debian_source_dir.exists());
+
+        let debian_source_format_path = temp_dir.path().join("debian/source/format");
+        let format_content = fs::read_to_string(debian_source_format_path)?;
+        assert_eq!(format_content, "3.0 (quilt)\n");
+
+        Ok(())
+    }
+
+    #[test]
+    fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
+
+        let temp_dir = tempdir()?;
+        let temp_dir = temp_dir.path();
+        let build_files_dir = temp_dir.to_str().unwrap().to_string();
+
+        fs::create_dir_all(temp_dir.join("debian/source")).expect("Failed to create dir for test.");
+        File::create(temp_dir.join("debian/source/format")).expect("Failed to create file.");
+
+        let result = PatchSource::patch_quilt(&build_files_dir);
+        assert!(result.is_ok());
+
+        let entries: Vec<_> = fs::read_dir(temp_dir)?.collect();
+        assert_eq!(entries.len(), 1);
+
+        Ok(())
+    }
+
+
+    #[test]
+    fn patch_rules_permission_adds_exec_permission() -> Result<(), Box<dyn std::error::Error>> {
+
+        let temp_dir = tempdir()?;
+        let rules_path = temp_dir.path().join("debian/rules");
+        fs::create_dir_all(temp_dir.path().join("debian")).expect("Could not create dir");
+        File::create(&rules_path)?;
+
+        PatchSource::patch_rules_permission(temp_dir.path().to_str().unwrap())?;
+
+        let permissions = fs::metadata(&rules_path)?.permissions();
+        assert_ne!(permissions.mode() & 0o111, 0);
+
+        Ok(())
+    }
+
+
+}

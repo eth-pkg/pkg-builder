@@ -1,21 +1,17 @@
+use eyre::Result;
 use types::{
     build::{BackendBuildEnv, Packager},
     pkg_config::{PackageType, PkgConfig},
 };
-use eyre::Result;
+use std::{env, fs, path::PathBuf};
+
 
 use log::info;
-use std::path::PathBuf;
 
 use crate::{
-    build_pipeline::{BuildContext, BuildPipeline},
-    dir_setup::{
-        create_debian_dir, create_empty_tar, download_git, expand_path, extract_source,
-        get_build_artifacts_dir, get_build_files_dir, get_tarball_path, get_tarball_url,
-        patch_source, setup_sbuild,
-    },
+    build_pipeline::BuildContext,
     sbuild::Sbuild,
-    steps::{package_dir_setup::PackageDirSetup, sbuild_setup::SbuildSetupDefault},
+    steps::sbuild_setup::{SbuildSetupDefault, SbuildSetupGit, SbuildSetupVirtual},
 };
 
 pub struct SbuildPackager {
@@ -72,7 +68,6 @@ impl Packager for SbuildPackager {
     }
 
     fn package(&self) -> Result<()> {
-        let mut pipeline = BuildPipeline::new();
         let pre_build: Result<()> = match &self.config.package_type {
             PackageType::Default(config) => {
                 let tarball_url = get_tarball_url(&config.tarball_url, &self.config_root);
@@ -85,8 +80,11 @@ impl Packager for SbuildPackager {
                     tarball_hash: config.tarball_hash.clone().unwrap().clone(),
                     tarball_url: tarball_url.clone(),
                     src_dir: self.source_to_patch_from_path.clone(),
-                    debian_artifacts_dir: self.debian_artifacts_dir.clone(),
                     tarball_path: self.debian_orig_tarball_path.clone(),
+                    package_name: self.config.package_fields.package_name.clone(),
+                    git_tag: "".into(),
+                    git_url: "".into(),
+                    submodules: vec![],
                 };
                 info!("Using build context: {:#?}", context);
                 let sbuild_setup = SbuildSetupDefault::new(context);
@@ -94,57 +92,45 @@ impl Packager for SbuildPackager {
                 Ok(())
             }
             PackageType::Git(config) => {
-                let package_dir_handle = PackageDirSetup::new();
-                pipeline.add_step(package_dir_handle);
-
-                let context = &mut BuildContext::new();
-                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
-                pipeline.execute(context)?;
-
-                download_git(
-                    &self.debian_artifacts_dir,
-                    &self.debian_orig_tarball_path,
-                    &self.config.package_fields.package_name,
-                    &config.git_url,
-                    &config.git_tag,
-                    &config.submodules,
-                )?;
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
+                let context = BuildContext {
+                    build_artifacts_dir: self.debian_artifacts_dir.clone(),
+                    build_files_dir: self.build_files_dir.clone(),
+                    debcrafter_version: self.config.build_env.debcrafter_version.clone(),
+                    homepage: self.config.package_fields.homepage.clone(),
+                    spec_file: self.config.package_fields.spec_file.clone(),
+                    tarball_hash: "".into(),
+                    tarball_url: "".into(),
+                    src_dir: self.source_to_patch_from_path.clone(),
+                    tarball_path: self.debian_orig_tarball_path.clone(),
+                    package_name: self.config.package_fields.package_name.clone(),
+                    git_tag: config.git_tag.clone(),
+                    git_url: config.git_url.clone(),
+                    submodules: config.submodules.clone(),
+                };
+                info!("Using build context: {:#?}", context);
+                let sbuild_setup = SbuildSetupGit::new(context);
+                sbuild_setup.execute()?;
                 Ok(())
             }
             PackageType::Virtual => {
-                info!("creating virtual package");
-                let package_dir_handle = PackageDirSetup::new();
-                pipeline.add_step(package_dir_handle);
-
-                let context = &mut BuildContext::new();
-                context.build_artifacts_dir = self.debian_artifacts_dir.clone();
-                pipeline.execute(context)?;
-
-                create_empty_tar(&self.debian_artifacts_dir, &self.debian_orig_tarball_path)?;
-                extract_source(&self.debian_orig_tarball_path, &self.build_files_dir)?;
-                create_debian_dir(
-                    &self.build_files_dir.clone(),
-                    &self.config.build_env.debcrafter_version,
-                    &self.config.package_fields.spec_file,
-                )?;
-                patch_source(
-                    &self.build_files_dir.clone(),
-                    &self.config.package_fields.homepage,
-                    &self.source_to_patch_from_path,
-                )?;
-                setup_sbuild()?;
+                let context = BuildContext {
+                    build_artifacts_dir: self.debian_artifacts_dir.clone(),
+                    build_files_dir: self.build_files_dir.clone(),
+                    debcrafter_version: self.config.build_env.debcrafter_version.clone(),
+                    homepage: self.config.package_fields.homepage.clone(),
+                    spec_file: self.config.package_fields.spec_file.clone(),
+                    tarball_hash: "".into(),
+                    tarball_url: "".into(),
+                    git_tag: "".into(),
+                    git_url: "".into(),
+                    submodules: vec![],
+                    src_dir: self.source_to_patch_from_path.clone(),
+                    tarball_path: self.debian_orig_tarball_path.clone(),
+                    package_name: self.config.package_fields.package_name.clone(),
+                };
+                info!("Using build context: {:#?}", context);
+                let sbuild_setup = SbuildSetupVirtual::new(context);
+                sbuild_setup.execute()?;
                 Ok(())
             }
         };
@@ -157,5 +143,98 @@ impl Packager for SbuildPackager {
     fn get_build_env(&self) -> Result<Self::BuildEnv> {
         let backend_build_env = Sbuild::new(self.config.clone(), self.build_files_dir.clone());
         Ok(backend_build_env)
+    }
+}
+
+pub fn get_build_artifacts_dir(
+    package_name: &str,
+    work_dir: &str,
+    version_number: &str,
+    revision_number: &str,
+) -> String {
+    let build_artifacts_dir = format!(
+        "{}/{}-{}-{}",
+        work_dir, &package_name, version_number, revision_number
+    );
+    build_artifacts_dir
+}
+
+pub fn get_tarball_path(
+    package_name: &str,
+    version_number: &str,
+    build_artifacts_dir: &str,
+) -> String {
+    let tarball_path = format!(
+        "{}/{}_{}.orig.tar.gz",
+        &build_artifacts_dir, &package_name, &version_number
+    );
+    tarball_path
+}
+
+pub fn get_build_files_dir(
+    package_name: &str,
+    version_number: &str,
+    build_artifacts_dir: &str,
+) -> String {
+    let build_files_dir = format!(
+        "{}/{}-{}",
+        build_artifacts_dir, &package_name, &version_number
+    );
+    build_files_dir
+}
+
+pub fn get_tarball_url(tarball_url: &str, config_root: &str) -> String {
+    if tarball_url.starts_with("http") {
+        tarball_url.to_string()
+    } else {
+        expand_path(tarball_url, Some(config_root))
+    }
+}
+
+pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
+    if dir.starts_with('~') {
+        let expanded_path = shellexpand::tilde(dir).to_string();
+        expanded_path
+    } else if dir.starts_with('/') {
+        dir.to_string()
+    } else {
+        let parent_dir = match dir_to_expand {
+            None => env::current_dir().unwrap(),
+            Some(path) => PathBuf::from(path),
+        };
+        let dir = parent_dir.join(dir);
+        let path = fs::canonicalize(dir.clone()).unwrap_or(dir);
+        let path = path.to_str().unwrap().to_string();
+        path
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn expand_path_expands_tilde_correctly() {
+        let result = expand_path("~", None);
+        assert_ne!(result, "~");
+        assert!(!result.contains('~'));
+    }
+
+    #[test]
+    fn expand_path_handles_absolute_paths() {
+        let result = expand_path("/absolute/path", None);
+        assert_eq!(result, "/absolute/path");
+    }
+
+    #[test]
+    fn expand_path_expands_relative_paths_with_parent() {
+        let result = expand_path("somefile", Some("/tmp"));
+        assert_eq!(result, "/tmp/somefile");
+    }
+
+    #[test]
+    fn expand_path_expands_relative_paths_without_parent() {
+        let result = expand_path("somefile", None);
+        assert!(result.starts_with('/'));
     }
 }

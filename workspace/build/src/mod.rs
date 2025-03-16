@@ -1,6 +1,5 @@
 mod build_pipeline;
 mod debcrafter_cmd;
-mod dir_setup;
 mod installers;
 mod sbuild;
 mod steps;
