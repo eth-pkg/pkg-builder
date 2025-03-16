@@ -5,3 +5,4 @@ pub mod piuparts;
 pub mod autopkgtest_image;
 pub mod autopkgtest;
 pub mod sbuild;
+pub mod debcrafter;

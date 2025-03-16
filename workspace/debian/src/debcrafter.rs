@@ -14,9 +14,6 @@ pub enum DebcrafterCmdError {
 
     #[error("Failed to execute command: {0}")]
     CommandFailed(CommandError),
-
-    #[error("Failed to clone: {0}")]
-    GitClone(#[from] git2::Error),
     
     #[error("File not found: {0}")]
     FileNotFound(String),

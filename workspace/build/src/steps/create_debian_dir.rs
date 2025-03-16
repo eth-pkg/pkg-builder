@@ -1,9 +1,7 @@
+use debian::debcrafter::DebcrafterCmd;
 use log::info;
 
-use crate::{
-    build_pipeline::{BuildContext, BuildError, BuildStep},
-    debcrafter_cmd::DebcrafterCmd,
-};
+use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
 pub struct CreateDebianDir {

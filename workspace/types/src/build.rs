@@ -1,19 +1,22 @@
 use crate::{pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig};
-use eyre::Result;
 
 pub trait Packager {
+    type Error;
     type BuildEnv: BackendBuildEnv;
+    
     fn new(config: PkgConfig, config_root: String) -> Self;
-    fn package(&self) -> Result<()>;
-    fn get_build_env(&self) -> Result<Self::BuildEnv>;
+    fn package(&self) -> Result<(), Self::Error>;
+    fn get_build_env(&self) -> Result<Self::BuildEnv, Self::Error>;
 }
 
 pub trait BackendBuildEnv {
-    fn clean(&self) -> Result<()>;
-    fn create(&self) -> Result<()>;
-    fn package(&self) -> Result<()>;
-    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<()>;
-    fn run_lintian(&self) -> Result<()>;
-    fn run_piuparts(&self) -> Result<()>;
-    fn run_autopkgtests(&self) -> Result<()>;
+    type Error;
+    
+    fn clean(&self) -> Result<(), Self::Error>;
+    fn create(&self) -> Result<(), Self::Error>;
+    fn package(&self) -> Result<(), Self::Error>;
+    fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), Self::Error>;
+    fn run_lintian(&self) -> Result<(), Self::Error>;
+    fn run_piuparts(&self) -> Result<(), Self::Error>;
+    fn run_autopkgtests(&self) -> Result<(), Self::Error>;
 }

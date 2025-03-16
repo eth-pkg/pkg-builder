@@ -6,18 +6,36 @@ use types::{
     },
     pkg_config_verify::{PackageHash, PkgVerifyConfig, VerifyConfig},
 };
-use eyre::{Report, Result, eyre};
+use thiserror::Error;
 use serde::de::DeserializeOwned;
 use std::fs;
 use std::path::Path;
 
-pub trait Validation {
-    fn validate(&self) -> Result<(), Vec<Report>>;
+#[derive(Debug, Error)]
+pub enum ValidationError {
+    #[error("Field: '{0}' cannot be empty")]
+    EmptyField(String),
+    
+    #[error("Validation failed: {0}")]
+    Multiple(String),
+    
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("TOML parsing error: {0}")]
+    TomlParse(#[from] toml::de::Error),
+    
+    #[error("Package hash cannot be empty")]
+    EmptyPackageHash,
 }
 
-pub fn validate_not_empty(name: &str, value: &str) -> Result<()> {
+pub trait Validation {
+    fn validate(&self) -> Result<(), Vec<ValidationError>>;
+}
+
+pub fn validate_not_empty(name: &str, value: &str) -> Result<(), ValidationError> {
     if value.trim().is_empty() {
-        return Err(eyre!("field: {} cannot be empty", name));
+        return Err(ValidationError::EmptyField(name.to_string()));
     }
     Ok(())
 }
@@ -39,7 +57,7 @@ macro_rules! validate_fields {
 macro_rules! impl_validation {
     ($struct_name:ident, $($field:ident),*) => {
         impl Validation for $struct_name {
-            fn validate(&self) -> Result<(), Vec<Report>> {
+            fn validate(&self) -> Result<(), Vec<ValidationError>> {
                 let errors = validate_fields!(self, $($field),*);
 
                 if errors.is_empty() {
@@ -92,7 +110,7 @@ impl_validation!(
 impl_validation!(PackageHash, name, hash);
 
 impl Validation for JavascriptConfig {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors =
             validate_fields!(self, node_version, node_binary_url, node_binary_checksum);
 
@@ -111,13 +129,13 @@ impl Validation for JavascriptConfig {
 }
 
 impl Validation for DotnetConfig {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         Ok(()) // No validation rules for DotnetConfig fields
     }
 }
 
 impl Validation for LanguageEnv {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         match self {
             LanguageEnv::Rust(config) => config.validate(),
             LanguageEnv::Go(config) => config.validate(),
@@ -133,7 +151,7 @@ impl Validation for LanguageEnv {
 }
 
 impl Validation for DefaultPackageTypeConfig {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = validate_fields!(self, tarball_url);
 
         if let Some(value) = &self.tarball_hash {
@@ -155,7 +173,7 @@ impl Validation for DefaultPackageTypeConfig {
 }
 
 impl Validation for PackageType {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         match self {
             PackageType::Default(config) => config.validate(),
             PackageType::Git(config) => config.validate(),
@@ -165,7 +183,7 @@ impl Validation for PackageType {
 }
 
 impl Validation for PkgConfig {
-    fn validate(&self) -> Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
 
         // Collect validation errors from all components
@@ -190,10 +208,9 @@ impl Validation for PkgConfig {
 }
 
 impl Validation for VerifyConfig {
-    fn validate(&self) -> eyre::Result<(), Vec<Report>> {
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
         if self.package_hash.is_empty() {
-            let err = vec![eyre!("package_hash cannot be empty")];
-            Err(err)
+            Err(vec![ValidationError::EmptyPackageHash])
         } else {
             let mut errors = Vec::new();
             for packagehash in self.package_hash.iter() {
@@ -213,23 +230,29 @@ impl Validation for VerifyConfig {
 }
 
 impl Validation for PkgVerifyConfig {
-    fn validate(&self) -> eyre::Result<(), Vec<Report>> {
-        return self.verify.validate();
+    fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        self.verify.validate()
     }
 }
 
-pub fn parse<T>(config_str: &str) -> Result<T>
+pub fn parse<T>(config_str: &str) -> Result<T, ValidationError>
 where
     T: Validation + DeserializeOwned,
 {
     let configuration = toml::from_str::<T>(config_str)?;
     configuration
         .validate()
-        .map_err(|errors| eyre!("Validation failed: {:?}", errors))?;
+        .map_err(|errors| {
+            let error_messages = errors.iter()
+                .map(|e| format!("{}", e))
+                .collect::<Vec<_>>()
+                .join("; ");
+            ValidationError::Multiple(error_messages)
+        })?;
     Ok(configuration)
 }
 
-pub fn read_config<T>(path: &Path) -> Result<T>
+pub fn read_config<T>(path: &Path) -> Result<T, ValidationError>
 where
     T: Validation + DeserializeOwned,
 {
@@ -237,7 +260,7 @@ where
     parse(&toml_content)
 }
 
-pub fn get_config<T>(config_file: String) -> Result<T>
+pub fn get_config<T>(config_file: String) -> Result<T, ValidationError>
 where
     T: Validation + DeserializeOwned,
 {
@@ -330,9 +353,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: rust_version cannot be empty",
-                    "field: rust_binary_url cannot be empty",
-                    "field: rust_binary_gpg_asc cannot be empty",
+                    "Field: 'rust_version' cannot be empty",
+                    "Field: 'rust_binary_url' cannot be empty",
+                    "Field: 'rust_binary_gpg_asc' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -353,9 +376,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: go_version cannot be empty",
-                    "field: go_binary_url cannot be empty",
-                    "field: go_binary_checksum cannot be empty",
+                    "Field: 'go_version' cannot be empty",
+                    "Field: 'go_binary_url' cannot be empty",
+                    "Field: 'go_binary_checksum' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -376,9 +399,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: node_version cannot be empty",
-                    "field: node_binary_url cannot be empty",
-                    "field: node_binary_checksum cannot be empty",
+                    "Field: 'node_version' cannot be empty",
+                    "Field: 'node_binary_url' cannot be empty",
+                    "Field: 'node_binary_checksum' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -399,9 +422,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: jdk_version cannot be empty",
-                    "field: jdk_binary_url cannot be empty",
-                    "field: jdk_binary_checksum cannot be empty",
+                    "Field: 'jdk_version' cannot be empty",
+                    "Field: 'jdk_binary_url' cannot be empty",
+                    "Field: 'jdk_binary_checksum' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -444,8 +467,8 @@ workdir="~/.pkg-builder/packages/jammy"
     //     match config.validate() {
     //         Err(validation_errors) => {
     //             let expected_errors = [
-    //                 "field: node_version cannot be empty",
-    //                 "field: yarn_version cannot be empty",
+    //                 "Field: node_version cannot be empty",
+    //                 "Field: yarn_version cannot be empty",
     //             ];
     //             assert_eq!(
     //                 validation_errors.len(),
@@ -466,9 +489,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: nim_version cannot be empty",
-                    "field: nim_binary_url cannot be empty",
-                    "field: nim_version_checksum cannot be empty",
+                    "Field: 'nim_version' cannot be empty",
+                    "Field: 'nim_binary_url' cannot be empty",
+                    "Field: 'nim_version_checksum' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -488,7 +511,7 @@ workdir="~/.pkg-builder/packages/jammy"
         let config = DefaultPackageTypeConfig::default();
         match config.validate() {
             Err(validation_errors) => {
-                let expected_errors = ["field: tarball_url cannot be empty"];
+                let expected_errors = ["Field: 'tarball_url' cannot be empty"];
                 assert_eq!(
                     validation_errors.len(),
                     expected_errors.len(),
@@ -508,8 +531,8 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: git_tag cannot be empty",
-                    "field: git_url cannot be empty",
+                    "Field: 'git_tag' cannot be empty",
+                    "Field: 'git_url' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -530,9 +553,9 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: gradle_version cannot be empty",
-                    "field: gradle_binary_url cannot be empty",
-                    "field: gradle_binary_checksum cannot be empty",
+                    "Field: 'gradle_version' cannot be empty",
+                    "Field: 'gradle_binary_url' cannot be empty",
+                    "Field: 'gradle_binary_checksum' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -553,11 +576,11 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: spec_file cannot be empty",
-                    "field: package_name cannot be empty",
-                    "field: version_number cannot be empty",
-                    "field: revision_number cannot be empty",
-                    "field: homepage cannot be empty",
+                    "Field: 'spec_file' cannot be empty",
+                    "Field: 'package_name' cannot be empty",
+                    "Field: 'version_number' cannot be empty",
+                    "Field: 'revision_number' cannot be empty",
+                    "Field: 'homepage' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -578,14 +601,14 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: codename cannot be empty",
-                    "field: arch cannot be empty",
-                    "field: pkg_builder_version cannot be empty",
-                    "field: debcrafter_version cannot be empty",
-                    "field: lintian_version cannot be empty",
-                    "field: piuparts_version cannot be empty",
-                    "field: autopkgtest_version cannot be empty",
-                    "field: sbuild_version cannot be empty",
+                    "Field: 'codename' cannot be empty",
+                    "Field: 'arch' cannot be empty",
+                    "Field: 'pkg_builder_version' cannot be empty",
+                    "Field: 'debcrafter_version' cannot be empty",
+                    "Field: 'lintian_version' cannot be empty",
+                    "Field: 'piuparts_version' cannot be empty",
+                    "Field: 'autopkgtest_version' cannot be empty",
+                    "Field: 'sbuild_version' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),
@@ -606,19 +629,19 @@ workdir="~/.pkg-builder/packages/jammy"
         match config.validate() {
             Err(validation_errors) => {
                 let expected_errors = [
-                    "field: spec_file cannot be empty",
-                    "field: package_name cannot be empty",
-                    "field: version_number cannot be empty",
-                    "field: revision_number cannot be empty",
-                    "field: homepage cannot be empty",
-                    "field: codename cannot be empty",
-                    "field: arch cannot be empty",
-                    "field: pkg_builder_version cannot be empty",
-                    "field: debcrafter_version cannot be empty",
-                    "field: lintian_version cannot be empty",
-                    "field: piuparts_version cannot be empty",
-                    "field: autopkgtest_version cannot be empty",
-                    "field: sbuild_version cannot be empty",
+                    "Field: 'spec_file' cannot be empty",
+                    "Field: 'package_name' cannot be empty",
+                    "Field: 'version_number' cannot be empty",
+                    "Field: 'revision_number' cannot be empty",
+                    "Field: 'homepage' cannot be empty",
+                    "Field: 'codename' cannot be empty",
+                    "Field: 'arch' cannot be empty",
+                    "Field: 'pkg_builder_version' cannot be empty",
+                    "Field: 'debcrafter_version' cannot be empty",
+                    "Field: 'lintian_version' cannot be empty",
+                    "Field: 'piuparts_version' cannot be empty",
+                    "Field: 'autopkgtest_version' cannot be empty",
+                    "Field: 'sbuild_version' cannot be empty",
                 ];
                 assert_eq!(
                     validation_errors.len(),

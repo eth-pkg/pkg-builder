@@ -1,15 +1,15 @@
-use eyre::Result;
 use std::{env, fs, path::PathBuf};
 use types::{
     build::{BackendBuildEnv, Packager},
     pkg_config::{PackageType, PkgConfig},
 };
+use thiserror::Error;
 
 use log::info;
 
 use crate::{
-    build_pipeline::BuildContext,
-    sbuild::Sbuild,
+    build_pipeline::{BuildContext, BuildError},
+    sbuild::{Sbuild, SbuildError},
     steps::sbuild_setup::{SbuildSetupDefault, SbuildSetupGit, SbuildSetupVirtual},
 };
 
@@ -17,9 +17,17 @@ pub struct SbuildPackager {
     config: PkgConfig,
     context: BuildContext,
 }
+#[derive(Debug, Error)]
+pub enum PackageError{
+    #[error(transparent)]
+    BuildError(#[from] BuildError),
+    #[error(transparent)]
+    SbuildError(#[from] SbuildError),
+}
 
 impl Packager for SbuildPackager {
     type BuildEnv = Sbuild;
+    type Error = PackageError;
 
     fn new(config: PkgConfig, config_root: String) -> Self {
         // Update the config workdir
@@ -45,7 +53,7 @@ impl Packager for SbuildPackager {
         }
     }
 
-    fn package(&self) -> Result<()> {
+    fn package(&self) -> Result<(), PackageError> {
         match &self.config.package_type {
             PackageType::Default(_) => {
                 info!("Using build context: {:#?}", self.context);
@@ -68,7 +76,7 @@ impl Packager for SbuildPackager {
         Ok(())
     }
 
-    fn get_build_env(&self) -> Result<Self::BuildEnv> {
+    fn get_build_env(&self) -> Result<Self::BuildEnv, PackageError> {
         let backend_build_env =
             Sbuild::new(self.config.clone(), self.context.build_files_dir.clone());
         Ok(backend_build_env)

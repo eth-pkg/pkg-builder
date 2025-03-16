@@ -51,12 +51,12 @@ pub struct SbuildBuilder {
 }
 
 #[derive(Error, Debug)]
-pub enum SbuildError {
+pub enum SbuildCmdError {
     #[error("Failed to execute command: {0}")]
     CommandExecutionError(#[from] ExecuteError),
 }
 
-type Result<T> = std::result::Result<T, SbuildError>;
+type Result<T> = std::result::Result<T, SbuildCmdError>;
 
 impl SbuildBuilder {
     /// Creates a new SbuildBuilder with default settings.
@@ -284,7 +284,7 @@ impl SbuildBuilder {
 ///
 /// This allows the builder to be executed directly after configuration.
 impl Execute for SbuildBuilder {
-    type Error = SbuildError;
+    type Error = SbuildCmdError;
     /// Executes the sbuild command with the configured options.
     ///
     /// # Returns
