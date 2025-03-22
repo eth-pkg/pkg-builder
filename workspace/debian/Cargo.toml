@@ -5,11 +5,13 @@ edition = "2021"
 
 [lib]
 name = "debian"
-path = "src/mod.rs"  
+path = "src/mod.rs"
 
 [dependencies]
-types = { workspace = true}
-log = { workspace = true}
-shellexpand = { workspace = true}
-thiserror = { workspace = true}
-tempfile = { workspace = true}
+types = { workspace = true }
+log = { workspace = true }
+shellexpand = { workspace = true }
+thiserror = { workspace = true }
+tempfile = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }

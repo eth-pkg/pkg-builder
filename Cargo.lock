@@ -465,6 +465,7 @@ dependencies = [
  "packager_deb",
  "regex",
  "serde",
+ "tempfile",
  "thiserror",
  "toml",
  "types",
@@ -526,9 +527,11 @@ name = "debian"
 version = "0.1.0"
 dependencies = [
  "log",
+ "serde",
  "shellexpand",
  "tempfile",
  "thiserror",
+ "toml",
  "types",
 ]
 
@@ -1973,8 +1976,12 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 name = "types"
 version = "0.1.0"
 dependencies = [
+ "log",
+ "semver",
  "serde",
+ "tempfile",
  "thiserror",
+ "toml",
 ]
 
 [[package]]

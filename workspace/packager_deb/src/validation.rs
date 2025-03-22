@@ -1,6 +1,5 @@
 use serde::de::DeserializeOwned;
-use std::fs;
-use std::path::Path;
+use std::{fs, path::PathBuf};
 use thiserror::Error;
 use types::{
     pkg_config::{
@@ -249,22 +248,6 @@ where
         ValidationError::Multiple(error_messages)
     })?;
     Ok(configuration)
-}
-
-pub fn read_config<T>(path: &Path) -> Result<T, ValidationError>
-where
-    T: Validation + DeserializeOwned,
-{
-    let toml_content = fs::read_to_string(path)?;
-    parse(&toml_content)
-}
-
-pub fn get_config<T>(config_file: String) -> Result<T, ValidationError>
-where
-    T: Validation + DeserializeOwned,
-{
-    let path = Path::new(&config_file);
-    read_config(path)
 }
 
 #[cfg(test)]

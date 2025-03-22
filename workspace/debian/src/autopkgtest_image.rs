@@ -55,7 +55,7 @@ impl BuildCommandProvider for Distribution {
     /// * `String` - The formatted codename argument
     fn get_codename_arg(&self) -> String {
         match self {
-            Distribution::Debian(codename) => codename.clone(),
+            Distribution::Debian(codename) => codename.as_str().to_string().clone(),
             Distribution::Ubuntu(codename) => format!("--release={}", codename),
         }
     }
