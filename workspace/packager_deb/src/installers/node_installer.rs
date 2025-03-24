@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use types::distribution::Distribution;
+
 use crate::pkg_config::JavascriptConfig;
 
 use super::language_installer::LanguageInstaller;
@@ -30,7 +32,7 @@ impl LanguageInstaller for NodeInstaller {
         }
         subs
     }
-    fn get_test_deps(&self, _codename: &str) -> Vec<String> {
+    fn get_test_deps(&self, _codename: &Distribution) -> Vec<String> {
         vec![]
     }
 }

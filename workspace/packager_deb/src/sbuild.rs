@@ -18,11 +18,12 @@ use std::fs::{self, create_dir_all};
 use std::process::Command;
 use std::{env, vec};
 use thiserror::Error;
+use types::distribution::Distribution;
 
 pub struct Sbuild {
     pub(crate) config: PkgConfig,
     pub(crate) build_files_dir: String,
-    pub(crate) cache_dir: String,
+    pub(crate) cache_dir: PathBuf,
 }
 
 impl Sbuild {
@@ -31,7 +32,7 @@ impl Sbuild {
             .build_env
             .sbuild_cache_dir
             .clone()
-            .unwrap_or_else(|| "~/.cache/sbuild".to_string());
+            .unwrap_or_else(|| PathBuf::from("~/.cache/sbuild"));
 
         Self {
             cache_dir,
@@ -85,8 +86,8 @@ impl Sbuild {
         let cache_file = self.get_cache_file();
         ensure_parent_dir(&cache_file)?;
 
-        let codename = Self::normalize_codename(&self.config.build_env.codename)?;
-        let repo_url = get_repo_url(&self.config.build_env.codename)?;
+        let codename = &self.config.build_env.codename;
+        let repo_url = get_repo_url(&self.config.build_env.codename);
 
         SbuildCreateChroot::new()
             .chroot_mode("unshare")
@@ -101,7 +102,7 @@ impl Sbuild {
     }
 
     pub fn package(&self) -> Result<(), SbuildError> {
-        let codename = Self::normalize_codename(&self.config.build_env.codename)?;
+        let codename = &self.config.build_env.codename;
         let cache_file = self.get_cache_file();
         let build_chroot_setup_commands = self.build_chroot_setup_commands();
         let run_lintian = self.config.build_env.run_lintian.unwrap_or(false);
@@ -184,7 +185,7 @@ impl Sbuild {
         check_tool_version("lintian", &self.config.build_env.lintian_version)?;
 
         let changes_file = self.get_changes_file();
-        let codename = Self::normalize_codename(&self.config.build_env.codename)?;
+        let codename = &self.config.build_env.codename;
 
         Lintian::new()
             .suppress_tag("bad-distribution-in-changes-file")
@@ -204,9 +205,9 @@ impl Sbuild {
         info!("Running piuparts (requires sudo)...");
         check_tool_version("piuparts", &self.config.build_env.piuparts_version)?;
 
-        let codename = Self::normalize_codename(&self.config.build_env.codename)?;
-        let repo_url = get_repo_url(&self.config.build_env.codename)?;
-        let keyring = get_keyring(&self.config.build_env.codename)?;
+        let codename = &self.config.build_env.codename;
+        let repo_url = get_repo_url(&codename);
+        let keyring = get_keyring(&self.config.build_env.codename);
         let deb_name = self.get_deb_name();
 
         Piuparts::new()
@@ -230,7 +231,7 @@ impl Sbuild {
         info!("Running autopkgtests...");
         check_tool_version("autopkgtest", &self.config.build_env.autopkgtest_version)?;
 
-        let codename = Self::normalize_codename(&self.config.build_env.codename)?;
+        let codename = &self.config.build_env.codename;
         let image_path = self.prepare_autopkgtest_image(&codename)?;
         let changes_file = self.get_changes_file();
 
@@ -255,9 +256,8 @@ impl Sbuild {
 // Helper Methods for Sbuild
 impl Sbuild {
     pub fn get_cache_file(&self) -> String {
-        let dir = shellexpand::tilde(&self.cache_dir).to_string();
-        let codename =
-            Self::normalize_codename(&self.config.build_env.codename).unwrap_or_else(|_| "unknown");
+        let dir = shellexpand::tilde(&self.cache_dir.display().to_string()).to_string();
+        let codename = &self.config.build_env.codename.as_short();
         let cache_file_name = format!("{}-{}.tar.gz", codename, self.config.build_env.arch);
         Path::new(&dir)
             .join(cache_file_name)
@@ -313,20 +313,9 @@ impl Sbuild {
             None => vec![],
         }
     }
-    pub fn normalize_codename(codename: &str) -> Result<&str, SbuildError> {
-        match codename {
-            "bookworm" => Ok("bookworm"),
-            "noble numbat" => Ok("noble"),
-            "jammy jellyfish" => Ok("jammy"),
-            _ => Err(SbuildError::GenericError(format!(
-                "Not supported distribution: {}",
-                codename
-            ))),
-        }
-    }
     fn build_chroot_setup_commands(&self) -> Vec<String> {
         let mut deps = self.get_build_deps_not_in_debian();
-        if self.config.build_env.codename == "noble numbat" {
+        if self.config.build_env.codename == Distribution::noble() {
             deps.extend(vec![
                 "apt install -y software-properties-common".to_string(),
                 "add-apt-repository universe".to_string(),
@@ -348,12 +337,16 @@ impl Sbuild {
         }
     }
 
-    fn prepare_autopkgtest_image(&self, codename: &str) -> Result<PathBuf, SbuildError> {
+    fn prepare_autopkgtest_image(&self, codename: &Distribution) -> Result<PathBuf, SbuildError> {
         info!("Running prepare_autopkgtest_image");
-        let repo_url = get_repo_url(codename)?;
+        let repo_url = get_repo_url(codename);
         let builder = AutopkgtestImageBuilder::new()
             .codename(codename)?
-            .image_path(&self.cache_dir, codename, &self.config.build_env.arch)
+            .image_path(
+                &self.cache_dir.display().to_string(),
+                codename,
+                &self.config.build_env.arch,
+            )
             .mirror(repo_url)
             .arch(&self.config.build_env.arch);
         info!("Running prepare_autopkgtest_image 2");
@@ -373,7 +366,7 @@ impl Sbuild {
 
 // Utility Functions
 
-fn check_tool_version(tool: &str, expected_version: &str) -> Result<(), SbuildError> {
+fn check_tool_version(tool: &str, expected_version: &Version) -> Result<(), SbuildError> {
     let (cmd, args) = match tool {
         "lintian" | "piuparts" => (tool, vec!["--version"]),
         "autopkgtest" => ("apt", vec!["list", "--installed", "autopkgtest"]),
@@ -422,13 +415,13 @@ fn check_tool_version(tool: &str, expected_version: &str) -> Result<(), SbuildEr
     Ok(())
 }
 
-fn warn_compare_versions(expected: &str, actual: &str, tool: &str) -> Result<(), SbuildError> {
+fn warn_compare_versions(expected: &Version, actual: &str, tool: &str) -> Result<(), SbuildError> {
     // Normalize version strings for parsing only, when not using semver
-    let expected_normalized = if expected.matches('.').count() == 1 {
-        format!("{}.0", expected)
-    } else {
-        expected.to_string()
-    };
+    // let expected_normalized = if expected.matches('.').count() == 1 {
+    //     format!("{}.0", expected)
+    // } else {
+    //     expected.to_string()
+    // };
 
     let actual_normalized = if actual.matches('.').count() == 1 {
         format!("{}.0", actual)
@@ -436,13 +429,13 @@ fn warn_compare_versions(expected: &str, actual: &str, tool: &str) -> Result<(),
         actual.to_string()
     };
 
-    let expected_ver = Version::parse(&expected_normalized).map_err(|e| {
-        SbuildError::GenericError(format!("Failed parsing expected version: {}", e))
-    })?;
+    // let expected_ver = Version::parse(&expected_normalized).map_err(|e| {
+    //     SbuildError::GenericError(format!("Failed parsing expected version: {}", e))
+    // })?;
     let actual_ver = Version::parse(&actual_normalized)
         .map_err(|e| SbuildError::GenericError(format!("Failed to parse actual version: {}", e)))?;
 
-    match expected_ver.cmp(&actual_ver) {
+    match expected.cmp(&actual_ver) {
         std::cmp::Ordering::Less => warn!(
             "Using newer {} version ({}) than expected ({})",
             tool, actual, expected
@@ -457,25 +450,17 @@ fn warn_compare_versions(expected: &str, actual: &str, tool: &str) -> Result<(),
     Ok(())
 }
 
-fn get_keyring(codename: &str) -> Result<&str, SbuildError> {
+fn get_keyring(codename: &Distribution) -> &str {
     match codename {
-        "bookworm" => Ok("/usr/share/keyrings/debian-archive-keyring.gpg"),
-        "noble numbat" | "jammy jellyfish" => Ok("/usr/share/keyrings/ubuntu-archive-keyring.gpg"),
-        _ => Err(SbuildError::GenericError(format!(
-            "Unsupported codename: {}",
-            codename
-        ))),
+        Distribution::Debian(_) => "/usr/share/keyrings/debian-archive-keyring.gpg",
+        Distribution::Ubuntu(_) => "/usr/share/keyrings/ubuntu-archive-keyring.gpg",
     }
 }
 
-fn get_repo_url(codename: &str) -> Result<&str, SbuildError> {
+fn get_repo_url(codename: &Distribution) -> &str {
     match codename {
-        "bookworm" => Ok("http://deb.debian.org/debian"),
-        "noble numbat" | "jammy jellyfish" => Ok("http://archive.ubuntu.com/ubuntu"),
-        _ => Err(SbuildError::GenericError(format!(
-            "Unsupported codename: {}",
-            codename
-        ))),
+        Distribution::Debian(_) => "http://deb.debian.org/debian",
+        Distribution::Ubuntu(_) => "http://archive.ubuntu.com/ubuntu",
     }
 }
 
@@ -513,12 +498,17 @@ fn remove_file_or_directory(path: &str, is_dir: bool) -> Result<(), SbuildError>
 
 #[cfg(test)]
 mod tests {
+    use crate::pkg_config::{BuildEnv, DefaultPackageTypeConfig, PackageFields};
+
     use super::*;
     use env_logger::Env;
+    use types::url::Url;
     use std::fs::{create_dir_all, File};
     use std::path::Path;
     use std::sync::Once;
     use tempfile::tempdir;
+    use types::distribution::Distribution;
+    use types::version::Version;
 
     static INIT: Once = Once::new();
 
@@ -529,13 +519,41 @@ mod tests {
         });
     }
 
-    fn create_base_config() -> (PkgConfig, String, String) {
-        let mut config = PkgConfig::default();
-        config.build_env.codename = "bookworm".to_string();
+    fn create_base_config() -> (PkgConfig, String, PathBuf) {
+        let mut config = PkgConfig {
+            package_fields: PackageFields {
+                spec_file: "".into(),
+                package_name: "".into(),
+                version_number: Version::from("0.0.0".into()),
+                revision_number: "".into(),
+                homepage: "".into(),
+            },
+            package_type: PackageType::Default(DefaultPackageTypeConfig {
+                tarball_url: Url::from("".into()),
+                tarball_hash: Some("".into()),
+                language_env: LanguageEnv::C,
+            }),
+            build_env: BuildEnv {
+                codename: Distribution::bookworm(),
+                arch: todo!(),
+                pkg_builder_version: Version::from("1.0.0".into()),
+                debcrafter_version: todo!(),
+                sbuild_cache_dir: todo!(),
+                docker: todo!(),
+                run_lintian: todo!(),
+                run_piuparts: todo!(),
+                run_autopkgtest: todo!(),
+                lintian_version: todo!(),
+                piuparts_version: todo!(),
+                autopkgtest_version: todo!(),
+                sbuild_version: todo!(),
+                workdir: todo!(),
+            },
+        };
         config.build_env.arch = "amd64".to_string();
 
         let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        let cache_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
+        let cache_dir = tempdir().unwrap().path().to_path_buf();
         config.build_env.sbuild_cache_dir = Some(cache_dir.clone());
 
         (config, build_files_dir, cache_dir)

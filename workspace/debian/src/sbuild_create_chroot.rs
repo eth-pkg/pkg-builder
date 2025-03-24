@@ -1,5 +1,6 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
+use types::distribution::Distribution;
 use std::path::Path;
 use thiserror::Error;
 
@@ -16,7 +17,7 @@ pub struct SbuildCreateChroot {
     /// Path to the cache file
     cache_file: Option<String>,
     /// Codename of the distribution (e.g., "bullseye")
-    codename: Option<String>,
+    codename: Option<Distribution>,
     /// Directory to use for temporary files
     temp_dir: Option<String>,
     /// URL of the repository to use
@@ -104,8 +105,8 @@ impl SbuildCreateChroot {
     /// use debian::sbuild_create_chroot::SbuildCreateChroot;
     /// let chroot = SbuildCreateChroot::new().codename("bullseye");
     /// ```
-    pub fn codename(mut self, name: &str) -> Self {
-        self.codename = Some(name.to_string());
+    pub fn codename(mut self, name: &Distribution) -> Self {
+        self.codename = Some(name.clone());
         self
     }
 
@@ -162,7 +163,7 @@ impl SbuildCreateChroot {
         }
 
         if let Some(name) = &self.codename {
-            args.push(name.clone());
+            args.push(name.as_short().into());
         }
 
         if let Some(dir) = &self.temp_dir {
@@ -250,7 +251,7 @@ mod tests {
             .chroot_mode("unshare")
             .make_tarball()
             .cache_file("/var/cache/sbuild.tar.gz")
-            .codename("bullseye")
+            .codename(&Distribution::bookworm())
             .temp_dir(&temp_path)
             .repo_url("http://deb.debian.org/debian");
 

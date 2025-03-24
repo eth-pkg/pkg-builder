@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use types::distribution::Distribution;
+
 use crate::pkg_config::GoConfig;
 
 use super::language_installer::LanguageInstaller;
@@ -18,7 +20,7 @@ impl LanguageInstaller for GoInstaller {
         subs.insert("${go_binary_checksum}", self.0.go_binary_checksum.as_str());
         subs
     }
-    fn get_test_deps(&self, _codename: &str) -> Vec<String> {
+    fn get_test_deps(&self, _codename: &Distribution) -> Vec<String> {
         vec![]
     }
 }

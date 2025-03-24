@@ -1,7 +1,7 @@
 use types::{
     config::{Config, ConfigFile, ConfigType},
     debian::DebCommandPayload,
-    defaults::VERIFY_CONFIG_FILE_NAME,
+    defaults::{CONFIG_FILE_NAME, VERIFY_CONFIG_FILE_NAME},
 };
 
 // Organize imports by scope with clear grouping and alphabetical ordering
@@ -9,7 +9,6 @@ use crate::{
     pkg_config::PkgConfig,
     pkg_config_verify::PkgVerifyConfig,
     sbuild_packager::{PackageError, SbuildPackager},
-    validation::parse,
 };
 
 impl ConfigType for PkgVerifyConfig {
@@ -18,12 +17,19 @@ impl ConfigType for PkgVerifyConfig {
     }
 }
 
+impl ConfigType for PkgConfig {
+    fn default_config_path() -> &'static str {
+        CONFIG_FILE_NAME
+    }
+}
+
 pub fn dispatch_package_operation(
     config: ConfigFile<Config>,
     cmd_payload: DebCommandPayload,
 ) -> Result<(), PackageError> {
     // Parse config first
-    let mut pkg_config = parse::<PkgConfig>(config.as_ref())?;
+    let mut pkg_config =
+        ConfigFile::<PkgConfig>::load_and_parse(Some(config.path.display().to_string()))?;
 
     // Apply CLI overrides if needed
     if let DebCommandPayload::Package {

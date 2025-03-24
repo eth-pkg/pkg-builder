@@ -1,5 +1,6 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
+use types::distribution::Distribution;
 use std::path::Path;
 use thiserror::Error;
 
@@ -35,7 +36,7 @@ pub struct Lintian {
     /// Severity levels to fail on (warning, error)
     fail_on: Vec<String>,
     /// Ubuntu/Debian codename for version-specific checks
-    codename: Option<String>,
+    codename: Option<Distribution>,
 }
 
 /// Custom error type for lintian operations
@@ -165,12 +166,12 @@ impl Lintian {
     /// # Returns
     ///
     /// Self with codename-specific configuration.
-    pub fn with_codename<S: AsRef<str>>(mut self, codename: S) -> Self {
-        let codename_str = codename.as_ref().to_string();
-        self.codename = Some(codename_str.clone());
+    pub fn with_codename(mut self, codename: &Distribution) -> Self {
+        self.codename = Some(codename.clone());
 
-        if codename_str == "jammy" || codename_str == "noble" {
-            self.suppress_tags.push("malformed-deb-archive".to_string());
+        match codename {
+            Distribution::Debian(_) => {},
+            Distribution::Ubuntu(_) => self.suppress_tags.push("malformed-deb-archive".to_string()),
         }
         self
     }
@@ -310,8 +311,8 @@ mod tests {
 
     #[test]
     fn test_with_codename_jammy() {
-        let lintian = Lintian::new().with_codename("jammy");
-        assert_eq!(lintian.codename, Some("jammy".to_string()));
+        let lintian = Lintian::new().with_codename(&Distribution::jammy());
+        assert_eq!(lintian.codename, Some(Distribution::jammy()));
         assert!(lintian
             .suppress_tags
             .contains(&"malformed-deb-archive".to_string()));
@@ -319,8 +320,8 @@ mod tests {
 
     #[test]
     fn test_with_codename_other() {
-        let lintian = Lintian::new().with_codename("focal");
-        assert_eq!(lintian.codename, Some("focal".to_string()));
+        let lintian = Lintian::new().with_codename(&Distribution::noble());
+        assert_eq!(lintian.codename, Some(Distribution::noble()));
         assert!(!lintian
             .suppress_tags
             .contains(&"malformed-deb-archive".to_string()));
@@ -379,7 +380,7 @@ mod tests {
             .suppress_tag("tag1")
             .changes_file("file.changes")
             .fail_on_error()
-            .with_codename("noble");
+            .with_codename(&Distribution::noble());
 
         assert!(lintian.show_info);
         assert!(lintian.extended_info);
@@ -389,6 +390,6 @@ mod tests {
             Some(format!("{:?}", PathBuf::from("file.changes")))
         );
         assert_eq!(lintian.fail_on, vec!["error".to_string()]);
-        assert_eq!(lintian.codename, Some("noble".to_string()));
+        assert_eq!(lintian.codename, Some(Distribution::noble()));
     }
 }

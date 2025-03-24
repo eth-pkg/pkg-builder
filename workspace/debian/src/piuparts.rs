@@ -2,6 +2,7 @@ use super::execute::{execute_command_with_sudo, Execute, ExecuteError};
 use log::info;
 use std::path::Path;
 use thiserror::Error;
+use types::distribution::{Distribution, UbuntuCodename};
 
 /// A builder for the piuparts command, which tests Debian package installation,
 /// upgrading, and removal processes.
@@ -41,7 +42,7 @@ use thiserror::Error;
 /// on system package management and creates isolated environments.
 pub struct Piuparts<'a> {
     /// Distribution codename (e.g., "bookworm", "jammy")
-    distribution: Option<String>,
+    distribution: Option<Distribution>,
     /// Mirror URL for package repository
     mirror: Option<String>,
     /// Paths to bind mount into the chroot
@@ -106,8 +107,8 @@ impl<'a> Piuparts<'a> {
     /// # Arguments
     ///
     /// * `codename` - The distribution codename (e.g., "bookworm", "jammy", "bullseye")
-    pub fn distribution(mut self, codename: &str) -> Self {
-        self.distribution = Some(codename.to_string());
+    pub fn distribution(mut self, codename: &Distribution) -> Self {
+        self.distribution = Some(codename.clone());
         self
     }
 
@@ -195,14 +196,30 @@ impl<'a> Piuparts<'a> {
     ///
     /// If `is_dotnet` is true and the distribution is either "bookworm" or "jammy jellyfish",
     /// adds the Microsoft repository and disables signature verification.
-    pub fn with_dotnet_env(self, is_dotnet: bool, codename: &str) -> Self {
-        if is_dotnet && (codename == "bookworm" || codename == "jammy") {
-            let repo = format!(
-                "deb https://packages.microsoft.com/debian/12/prod {} main",
-                codename
-            );
-            return self.extra_repo(&repo).no_verify_signatures();
+    pub fn with_dotnet_env(self, is_dotnet: bool, codename: &Distribution) -> Self {
+        if !is_dotnet {
+            return self;
         }
+
+        match codename {
+            Distribution::Debian(debian) => {
+                let repo = format!(
+                    "deb https://packages.microsoft.com/debian/12/prod {} main",
+                    debian
+                );
+                return self.extra_repo(&repo).no_verify_signatures();
+            }
+            Distribution::Ubuntu(ubuntu_distro) => {
+                if let UbuntuCodename::Jammy = ubuntu_distro {
+                    let repo = format!(
+                        "deb https://packages.microsoft.com/debian/12/prod {} main",
+                        "jammy"
+                    );
+                    return self.extra_repo(&repo).no_verify_signatures();
+                }
+            }
+        }
+
         self
     }
 
@@ -246,7 +263,7 @@ impl<'a> Piuparts<'a> {
 
         if let Some(dist) = &self.distribution {
             args.push("-d".to_string());
-            args.push(dist.clone());
+            args.push(dist.as_short().into());
         }
 
         if let Some(mirror_url) = &self.mirror {
@@ -315,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_distribution_option() {
-        let piuparts = Piuparts::new().distribution("bookworm");
+        let piuparts = Piuparts::new().distribution(&Distribution::bookworm());
         assert_eq!(piuparts.build_args(), vec!["-d", "bookworm"]);
     }
 
@@ -331,7 +348,7 @@ mod tests {
     #[test]
     fn test_multiple_options() {
         let piuparts = Piuparts::new()
-            .distribution("jammy")
+            .distribution(&Distribution::jammy())
             .mirror("http://archive.ubuntu.com/ubuntu")
             .verbose()
             .bindmount_dev();
@@ -347,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_dotnet_env_bookworm() {
-        let piuparts = Piuparts::new().with_dotnet_env(true, "bookworm");
+        let piuparts = Piuparts::new().with_dotnet_env(true, &Distribution::bookworm());
         let args = piuparts.build_args();
 
         assert!(args.contains(
@@ -359,10 +376,10 @@ mod tests {
 
     #[test]
     fn test_dotnet_env_no_effect() {
-        let piuparts = Piuparts::new().with_dotnet_env(true, "bullseye");
+        let piuparts = Piuparts::new().with_dotnet_env(true, &Distribution::noble());
         assert_eq!(piuparts.build_args(), Vec::<String>::new());
 
-        let piuparts = Piuparts::new().with_dotnet_env(false, "bookworm");
+        let piuparts = Piuparts::new().with_dotnet_env(false, &Distribution::bookworm());
         assert_eq!(piuparts.build_args(), Vec::<String>::new());
     }
 

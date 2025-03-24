@@ -1,6 +1,6 @@
 use log::warn;
 use semver::Version;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -149,7 +149,7 @@ pub struct BuildEnv {
     pub workdir: PathBuf,
 
     /// Required pkg-builder version
-    pub pkg_builder_version: PkgBuilderVersion,
+    pub pkg_builder_version: Version,
 }
 
 impl BuildEnv {
@@ -170,7 +170,7 @@ impl BuildEnv {
         let current_version =
             Version::parse(current_pkg_version).map_err(ConfigError::VersionParse)?;
 
-        let required_version = self.pkg_builder_version.as_ref();
+        let required_version = &self.pkg_builder_version;
 
         match required_version.cmp(&current_version) {
             Ordering::Greater => {
@@ -200,51 +200,51 @@ impl BuildEnv {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PkgBuilderVersion(Version);
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// pub struct PkgBuilderVersion(Version);
 
-impl PkgBuilderVersion {
-    pub fn new(version: Version) -> Self {
-        Self(version)
-    }
+// impl PkgBuilderVersion {
+//     pub fn new(version: Version) -> Self {
+//         Self(version)
+//     }
 
-    pub fn version(&self) -> &Version {
-        &self.0
-    }
-}
+//     pub fn version(&self) -> &Version {
+//         &self.0
+//     }
+// }
 
-impl From<Version> for PkgBuilderVersion {
-    fn from(version: Version) -> Self {
-        Self(version)
-    }
-}
+// impl From<Version> for PkgBuilderVersion {
+//     fn from(version: Version) -> Self {
+//         Self(version)
+//     }
+// }
 
-impl AsRef<Version> for PkgBuilderVersion {
-    fn as_ref(&self) -> &Version {
-        &self.0
-    }
-}
+// impl AsRef<Version> for PkgBuilderVersion {
+//     fn as_ref(&self) -> &Version {
+//         &self.0
+//     }
+// }
 
-impl Serialize for PkgBuilderVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.0.to_string())
-    }
-}
+// impl Serialize for PkgBuilderVersion {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         serializer.serialize_str(&self.0.to_string())
+//     }
+// }
 
-impl<'de> Deserialize<'de> for PkgBuilderVersion {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let version_str = String::deserialize(deserializer)?;
-        Version::parse(&version_str)
-            .map(PkgBuilderVersion)
-            .map_err(|e| de::Error::custom(e.to_string()))
-    }
-}
+// impl<'de> Deserialize<'de> for PkgBuilderVersion {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         let version_str = String::deserialize(deserializer)?;
+//         Version::parse(&version_str)
+//             .map(PkgBuilderVersion)
+//             .map_err(|e| de::Error::custom(e.to_string()))
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -300,9 +300,6 @@ mod tests {
         let config = config.unwrap();
         assert_eq!(config.build_env.codename, Distribution::noble());
         assert_eq!(config.build_env.workdir, PathBuf::from("/tmp/test"));
-        assert_eq!(
-            config.build_env.pkg_builder_version,
-            PkgBuilderVersion(Version::new(1, 0, 0))
-        );
+        assert_eq!(config.build_env.pkg_builder_version, Version::new(1, 0, 0));
     }
 }

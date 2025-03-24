@@ -1,49 +1,51 @@
-use serde::{Deserialize, Deserializer};
-use std::str::FromStr;
+use std::path::PathBuf;
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+use serde::Deserialize;
+use types::{distribution::Distribution, url::Url, version::Version};
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct RustConfig {
-    pub rust_version: String,
-    pub rust_binary_url: String,
+    pub rust_version: Version,
+    pub rust_binary_url: Url,
     pub rust_binary_gpg_asc: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GoConfig {
-    pub go_version: String,
-    pub go_binary_url: String,
+    pub go_version: Version,
+    pub go_binary_url: Url,
     pub go_binary_checksum: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct JavascriptConfig {
-    pub node_version: String,
-    pub node_binary_url: String,
+    pub node_version: Version,
+    pub node_binary_url: Url,
     pub node_binary_checksum: String,
     pub yarn_version: Option<String>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GradleConfig {
-    pub gradle_version: String,
-    pub gradle_binary_url: String,
+    pub gradle_version: Version,
+    pub gradle_binary_url: Url,
     pub gradle_binary_checksum: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct JavaConfig {
     pub is_oracle: bool,
-    pub jdk_version: String,
-    pub jdk_binary_url: String,
+    pub jdk_version: Version,
+    pub jdk_binary_url: Url,
     pub jdk_binary_checksum: String,
     pub gradle: Option<GradleConfig>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct DotnetPackage {
     pub name: String,
     pub hash: String,
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Clone, Default)]
@@ -53,9 +55,9 @@ pub struct DotnetConfig {
     pub deps: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct NimConfig {
-    pub nim_version: String,
+    pub nim_version: Version,
     pub nim_binary_url: String,
     pub nim_version_checksum: String,
 }
@@ -75,23 +77,23 @@ pub enum LanguageEnv {
     Python,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct DefaultPackageTypeConfig {
-    pub tarball_url: String,
+    pub tarball_url: Url,
     pub tarball_hash: Option<String>,
     pub language_env: LanguageEnv,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct SubModule {
     pub commit: String,
     pub path: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GitPackageTypeConfig {
     pub git_tag: String,
-    pub git_url: String,
+    pub git_url: Url,
     pub submodules: Vec<SubModule>,
     pub language_env: LanguageEnv,
 }
@@ -115,51 +117,36 @@ impl PackageType {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq, Default, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct PackageFields {
     pub spec_file: String,
     pub package_name: String,
-    pub version_number: String,
+    pub version_number: Version,
     pub revision_number: String,
     pub homepage: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Default, Clone)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct BuildEnv {
-    pub codename: String,
+    pub codename: Distribution,
     pub arch: String,
-    pub pkg_builder_version: String,
-    pub debcrafter_version: String,
-    pub sbuild_cache_dir: Option<String>,
+    pub pkg_builder_version: Version,
+    pub debcrafter_version: Version,
+    pub sbuild_cache_dir: Option<PathBuf>,
     pub docker: Option<bool>,
     pub run_lintian: Option<bool>,
     pub run_piuparts: Option<bool>,
     pub run_autopkgtest: Option<bool>,
-    pub lintian_version: String,
-    pub piuparts_version: String,
-    pub autopkgtest_version: String,
-    pub sbuild_version: String,
-    #[serde(deserialize_with = "deserialize_option_empty_string")]
-    pub workdir: Option<String>,
+    pub lintian_version: Version,
+    pub piuparts_version: Version,
+    pub autopkgtest_version: Version,
+    pub sbuild_version: Version,
+    pub workdir: PathBuf,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
     pub build_env: BuildEnv,
-}
-
-pub fn deserialize_option_empty_string<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
-where
-    T: FromStr,
-    T::Err: std::fmt::Display,
-    D: Deserializer<'de>,
-{
-    let s: String = Deserialize::deserialize(deserializer)?;
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        T::from_str(&s).map(Some).map_err(serde::de::Error::custom)
-    }
 }

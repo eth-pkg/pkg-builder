@@ -1,5 +1,6 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
+use types::distribution::Distribution;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -25,7 +26,7 @@ use thiserror::Error;
 #[derive(Default, Debug, Clone)]
 pub struct SbuildBuilder {
     /// Debian distribution codename (e.g., "bullseye", "bookworm")
-    distribution: Option<String>,
+    distribution: Option<Distribution>,
     /// Whether to build architecture-independent packages
     build_arch_all: bool,
     /// Whether to build source packages only
@@ -98,8 +99,8 @@ impl SbuildBuilder {
     /// # Arguments
     ///
     /// * `codename` - The Debian distribution codename (e.g., "bullseye", "bookworm")
-    pub fn distribution(mut self, codename: &str) -> Self {
-        self.distribution = Some(codename.to_string());
+    pub fn distribution(mut self, codename: &Distribution) -> Self {
+        self.distribution = Some(codename.clone());
         self
     }
 
@@ -218,7 +219,7 @@ impl SbuildBuilder {
 
         if let Some(dist) = &self.distribution {
             args.push("-d".to_string());
-            args.push(dist.clone());
+            args.push(dist.as_short().into());
         }
 
         if self.build_arch_all {
@@ -329,7 +330,7 @@ mod tests {
     fn test_builder_methods() {
         let path = PathBuf::from("/tmp/test");
         let builder = SbuildBuilder::new()
-            .distribution("bullseye")
+            .distribution(&Distribution::bookworm())
             .build_arch_all()
             .build_source()
             .cache_file("cache.txt")
@@ -342,7 +343,7 @@ mod tests {
             .no_run_autopkgtest()
             .working_dir(&path);
 
-        assert_eq!(builder.distribution, Some("bullseye".to_string()));
+        assert_eq!(builder.distribution, Some(Distribution::bookworm()));
         assert!(builder.build_arch_all);
         assert!(builder.build_source);
         assert_eq!(builder.cache_file, Some("cache.txt".to_string()));
@@ -362,14 +363,14 @@ mod tests {
     #[test]
     fn test_build_args() {
         let builder = SbuildBuilder::new()
-            .distribution("bullseye")
+            .distribution(&Distribution::bookworm())
             .build_arch_all()
             .verbose()
             .run_lintian(false);
 
         let args = builder.build_args();
         assert!(args.contains(&"-d".to_string()));
-        assert!(args.contains(&"bullseye".to_string()));
+        assert!(args.contains(&"bookworm".to_string()));
         assert!(args.contains(&"-A".to_string()));
         assert!(args.contains(&"-v".to_string()));
         assert!(args.contains(&"--no-run-lintian".to_string()));

@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf};
 use thiserror::Error;
 
 use log::info;
-use types::config::ConfigError;
+use types::{config::ConfigError, defaults::WORKDIR_ROOT};
 
 use crate::{
     build_pipeline::{BuildContext, BuildError},
@@ -33,12 +33,14 @@ impl SbuildPackager {
     pub fn new(config: PkgConfig, config_root: PathBuf) -> Self {
         // Update the config workdir
         let mut updated_config = config.clone();
-        let workdir = config.build_env.workdir.clone().unwrap_or(format!(
-            "~/.pkg-builder/packages/{}",
-            config.build_env.codename
-        ));
+        let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
+        default_work_dir.push(config.build_env.codename.as_ref());
+        let mut workdir = config.build_env.workdir;
+        if workdir.as_os_str().is_empty() {
+            workdir = default_work_dir;
+        }
         let workdir = expand_path(&workdir, None);
-        updated_config.build_env.workdir = Some(workdir);
+        updated_config.build_env.workdir = workdir;
 
         // Update the spec file path
         let config_root_path = PathBuf::from(&config_root);
@@ -130,35 +132,37 @@ pub fn build_context(config: &PkgConfig, config_root: &str) -> BuildContext {
     let config_root_path = PathBuf::from(config_root);
     let source_to_patch_from_path = config_root_path.join("src").to_str().unwrap().to_string();
 
-    let workdir = config.build_env.workdir.clone().unwrap_or(format!(
-        "~/.pkg-builder/packages/{}",
-        config.build_env.codename
-    ));
+    let mut workdir = config.build_env.workdir.clone();
+    let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
+    default_work_dir.push(&config.build_env.codename.as_ref());
+    if workdir.as_os_str().is_empty() {
+        workdir = default_work_dir;
+    }
     let workdir = expand_path(&workdir, None);
 
     let build_artifacts_dir = get_build_artifacts_dir(
         &package_fields.package_name,
-        &workdir,
-        &package_fields.version_number,
+        &workdir.display().to_string(),
+        &package_fields.version_number.as_str(),
         &package_fields.revision_number,
     );
 
     let debian_orig_tarball_path = get_tarball_path(
         &package_fields.package_name,
-        &package_fields.version_number,
+        &package_fields.version_number.as_str(),
         &build_artifacts_dir,
     );
 
     let build_files_dir = get_build_files_dir(
         &package_fields.package_name,
-        &package_fields.version_number,
+        &package_fields.version_number.as_str(),
         &build_artifacts_dir,
     );
 
     let mut context = BuildContext {
         build_artifacts_dir,
         build_files_dir,
-        debcrafter_version: config.build_env.debcrafter_version.clone(),
+        debcrafter_version: config.build_env.debcrafter_version.as_str().to_string(),
         homepage: package_fields.homepage.clone(),
         spec_file: package_fields.spec_file.clone(),
         tarball_hash: String::new(),
@@ -173,14 +177,15 @@ pub fn build_context(config: &PkgConfig, config_root: &str) -> BuildContext {
 
     match &config.package_type {
         PackageType::Default(default_config) => {
-            context.tarball_url = get_tarball_url(&default_config.tarball_url, config_root);
+            context.tarball_url =
+                get_tarball_url(&default_config.tarball_url.as_str(), config_root);
             if let Some(hash) = &default_config.tarball_hash {
                 context.tarball_hash = hash.clone();
             }
         }
         PackageType::Git(git_config) => {
             context.git_tag = git_config.git_tag.clone();
-            context.git_url = git_config.git_url.clone();
+            context.git_url = git_config.git_url.as_str().to_string();
             context.submodules = git_config.submodules.clone();
         }
         PackageType::Virtual => {
@@ -232,25 +237,29 @@ pub fn get_tarball_url(tarball_url: &str, config_root: &str) -> String {
     if tarball_url.starts_with("http") {
         tarball_url.to_string()
     } else {
-        expand_path(tarball_url, Some(config_root))
+        expand_path(
+            &PathBuf::from(tarball_url),
+            Some(&PathBuf::from(config_root)),
+        )
+        .display()
+        .to_string()
     }
 }
 
-pub fn expand_path(dir: &str, dir_to_expand: Option<&str>) -> String {
-    if dir.starts_with('~') {
-        let expanded_path = shellexpand::tilde(dir).to_string();
-        expanded_path
-    } else if dir.starts_with('/') {
-        dir.to_string()
+pub fn expand_path(dir: &PathBuf, dir_to_expand: Option<&PathBuf>) -> PathBuf {
+    if dir.to_string_lossy().starts_with('~') {
+        let dir_str = dir.to_string_lossy();
+        PathBuf::from(shellexpand::tilde(&dir_str).to_string())
+    } else if dir.is_absolute() {
+        dir.clone()
     } else {
         let parent_dir = match dir_to_expand {
             None => env::current_dir().unwrap(),
-            Some(path) => PathBuf::from(path),
+            Some(path) => path.clone(),
         };
-        let dir = parent_dir.join(dir);
-        let path = fs::canonicalize(dir.clone()).unwrap_or(dir);
-        let path = path.to_str().unwrap().to_string();
-        path
+
+        let path = parent_dir.join(dir);
+        fs::canonicalize(path.clone()).unwrap_or(path)
     }
 }
 
@@ -260,26 +269,33 @@ mod tests {
 
     #[test]
     fn expand_path_expands_tilde_correctly() {
-        let result = expand_path("~", None);
-        assert_ne!(result, "~");
-        assert!(!result.contains('~'));
+        let tilde = PathBuf::from("~");
+        let result = expand_path(&tilde, None);
+        assert_ne!(result, tilde);
+        assert!(!result.display().to_string().contains('~'));
     }
 
     #[test]
     fn expand_path_handles_absolute_paths() {
-        let result = expand_path("/absolute/path", None);
-        assert_eq!(result, "/absolute/path");
+        let absolute_path = PathBuf::from("/absolute/path");
+        let result = expand_path(&absolute_path, None);
+        assert_eq!(result, absolute_path);
     }
 
     #[test]
     fn expand_path_expands_relative_paths_with_parent() {
-        let result = expand_path("somefile", Some("/tmp"));
-        assert_eq!(result, "/tmp/somefile");
+        let file = PathBuf::from("somefile");
+        let mut tmp = PathBuf::from("/tmp");
+        let result = expand_path(&file, Some(&tmp));
+        tmp.push(file);
+        assert_eq!(result, tmp);
     }
 
     #[test]
     fn expand_path_expands_relative_paths_without_parent() {
-        let result = expand_path("somefile", None);
-        assert!(result.starts_with('/'));
+        let file = PathBuf::from("somefile");
+
+        let result = expand_path(&file, None);
+        assert!(result.display().to_string().starts_with('/'));
     }
 }

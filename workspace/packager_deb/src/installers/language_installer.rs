@@ -1,3 +1,5 @@
+use types::distribution::Distribution;
+
 use super::{
     command_builder::CommandBuilder, dotnet_installer::DotnetInstaller,
     empty_installer::EmptyInstaller, go_installer::GoInstaller, java_installer::JavaInstaller,
@@ -10,7 +12,7 @@ pub trait LanguageInstaller {
     fn recipe(&self) -> Cow<'static, str>;
     fn substitutions(&self) -> HashMap<&str, &str>;
 
-    fn get_build_deps(&self, _arch: &str, _codename: &str) -> Vec<String> {
+    fn get_build_deps(&self, _arch: &str, _codename: &Distribution) -> Vec<String> {
         let mut builder = CommandBuilder::new();
         let recipe = self.recipe();
         let substitutions = self.substitutions();
@@ -28,7 +30,7 @@ pub trait LanguageInstaller {
 
         builder.build()
     }
-    fn get_test_deps(&self, codename: &str) -> Vec<String>;
+    fn get_test_deps(&self, codename: &Distribution) -> Vec<String>;
 }
 
 impl From<&LanguageEnv> for Box<dyn LanguageInstaller> {

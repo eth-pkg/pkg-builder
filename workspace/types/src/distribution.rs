@@ -42,6 +42,12 @@ impl DebianCodename {
             DebianCodename::Bookworm => "bookworm",
         }
     }
+
+    pub fn as_short(&self) -> &'static str {
+        match self {
+            DebianCodename::Bookworm => "bookworm",
+        }
+    }
 }
 impl fmt::Display for DebianCodename {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -61,6 +67,12 @@ impl UbuntuCodename {
         match self {
             UbuntuCodename::Noble => "noble numbat",
             UbuntuCodename::Jammy => "jammy jellyfish",
+        }
+    }
+    pub fn as_short(&self) -> &'static str {
+        match self {
+            UbuntuCodename::Noble => "noble",
+            UbuntuCodename::Jammy => "jammy",
         }
     }
 }
@@ -102,8 +114,23 @@ impl Distribution {
             _ => Err(DistributionError::UnsupportedCodename(codename.to_string())),
         }
     }
+
+    pub fn as_short(&self) -> &str {
+        match self {
+            Distribution::Debian(codename) => codename.as_short(),
+            Distribution::Ubuntu(codename) => codename.as_short(),
+        }
+    }
 }
 
+impl AsRef<str> for Distribution {
+    fn as_ref(&self) -> &str {
+        match self {
+            Distribution::Debian(codename) => codename.as_str(),
+            Distribution::Ubuntu(codename) => codename.as_str(),
+        }
+    }
+}
 impl Serialize for Distribution {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

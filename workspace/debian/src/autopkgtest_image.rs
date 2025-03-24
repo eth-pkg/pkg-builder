@@ -95,13 +95,10 @@ impl AutopkgtestImageBuilder {
     ///
     /// # Returns
     /// * `Result<Self>` - Modified builder or error if codename is unsupported
-    pub fn codename(mut self, codename: &str) -> Result<Self> {
+    pub fn codename(mut self, codename: &Distribution) -> Result<Self> {
         // Assuming Distribution::from_codename has been modified to return our Result type
         // or we're mapping the error here
-        self.distribution =
-            Some(Distribution::from_codename(codename).map_err(|_| {
-                AutopkgtestImageError::UnsupportedDistribution(codename.to_string())
-            })?);
+        self.distribution = Some(codename.clone());
         Ok(self)
     }
 
@@ -114,8 +111,8 @@ impl AutopkgtestImageBuilder {
     ///
     /// # Returns
     /// * `Self` - Modified builder
-    pub fn image_path(mut self, cache_dir: &str, codename: &str, arch: &str) -> Self {
-        let image_name = format!("autopkgtest-{}-{}.img", codename, arch);
+    pub fn image_path(mut self, cache_dir: &str, codename: &Distribution, arch: &str) -> Self {
+        let image_name = format!("autopkgtest-{}-{}.img", codename.as_short(), arch);
         let cache_dir = shellexpand::tilde(cache_dir).to_string();
         let image_path = Path::new(&cache_dir).join(&image_name);
         self.image_path = Some(image_path.clone());
@@ -243,9 +240,9 @@ mod tests {
     #[test]
     fn test_build_args() {
         let builder = AutopkgtestImageBuilder::new()
-            .codename("bookworm")
+            .codename(&Distribution::bookworm())
             .unwrap()
-            .image_path("/tmp", "bookworm", "amd64")
+            .image_path("/tmp", &Distribution::bookworm(), "amd64")
             .arch("amd64")
             .mirror("http://example.com/debian");
 
@@ -254,6 +251,24 @@ mod tests {
         assert!(args
             .iter()
             .any(|arg| arg.contains("/tmp/autopkgtest-bookworm-amd64.img")));
+        assert!(args.contains(&"--arch=amd64".to_string()));
+        assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
+    }
+
+    #[test]
+    fn test_noble_build_args() {
+        let builder = AutopkgtestImageBuilder::new()
+            .codename(&Distribution::bookworm())
+            .unwrap()
+            .image_path("/tmp", &Distribution::noble(), "amd64")
+            .arch("amd64")
+            .mirror("http://example.com/ubuntu");
+
+        let args = builder.build_args().unwrap();
+        assert!(args.contains(&"noble".to_string()));
+        assert!(args
+            .iter()
+            .any(|arg| arg.contains("/tmp/autopkgtest-noble-amd64.img")));
         assert!(args.contains(&"--arch=amd64".to_string()));
         assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
     }

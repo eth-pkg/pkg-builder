@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use types::distribution::Distribution;
+
 use crate::pkg_config::JavaConfig;
 
 use super::language_installer::LanguageInstaller;
@@ -30,7 +32,7 @@ impl LanguageInstaller for JavaInstaller {
             let gradle_version = &gradle_config.gradle_version;
             let gradle_binary_url = &gradle_config.gradle_binary_url;
             let gradle_binary_checksum = &gradle_config.gradle_binary_checksum;
-            subs.insert("${gradle_version}", gradle_version.as_str());
+            subs.insert("${gradle_version}", &gradle_version.as_str());
             subs.insert("${gradle_binary_url}", &gradle_binary_url.as_str());
             subs.insert(
                 "${gradle_binary_checksum}",
@@ -39,7 +41,7 @@ impl LanguageInstaller for JavaInstaller {
         }
         subs
     }
-    fn get_test_deps(&self, _codename: &str) -> Vec<String> {
+    fn get_test_deps(&self, _codename: &Distribution) -> Vec<String> {
         vec![]
     }
 }

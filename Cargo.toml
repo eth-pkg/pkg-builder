@@ -35,7 +35,7 @@ sha1 = "0.11.0-pre.3"
 filetime = "0.2.23"
 httpmock = "0.7.0"
 semver = "1.0.20"  # Replace with the version you need
-
+url = "2.4.1"  # Use the latest version
 
 # Local crates
 cli = {path = "workspace/cli"}
