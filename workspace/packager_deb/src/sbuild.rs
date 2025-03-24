@@ -350,7 +350,7 @@ impl Sbuild {
 
     fn prepare_autopkgtest_image(&self, codename: &str) -> Result<PathBuf, SbuildError> {
         info!("Running prepare_autopkgtest_image");
-        let repo_url = get_repo_url(&self.config.build_env.codename)?;
+        let repo_url = get_repo_url(codename)?;
         let builder = AutopkgtestImageBuilder::new()
             .codename(codename)?
             .image_path(&self.cache_dir, codename, &self.config.build_env.arch)
