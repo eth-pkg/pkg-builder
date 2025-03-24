@@ -1,21 +1,21 @@
 use std::{env, fs, path::PathBuf};
 use thiserror::Error;
-use types::{
-    build::Packager,
-    pkg_config::{PackageType, PkgConfig},
-};
 
 use log::info;
+use types::config::ConfigError;
 
 use crate::{
     build_pipeline::{BuildContext, BuildError},
+    pkg_config::{PackageType, PkgConfig},
+    pkg_config_verify::PkgVerifyConfig,
     sbuild::{Sbuild, SbuildError},
     sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
+    validation::ValidationError,
 };
 
 pub struct SbuildPackager {
     config: PkgConfig,
-    config_root: String,
+    config_root: PathBuf,
 }
 #[derive(Debug, Error)]
 pub enum PackageError {
@@ -23,38 +23,14 @@ pub enum PackageError {
     BuildError(#[from] BuildError),
     #[error(transparent)]
     SbuildError(#[from] SbuildError),
+    #[error(transparent)]
+    ValidationError(#[from] ValidationError),
+    #[error(transparent)]
+    ConfigError(#[from] ConfigError),
 }
 
 impl SbuildPackager {
-    fn get_build_env(&self) -> Result<Sbuild, PackageError> {
-        let context = build_context(&self.config, &self.config_root);
-        let backend_build_env = Sbuild::new(self.config.clone(), context.build_files_dir.clone());
-        Ok(backend_build_env)
-    }
-
-    pub fn run_lintian(&self) -> Result<(), PackageError> {
-        let sbuild = self.get_build_env().unwrap();
-        sbuild.run_lintian()?;
-        Ok(())
-    }
-
-    pub fn run_autopkgtests(&self) -> Result<(), PackageError> {
-        let sbuild = self.get_build_env().unwrap();
-        sbuild.run_autopkgtests()?;
-        Ok(())
-    }
-
-    pub fn run_piuparts(&self) -> Result<(), PackageError> {
-        let sbuild = self.get_build_env().unwrap();
-        sbuild.run_piuparts()?;
-        Ok(())
-    }
-}
-
-impl Packager for SbuildPackager {
-    type Error = PackageError;
-
-    fn new(config: PkgConfig, config_root: String) -> Self {
+    pub fn new(config: PkgConfig, config_root: PathBuf) -> Self {
         // Update the config workdir
         let mut updated_config = config.clone();
         let workdir = config.build_env.workdir.clone().unwrap_or(format!(
@@ -77,8 +53,8 @@ impl Packager for SbuildPackager {
         }
     }
 
-    fn package(&self) -> Result<(), PackageError> {
-        let context = build_context(&self.config, &self.config_root);
+    pub fn run_package(&self) -> Result<(), PackageError> {
+        let context = build_context(&self.config, &self.config_root.display().to_string());
         info!("Using build context: {:#?}", context);
         match &self.config.package_type {
             PackageType::Default(_) => {
@@ -99,28 +75,52 @@ impl Packager for SbuildPackager {
         Ok(())
     }
 
-    fn clean(&self) -> Result<(), Self::Error> {
+    pub fn run_env_clean(&self) -> Result<(), PackageError> {
         let sbuild = self.get_build_env().unwrap();
         sbuild.clean()?;
         Ok(())
     }
 
-    fn create(&self) -> Result<(), Self::Error> {
+    pub fn run_env_create(&self) -> Result<(), PackageError> {
         let sbuild = self.get_build_env().unwrap();
         sbuild.create()?;
         Ok(())
     }
 
-    fn verify(
+    pub fn verify(
         &self,
-        verify_config: types::pkg_config_verify::PkgVerifyConfig,
+        verify_config: PkgVerifyConfig,
         no_package: bool,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), PackageError> {
         let sbuild = self.get_build_env().unwrap();
         if !no_package {
-            self.package()?;
+            self.run_package()?;
         }
         sbuild.verify(verify_config)?;
+        Ok(())
+    }
+
+    fn get_build_env(&self) -> Result<Sbuild, PackageError> {
+        let context = build_context(&self.config, &self.config_root.display().to_string());
+        let backend_build_env = Sbuild::new(self.config.clone(), context.build_files_dir.clone());
+        Ok(backend_build_env)
+    }
+
+    pub fn run_lintian(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_lintian()?;
+        Ok(())
+    }
+
+    pub fn run_autopkgtests(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_autopkgtests()?;
+        Ok(())
+    }
+
+    pub fn run_piuparts(&self) -> Result<(), PackageError> {
+        let sbuild = self.get_build_env().unwrap();
+        sbuild.run_piuparts()?;
         Ok(())
     }
 }

@@ -3,8 +3,8 @@ use super::{
     empty_installer::EmptyInstaller, go_installer::GoInstaller, java_installer::JavaInstaller,
     nim_installer::NimInstaller, node_installer::NodeInstaller, rust_installer::RustInstaller,
 };
+use crate::pkg_config::LanguageEnv;
 use std::{borrow::Cow, collections::HashMap};
-use types::pkg_config::LanguageEnv;
 
 pub trait LanguageInstaller {
     fn recipe(&self) -> Cow<'static, str>;

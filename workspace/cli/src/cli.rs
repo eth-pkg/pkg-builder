@@ -2,12 +2,14 @@ use super::args::{ActionType, BuildEnvSubCommand, PkgBuilderArgs};
 use clap::Parser;
 use env_logger::Env;
 use log::error;
-use packager_deb::entry::invoke_package;
+use packager_deb::deb_command_handler::dispatch_package_operation;
 use packager_deb::sbuild_packager::PackageError;
 use std::env;
 use thiserror::Error;
+use types::config::Config;
 use types::config::ConfigError;
 use types::config::ConfigFile;
+use types::debian::DebCommandPayload;
 
 #[derive(Error, Debug)]
 pub enum PkgBuilderError {
@@ -45,14 +47,38 @@ pub fn run_cli() -> Result<()> {
         ActionType::Lintian(command) => command.config.clone(),
         ActionType::Version => None, // Special case already handled above
     };
-    let config_file = ConfigFile::load(config_path)?;
-    let build_env = config_file.clone()
+    let config_file = ConfigFile::<Config>::load(config_path)?;
+    let build_env = config_file
+        .clone()
         .parse()?
+        .build_env
         .validate_and_apply_defaults(program_version)?;
+
+    let cmd_payload = match args.action {
+        ActionType::Verify(command) => Ok(DebCommandPayload::Verify {
+            verify_config: command.verify_config,
+            no_package: command.no_package,
+        }),
+        ActionType::Lintian(_) => Ok(DebCommandPayload::Lintian),
+        ActionType::Piuparts(_) => Ok(DebCommandPayload::Piuparts),
+        ActionType::Autopkgtest(_) => Ok(DebCommandPayload::Autopkgtest),
+        ActionType::Package(cmd) => Ok(DebCommandPayload::Package {
+            run_autopkgtest: cmd.run_autopkgtest,
+            run_piuparts: cmd.run_piuparts,
+            run_lintian: cmd.run_lintian,
+        }),
+        ActionType::Env(build_env_action) => match build_env_action.build_env_sub_command {
+            BuildEnvSubCommand::Create(_) => Ok(DebCommandPayload::EnvCreate),
+            BuildEnvSubCommand::Clean(_) => Ok(DebCommandPayload::EnvClean),
+        },
+        ActionType::Version => Err("Version has no payload."),
+    };
 
     match build_env.codename {
         types::distribution::Distribution::Debian(_)
-        | types::distribution::Distribution::Ubuntu(_) => invoke_package(config_file),
+        | types::distribution::Distribution::Ubuntu(_) => {
+            dispatch_package_operation(config_file, cmd_payload.unwrap())?
+        }
     };
 
     Ok(())

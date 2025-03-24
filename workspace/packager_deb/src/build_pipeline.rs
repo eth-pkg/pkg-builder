@@ -1,8 +1,10 @@
 use debian::debcrafter::DebcrafterCmdError;
 use thiserror::Error;
-use types::pkg_config::SubModule;
 
-use crate::steps::{create_empty_tar::CreateEmptyTarError, dowload_git::DownloadGitError};
+use crate::{
+    pkg_config::SubModule,
+    steps::{create_empty_tar::CreateEmptyTarError, dowload_git::DownloadGitError},
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildContext {

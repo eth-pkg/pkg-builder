@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use types::pkg_config::NimConfig;
+use crate::pkg_config::NimConfig;
 
 use super::language_installer::LanguageInstaller;
 

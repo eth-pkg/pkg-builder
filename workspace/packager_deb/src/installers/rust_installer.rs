@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use types::pkg_config::RustConfig;
+use crate::pkg_config::RustConfig;
 
 use super::language_installer::LanguageInstaller;
 

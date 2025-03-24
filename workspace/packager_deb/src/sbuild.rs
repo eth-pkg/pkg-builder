@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 
 use crate::installers::language_installer::LanguageInstaller;
+use crate::pkg_config::{LanguageEnv, PackageType, PkgConfig};
+use crate::pkg_config_verify::PkgVerifyConfig;
 use cargo_metadata::semver::Version;
 use debian::autopkgtest::{Autopkgtest, AutopkgtestError};
 use debian::autopkgtest_image::{AutopkgtestImageBuilder, AutopkgtestImageError};
@@ -16,9 +18,6 @@ use std::fs::{self, create_dir_all};
 use std::process::Command;
 use std::{env, vec};
 use thiserror::Error;
-use types::pkg_config::PkgConfig;
-use types::pkg_config::{LanguageEnv, PackageType};
-use types::pkg_config_verify::PkgVerifyConfig;
 
 pub struct Sbuild {
     pub(crate) config: PkgConfig,
@@ -520,7 +519,6 @@ mod tests {
     use std::path::Path;
     use std::sync::Once;
     use tempfile::tempdir;
-    use types::pkg_config::PkgConfig;
 
     static INIT: Once = Once::new();
 

@@ -1,20 +1,33 @@
 use log::warn;
 use semver::Version;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     borrow::Cow,
     cmp::Ordering,
     env, fs,
     io::{self, ErrorKind},
+    marker::PhantomData,
     path::PathBuf,
 };
 use thiserror::Error;
 
-use crate::{defaults::{CONFIG_FILE_NAME, WORKDIR_ROOT}, distribution::Distribution};
+use crate::{
+    defaults::{CONFIG_FILE_NAME, WORKDIR_ROOT},
+    distribution::Distribution,
+};
 
 /// Represents the raw configuration file content
 #[derive(Debug, Clone)]
-pub struct ConfigFile(Cow<'static, str>);
+pub struct ConfigFile<T> {
+    content: Cow<'static, str>,
+    _marker: PhantomData<T>,
+    pub path: PathBuf,
+}
+impl<T> AsRef<str> for ConfigFile<T> {
+    fn as_ref(&self) -> &str {
+        &self.content
+    }
+}
 
 /// Errors that can occur during configuration handling
 #[derive(Debug, Error)]
@@ -36,7 +49,11 @@ pub enum ConfigError {
     IncompatibleVersion(String),
 }
 
-impl ConfigFile {
+pub trait ConfigType {
+    fn default_config_path() -> &'static str;
+}
+
+impl<T: ConfigType> ConfigFile<T> {
     /// Loads configuration from the specified location or the current directory
     ///
     /// # Arguments
@@ -45,11 +62,15 @@ impl ConfigFile {
     ///
     /// # Returns
     ///
-    /// * `Result<ConfigFile, ConfigError>` - The loaded configuration or an error
+    /// * `Result<ConfigFile<T>, ConfigError>` - The loaded configuration or an error
     pub fn load(config_path: Option<String>) -> Result<Self, ConfigError> {
         let path = Self::resolve_config_path(config_path)?;
-        let content = fs::read_to_string(path).map_err(ConfigError::Io)?;
-        Ok(ConfigFile(Cow::Owned(content)))
+        let content = fs::read_to_string(&path).map_err(ConfigError::Io)?;
+        Ok(ConfigFile {
+            content: Cow::Owned(content),
+            _marker: PhantomData,
+            path,
+        })
     }
 
     /// Resolves the configuration file path
@@ -58,14 +79,14 @@ impl ConfigFile {
             Some(location) => {
                 let path = PathBuf::from(location);
                 if path.is_dir() {
-                    path.join(CONFIG_FILE_NAME)
+                    path.join(T::default_config_path())
                 } else {
                     path
                 }
             }
             None => env::current_dir()
                 .map_err(ConfigError::Io)?
-                .join(CONFIG_FILE_NAME),
+                .join(T::default_config_path()),
         };
 
         if !path.exists() {
@@ -78,14 +99,16 @@ impl ConfigFile {
         Ok(path)
     }
 
-    /// Parses the configuration content into a BuildEnv
+    /// Parses the configuration content into the generic type T
     ///
     /// # Returns
     ///
-    /// * `Result<BuildEnv, ConfigError>` - The parsed configuration or an error
-    pub fn parse(self) -> Result<BuildEnv, ConfigError> {
-        let configuration = toml::from_str::<Config>(&self.0)?;
-        Ok(configuration.build_env)
+    /// * `Result<T, ConfigError>` - The parsed configuration or an error
+    pub fn parse(self) -> Result<T, ConfigError>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        toml::from_str::<T>(&self.content).map_err(ConfigError::from)
     }
 
     /// Convenience method to load and parse in one operation
@@ -96,8 +119,11 @@ impl ConfigFile {
     ///
     /// # Returns
     ///
-    /// * `Result<BuildEnv, ConfigError>` - The parsed configuration or an error
-    pub fn load_and_parse(config_path: Option<String>) -> Result<BuildEnv, ConfigError> {
+    /// * `Result<T, ConfigError>` - The parsed configuration or an error
+    pub fn load_and_parse(config_path: Option<String>) -> Result<T, ConfigError>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
         Self::load(config_path)?.parse()
     }
 }
@@ -106,6 +132,11 @@ impl ConfigFile {
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Config {
     pub build_env: BuildEnv,
+}
+impl ConfigType for Config {
+    fn default_config_path() -> &'static str {
+        &CONFIG_FILE_NAME
+    }
 }
 
 /// Build environment configuration
@@ -240,8 +271,9 @@ mod tests {
         )
         .unwrap();
 
-        let config_file = ConfigFile::load(Some(dir.path().to_string_lossy().to_string())).unwrap();
-        assert!(config_file.0.contains("noble numbat"));
+        let config_file =
+            ConfigFile::<Config>::load(Some(dir.path().to_string_lossy().to_string())).unwrap();
+        assert!(config_file.content.contains("noble numbat"));
     }
 
     #[test]
@@ -261,14 +293,15 @@ mod tests {
         )
         .unwrap();
 
-        let config_file = ConfigFile::load(Some(dir.path().to_string_lossy().to_string())).unwrap();
+        let config_file =
+            ConfigFile::<Config>::load(Some(dir.path().to_string_lossy().to_string())).unwrap();
         let config = config_file.parse();
         assert!(config.is_ok());
         let config = config.unwrap();
-        assert_eq!(config.codename, Distribution::noble());
-        assert_eq!(config.workdir, PathBuf::from("/tmp/test"));
+        assert_eq!(config.build_env.codename, Distribution::noble());
+        assert_eq!(config.build_env.workdir, PathBuf::from("/tmp/test"));
         assert_eq!(
-            config.pkg_builder_version,
+            config.build_env.pkg_builder_version,
             PkgBuilderVersion(Version::new(1, 0, 0))
         );
     }

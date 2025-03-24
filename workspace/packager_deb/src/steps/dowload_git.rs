@@ -8,8 +8,10 @@ use filetime::FileTime;
 use log::info;
 use thiserror::Error;
 
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
-use types::pkg_config::SubModule;
+use crate::{
+    build_pipeline::{BuildContext, BuildError, BuildStep},
+    pkg_config::SubModule,
+};
 
 #[derive(Error, Debug)]
 pub enum DownloadGitError {
@@ -219,9 +221,10 @@ impl BuildStep for DownloadGit {
 
 #[cfg(test)]
 mod tests {
+    use crate::pkg_config::{PackageType, PkgConfig};
+
     use super::*;
     use tempfile::tempdir;
-    use types::pkg_config::{PackageType, PkgConfig};
 
     #[test]
     #[ignore]

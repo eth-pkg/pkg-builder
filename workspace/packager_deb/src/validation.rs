@@ -1,7 +1,4 @@
-use serde::de::DeserializeOwned;
-use std::{fs, path::PathBuf};
-use thiserror::Error;
-use types::{
+use crate::{
     pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, DotnetConfig, DotnetPackage, GitPackageTypeConfig,
         GoConfig, GradleConfig, JavaConfig, JavascriptConfig, LanguageEnv, NimConfig,
@@ -9,6 +6,8 @@ use types::{
     },
     pkg_config_verify::{PackageHash, PkgVerifyConfig, VerifyConfig},
 };
+use serde::de::DeserializeOwned;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ValidationError {

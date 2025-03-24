@@ -1,8 +1,10 @@
 mod build_pipeline;
+pub mod deb_command_handler;
 mod installers;
+mod pkg_config;
+mod pkg_config_verify;
 pub mod sbuild;
 pub mod sbuild_packager;
 mod sbuild_pipelines;
 mod steps;
 mod validation;
-pub mod entry;

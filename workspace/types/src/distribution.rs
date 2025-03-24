@@ -1,7 +1,7 @@
 use std::fmt;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -27,7 +27,6 @@ impl fmt::Display for Distribution {
             Distribution::Debian(debian) => debian.fmt(f),
             Distribution::Ubuntu(ubuntu) => ubuntu.fmt(f),
         }
-        
     }
 }
 /// Supported Debian codenames
@@ -77,12 +76,12 @@ impl Distribution {
     pub fn bookworm() -> Self {
         Distribution::Debian(DebianCodename::Bookworm)
     }
-    
+
     /// Creates an Ubuntu Noble Numbat distribution
     pub fn noble() -> Self {
         Distribution::Ubuntu(UbuntuCodename::Noble)
     }
-    
+
     /// Creates an Ubuntu Jammy Jellyfish distribution
     pub fn jammy() -> Self {
         Distribution::Ubuntu(UbuntuCodename::Jammy)
@@ -123,7 +122,6 @@ impl<'de> Deserialize<'de> for Distribution {
         D: Deserializer<'de>,
     {
         let codename = String::deserialize(deserializer)?;
-        Distribution::from_codename(&codename)
-            .map_err(|e| de::Error::custom(format!("{}", e)))
+        Distribution::from_codename(&codename).map_err(|e| de::Error::custom(format!("{}", e)))
     }
 }
