@@ -1,14 +1,19 @@
+use std::path::PathBuf;
+use thiserror::Error;
+
 use types::{
-    config::{Config, ConfigFile, ConfigType},
+    config::{Config, ConfigError, ConfigFile, ConfigType},
     debian::DebCommandPayload,
-    defaults::{CONFIG_FILE_NAME, VERIFY_CONFIG_FILE_NAME},
+    defaults::{CONFIG_FILE_NAME, VERIFY_CONFIG_FILE_NAME, WORKDIR_ROOT},
 };
 
-// Organize imports by scope with clear grouping and alphabetical ordering
 use crate::{
+    build_pipeline::BuildError,
     pkg_config::PkgConfig,
     pkg_config_verify::PkgVerifyConfig,
-    sbuild_packager::{PackageError, SbuildPackager},
+    sbuild::{Sbuild, SbuildError},
+    sbuild_args::expand_path,
+    validation::ValidationError,
 };
 
 impl ConfigType for PkgVerifyConfig {
@@ -21,6 +26,18 @@ impl ConfigType for PkgConfig {
     fn default_config_path() -> &'static str {
         CONFIG_FILE_NAME
     }
+}
+
+#[derive(Debug, Error)]
+pub enum PackageError {
+    #[error(transparent)]
+    BuildError(#[from] BuildError),
+    #[error(transparent)]
+    SbuildError(#[from] SbuildError),
+    #[error(transparent)]
+    ConfigError(#[from] ConfigError),
+    #[error(transparent)]
+    ValidationError(#[from] ValidationError),
 }
 
 pub fn dispatch_package_operation(
@@ -49,8 +66,9 @@ pub fn dispatch_package_operation(
         }
     }
 
-    let packager = SbuildPackager::new(pkg_config, config.path.parent().unwrap().to_path_buf());
-
+    let config_root = config.path.parent().unwrap().to_path_buf();
+    normalize_config(&mut pkg_config, config_root.clone());
+    let packager = Sbuild::new(pkg_config, config_root.clone());
     match cmd_payload {
         DebCommandPayload::Verify {
             verify_config,
@@ -58,7 +76,7 @@ pub fn dispatch_package_operation(
         } => {
             let pkg_verify_config_file =
                 ConfigFile::<PkgVerifyConfig>::load_and_parse(verify_config)?;
-            packager.verify(pkg_verify_config_file, no_package.unwrap_or_default())
+            packager.run_verify(pkg_verify_config_file, no_package.unwrap_or_default())
         }
         DebCommandPayload::Lintian => packager.run_lintian(),
         DebCommandPayload::Piuparts => packager.run_piuparts(),
@@ -66,5 +84,23 @@ pub fn dispatch_package_operation(
         DebCommandPayload::Package { .. } => packager.run_package(),
         DebCommandPayload::EnvCreate => packager.run_env_create(),
         DebCommandPayload::EnvClean => packager.run_env_clean(),
+    }?;
+    Ok(())
+}
+
+pub fn normalize_config(config: &mut PkgConfig, config_root: PathBuf) -> () {
+    let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
+    default_work_dir.push(config.build_env.codename.as_ref());
+    let mut workdir = config.build_env.workdir.clone();
+    if workdir.as_os_str().is_empty() {
+        workdir = default_work_dir;
     }
+    let workdir = expand_path(&workdir, None);
+    config.build_env.workdir = workdir;
+
+    // Update the spec file path
+    let config_root_path = PathBuf::from(&config_root);
+    let spec_file = config.package_fields.spec_file.clone();
+    let spec_file_canonical = config_root_path.join(spec_file);
+    config.package_fields.spec_file = spec_file_canonical.to_str().unwrap().to_string();
 }

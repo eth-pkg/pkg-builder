@@ -70,14 +70,14 @@ pub enum SbuildError {
 }
 
 impl Sbuild {
-    pub fn clean(&self) -> Result<(), SbuildError> {
+    pub fn run_env_clean(&self) -> Result<(), SbuildError> {
         let cache_file = self.args.get_cache_file();
         info!("Cleaning cached build: {:?}", cache_file);
         remove_file_or_directory(&cache_file, false)?;
         Ok(())
     }
 
-    pub fn create(&self) -> Result<(), SbuildError> {
+    pub fn run_env_create(&self) -> Result<(), SbuildError> {
         let temp_dir = env::temp_dir().join(format!("temp_{}", random::<u32>()));
         fs::create_dir(&temp_dir)?;
 
@@ -98,7 +98,7 @@ impl Sbuild {
         Ok(())
     }
 
-    pub fn package(&self) -> Result<(), SbuildError> {
+    pub fn run_package(&self) -> Result<(), SbuildError> {
         let sbuild_version = self.args.sbuild_version();
         let codename = self.args.codename();
         let cache_file = self.args.get_cache_file();
@@ -130,7 +130,14 @@ impl Sbuild {
         Ok(())
     }
 
-    pub fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), SbuildError> {
+    pub fn run_verify(
+        &self,
+        verify_config: PkgVerifyConfig,
+        no_package: bool,
+    ) -> Result<(), SbuildError> {
+        if !no_package {
+            self.run_package()?;
+        }
         let output_dir =
             Path::new(self.args.build_files_dir())
                 .parent()
@@ -288,7 +295,7 @@ mod tests {
         let args = SbuildArgs::new(config, build_files_dir.into());
         let build_env = Sbuild { args: args.clone() };
 
-        let result = build_env.clean();
+        let result = build_env.run_env_clean();
         let cache_file = args.get_cache_file();
 
         assert!(result.is_ok());
@@ -308,7 +315,7 @@ mod tests {
         File::create(&cache_file).unwrap();
         assert!(Path::new(&cache_file).exists());
 
-        let result = build_env.clean();
+        let result = build_env.run_env_clean();
         assert!(result.is_ok());
         assert!(!Path::new(&cache_file).exists());
     }
@@ -322,10 +329,10 @@ mod tests {
         let build_env = Sbuild { args: args.clone() };
         let cache_file = args.get_cache_file();
 
-        build_env.clean().unwrap();
+        build_env.run_env_clean().unwrap();
         assert!(!Path::new(&cache_file).exists());
 
-        let result = build_env.create();
+        let result = build_env.run_env_create();
         assert!(result.is_ok());
         assert!(Path::new(&cache_file).exists());
     }
