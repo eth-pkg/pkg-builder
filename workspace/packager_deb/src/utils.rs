@@ -1,10 +1,13 @@
-use std::{fs::{create_dir_all, remove_dir_all, remove_file}, path::Path, process::Command};
+use std::{
+    fs::{create_dir_all, remove_dir_all, remove_file},
+    path::{Path, PathBuf},
+    process::Command,
+};
 
+use crate::sbuild::SbuildError;
 use log::{info, warn};
 use sha1::{Digest, Sha1};
 use types::version::Version;
-use crate::sbuild::SbuildError;
-
 
 pub fn check_tool_version(tool: &str, expected_version: &Version) -> Result<(), SbuildError> {
     let (cmd, args) = match tool {
@@ -36,8 +39,11 @@ pub fn check_tool_version(tool: &str, expected_version: &Version) -> Result<(), 
     Ok(())
 }
 
-fn warn_compare_versions(expected: &Version, actual: &Version, tool: &str) -> Result<(), SbuildError> {
-
+fn warn_compare_versions(
+    expected: &Version,
+    actual: &Version,
+    tool: &str,
+) -> Result<(), SbuildError> {
     match expected.cmp(&actual) {
         std::cmp::Ordering::Less => warn!(
             "Using newer {} version ({}) than expected ({})",
@@ -52,8 +58,6 @@ fn warn_compare_versions(expected: &Version, actual: &Version, tool: &str) -> Re
 
     Ok(())
 }
-
-
 
 pub fn calculate_sha1(data: &[u8]) -> Result<String, SbuildError> {
     let mut hasher = Sha1::new();
@@ -75,7 +79,7 @@ pub fn ensure_parent_dir<T: AsRef<Path>>(path: T) -> Result<(), SbuildError> {
     create_dir_all(parent)?;
     Ok(())
 }
-pub fn remove_file_or_directory(path: &str, is_dir: bool) -> Result<(), SbuildError> {
+pub fn remove_file_or_directory(path: &PathBuf, is_dir: bool) -> Result<(), SbuildError> {
     if Path::new(path).exists() {
         if is_dir {
             remove_dir_all(path)?;

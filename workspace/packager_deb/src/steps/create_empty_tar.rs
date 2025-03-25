@@ -1,6 +1,6 @@
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
-use std::process::Command;
+use std::{path::PathBuf, process::Command};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -10,8 +10,8 @@ pub enum CreateEmptyTarError {
 }
 #[derive(Default)]
 pub struct CreateEmptyTar {
-    tarball_path: String,
-    build_artifacts_dir: String,
+    tarball_path: PathBuf,
+    build_artifacts_dir: PathBuf,
 }
 
 impl From<BuildContext> for CreateEmptyTar {
@@ -27,7 +27,12 @@ impl BuildStep for CreateEmptyTar {
     fn step(&self) -> Result<(), BuildError> {
         info!("Creating empty .tar.gz for virtual package");
         let output = Command::new("tar")
-            .args(["czvf", &self.tarball_path, "--files-from", "/dev/null"])
+            .args([
+                "czvf",
+                &self.tarball_path.display().to_string(),
+                "--files-from",
+                "/dev/null",
+            ])
             .current_dir(&self.build_artifacts_dir)
             .output()?;
 
@@ -44,14 +49,19 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    impl BuildContext {
+        pub fn new() -> Self {
+            Self::default()
+        }
+    }
     #[test]
     fn test_download_source_virtual_package() {
         let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-        let build_artifacts_dir = String::from(temp_dir.path().to_str().unwrap());
+        let build_artifacts_dir = temp_dir.path().to_path_buf();
         let tarball_name = "test_package.tar.gz";
         let tarball_path = temp_dir.path().join(tarball_name);
-        let tarball_path_str = String::from(temp_dir.path().join(tarball_name).to_str().unwrap());
+        let tarball_path_str = temp_dir.path().join(tarball_name);
 
         let mut context = BuildContext::new();
         context.tarball_path = tarball_path_str;

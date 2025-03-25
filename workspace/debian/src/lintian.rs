@@ -1,8 +1,8 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
-use types::distribution::Distribution;
 use std::path::Path;
 use thiserror::Error;
+use types::distribution::Distribution;
 
 /// Represents a wrapper for the Lintian Debian package checker tool.
 ///
@@ -170,7 +170,7 @@ impl Lintian {
         self.codename = Some(codename.clone());
 
         match codename {
-            Distribution::Debian(_) => {},
+            Distribution::Debian(_) => {}
             Distribution::Ubuntu(_) => self.suppress_tags.push("malformed-deb-archive".to_string()),
         }
         self

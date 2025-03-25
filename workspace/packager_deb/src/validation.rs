@@ -276,7 +276,6 @@ pub enum ValidationError {
 // rust_binary_gpg_asc = "binary_key"
 // go_version = "1.22"
 
-
 // [build_env]
 // codename="bookworm"
 // arch = "amd64"

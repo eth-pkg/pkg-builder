@@ -1,11 +1,11 @@
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
-use std::{fs, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 #[derive(Default)]
 pub struct DownloadSource {
     tarball_url: String,
-    tarball_path: String,
+    tarball_path: PathBuf,
 }
 
 impl From<BuildContext> for DownloadSource {
@@ -18,12 +18,12 @@ impl From<BuildContext> for DownloadSource {
 }
 impl BuildStep for DownloadSource {
     fn step(&self) -> Result<(), BuildError> {
-        info!("Downloading source {}", self.tarball_path);
+        info!("Downloading source {:?}", self.tarball_path);
         let is_web = self.tarball_url.starts_with("http");
 
         if is_web {
             info!(
-                "Downloading tar: {} to location: {}",
+                "Downloading tar: {} to location: {:?}",
                 self.tarball_url, self.tarball_path
             );
             let status = Command::new("wget")
@@ -39,7 +39,7 @@ impl BuildStep for DownloadSource {
             }
         } else {
             info!(
-                "Copying tar: {} to location: {}",
+                "Copying tar: {} to location: {:?}",
                 self.tarball_url, self.tarball_path
             );
             fs::copy(&self.tarball_url, &self.tarball_path)
@@ -87,7 +87,7 @@ mod tests {
         let tarball_url = format!("{}/{}", server.base_url(), tarball_name);
 
         let mut context = BuildContext::default();
-        context.tarball_path = tarball_path.to_string_lossy().to_string();
+        context.tarball_path = tarball_path.clone();
         context.tarball_url = tarball_url;
         let handler = DownloadSource::from(context);
 
@@ -111,7 +111,7 @@ mod tests {
         }
 
         let mut context = BuildContext::default();
-        context.tarball_path = dest_path.to_string_lossy().to_string();
+        context.tarball_path = dest_path.clone();
         context.tarball_url = source_path.to_string_lossy().to_string();
         let handler = DownloadSource::from(context);
 
@@ -132,7 +132,7 @@ mod tests {
         // No source file exists
 
         let mut context = BuildContext::default();
-        context.tarball_path = dest_path.to_string_lossy().to_string();
+        context.tarball_path = dest_path;
         context.tarball_url = source_path.to_string_lossy().to_string();
         let handler = DownloadSource::from(context);
 

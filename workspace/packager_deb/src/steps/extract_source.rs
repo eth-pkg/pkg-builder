@@ -4,8 +4,8 @@ use std::{fs, io, path::PathBuf, process::Command};
 
 #[derive(Default)]
 pub struct ExtractSource {
-    build_files_dir: String,
-    tarball_path: String,
+    build_files_dir: PathBuf,
+    tarball_path: PathBuf,
 }
 
 impl From<BuildContext> for ExtractSource {
@@ -64,17 +64,22 @@ impl ExtractSource {
 
 impl BuildStep for ExtractSource {
     fn step(&self) -> Result<(), BuildError> {
-        info!("Extracting source {}", &self.build_files_dir);
+        info!("Extracting source {:?}", &self.build_files_dir);
         fs::create_dir_all(&self.build_files_dir).map_err(BuildError::IoError)?;
 
-        let mut args = vec!["zxvf", &self.tarball_path, "-C", &self.build_files_dir];
+        let mut args = vec![
+            "zxvf".to_string(),
+            self.tarball_path.display().to_string(),
+            "-C".to_string(),
+            self.build_files_dir.display().to_string(),
+        ];
         let numbers_to_strip = self
-            .components_to_strip(self.tarball_path.clone())
+            .components_to_strip(self.tarball_path.display().to_string())
             .map_err(BuildError::IoError)?;
 
         let strip = format!("--strip-components={}", numbers_to_strip);
         if numbers_to_strip > 0 {
-            args.push(&strip);
+            args.push(strip);
         }
 
         info!("Stripping components: {} {:?}", numbers_to_strip, args);
@@ -145,8 +150,8 @@ mod tests {
         File::create(&tarball_path)?;
 
         let mut context = BuildContext::default();
-        context.build_files_dir = build_dir.to_str().unwrap().to_string();
-        context.tarball_path = tarball_path.to_str().unwrap().to_string();
+        context.build_files_dir = build_dir.clone();
+        context.tarball_path = tarball_path;
 
         let handler = ExtractSource::from(context);
 
@@ -167,8 +172,8 @@ mod tests {
         let tarball_path = temp_dir.path().join("nonexistent.tar.gz");
 
         let mut context = BuildContext::default();
-        context.build_files_dir = build_dir.to_str().unwrap().to_string();
-        context.tarball_path = tarball_path.to_str().unwrap().to_string();
+        context.build_files_dir = build_dir;
+        context.tarball_path = tarball_path;
         let handler = ExtractSource::from(context);
 
         let result = handler.step();
@@ -188,7 +193,7 @@ mod tests {
         let temp_dir = temp_dir.path();
         let tarball_path: PathBuf = PathBuf::from("tests/misc/test_package.tar.gz");
 
-        let build_files_dir = temp_dir.join(package_name).to_string_lossy().to_string();
+        let build_files_dir = temp_dir.join(package_name);
 
         assert!(tarball_path.exists());
 

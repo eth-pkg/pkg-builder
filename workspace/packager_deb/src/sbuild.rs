@@ -1,19 +1,20 @@
+use crate::build_pipeline::BuildError;
 use crate::distribution::DistributionTrait;
 use crate::pkg_config::PkgConfig;
 use crate::pkg_config_verify::PkgVerifyConfig;
+use crate::sbuild_args::SbuildArgs;
 use crate::tools::autopkgtest_tool::AutopkgtestTool;
 use crate::tools::lintian_tool::LintianTool;
 use crate::tools::piuparts_tool::PiupartsTool;
+use crate::tools::sbuild_tool::SbuildTool;
 use crate::tools::tool_runner::ToolRunner;
-use crate::utils::{
-    calculate_sha1, ensure_parent_dir, remove_file_or_directory,
-};
+use crate::utils::{calculate_sha1, ensure_parent_dir, remove_file_or_directory};
 use debian::autopkgtest::AutopkgtestError;
 use debian::autopkgtest_image::AutopkgtestImageError;
 use debian::execute::Execute;
 use debian::lintian::LintianError;
 use debian::piuparts::PiupartsError;
-use debian::sbuild::{SbuildBuilder, SbuildCmdError};
+use debian::sbuild::SbuildCmdError;
 use debian::sbuild_create_chroot::{SbuildCreateChroot, SbuildCreateChrootError};
 use log::info;
 use rand::random;
@@ -22,24 +23,14 @@ use std::{env, fs};
 use thiserror::Error;
 
 pub struct Sbuild {
-    pub(crate) config: PkgConfig,
-    pub(crate) build_files_dir: String,
-    pub(crate) cache_dir: PathBuf,
+    args: SbuildArgs,
 }
 
 impl Sbuild {
-    pub fn new(config: PkgConfig, build_files_dir: String) -> Self {
-        let cache_dir = config
-            .build_env
-            .sbuild_cache_dir
-            .clone()
-            .unwrap_or_else(|| PathBuf::from("~/.cache/sbuild"));
+    pub fn new(config: PkgConfig, config_root: PathBuf) -> Self {
+        let args = SbuildArgs::new(config, config_root);
 
-        Self {
-            cache_dir,
-            config,
-            build_files_dir,
-        }
+        Sbuild { args }
     }
 }
 
@@ -73,12 +64,15 @@ pub enum SbuildError {
 
     #[error(transparent)]
     SemverError(#[from] cargo_metadata::semver::Error),
+
+    #[error(transparent)]
+    BuildError(#[from] BuildError),
 }
 
 impl Sbuild {
     pub fn clean(&self) -> Result<(), SbuildError> {
-        let cache_file = self.get_cache_file();
-        info!("Cleaning cached build: {}", cache_file);
+        let cache_file = self.args.get_cache_file();
+        info!("Cleaning cached build: {:?}", cache_file);
         remove_file_or_directory(&cache_file, false)?;
         Ok(())
     }
@@ -87,10 +81,10 @@ impl Sbuild {
         let temp_dir = env::temp_dir().join(format!("temp_{}", random::<u32>()));
         fs::create_dir(&temp_dir)?;
 
-        let cache_file = self.get_cache_file();
+        let cache_file = self.args.get_cache_file();
         ensure_parent_dir(&cache_file)?;
 
-        let codename = &self.config.build_env.codename;
+        let codename = &self.args.codename();
 
         SbuildCreateChroot::new()
             .chroot_mode("unshare")
@@ -105,28 +99,28 @@ impl Sbuild {
     }
 
     pub fn package(&self) -> Result<(), SbuildError> {
-        let codename = &self.config.build_env.codename;
-        let cache_file = self.get_cache_file();
-        let build_chroot_setup_commands = self.build_chroot_setup_commands();
-        let run_lintian = self.config.build_env.run_lintian.unwrap_or(false);
-        let run_piuparts = self.config.build_env.run_piuparts.unwrap_or(false);
-        let run_autopkgtest = self.config.build_env.run_autopkgtest.unwrap_or(false);
-        let builder = SbuildBuilder::new()
-            .distribution(codename)
-            .build_arch_all()
-            .build_source()
-            .cache_file(&cache_file)
-            .verbose()
-            .chroot_mode_unshare()
-            .setup_commands(&build_chroot_setup_commands)
-            .no_run_piuparts()
-            .no_apt_upgrades()
-            .run_lintian(run_lintian)
-            .no_run_autopkgtest()
-            .working_dir(Path::new(&self.build_files_dir));
+        let sbuild_version = self.args.sbuild_version();
+        let codename = self.args.codename();
+        let cache_file = self.args.get_cache_file();
+        let build_chroot_setup_commands = self.args.build_chroot_setup_commands();
+        let run_lintian = self.args.run_lintian();
+        let run_piuparts = self.args.run_piuparts();
+        let run_autopkgtest = self.args.run_autopkgtests();
+        let build_files_dir = self.args.build_files_dir();
+        let package_type = self.args.package_type();
+        let context = self.args.context();
 
-        builder.execute()?;
-
+        let tool = SbuildTool::new(
+            sbuild_version,
+            codename.clone(),
+            cache_file,
+            build_chroot_setup_commands,
+            run_lintian,
+            build_files_dir.clone(),
+            package_type,
+            context,
+        );
+        ToolRunner::new().run_tool(tool)?;
         if run_piuparts {
             self.run_piuparts()?;
         }
@@ -138,7 +132,7 @@ impl Sbuild {
 
     pub fn verify(&self, verify_config: PkgVerifyConfig) -> Result<(), SbuildError> {
         let output_dir =
-            Path::new(&self.build_files_dir)
+            Path::new(self.args.build_files_dir())
                 .parent()
                 .ok_or(SbuildError::GenericError(
                     "Invalid build files dir".to_string(),
@@ -185,34 +179,42 @@ impl Sbuild {
     }
 
     pub fn run_lintian(&self) -> Result<(), SbuildError> {
-        let tool = LintianTool::new(
-            self.config.build_env.lintian_version.clone(),
-            self.get_changes_file(),
-            self.config.build_env.codename.clone(),
-        );
+        let lintian_version = self.args.lintian_version();
+        let changes_file = self.args.get_changes_file();
+        let codename = self.args.codename().clone();
+
+        let tool = LintianTool::new(lintian_version, changes_file, codename);
         ToolRunner::new().run_tool(tool)
     }
 
     pub fn run_piuparts(&self) -> Result<(), SbuildError> {
-        let tool = PiupartsTool::new(
-            self.config.build_env.lintian_version.clone(),
-            self.config.build_env.codename.clone(),
-            self.get_deb_dir(),
-            self.get_deb_name(),
-            self.language_env()
-        );
+        let piuparts_version = self.args.piuparts_version();
+        let codename = self.args.codename().clone();
+        let deb_dir = self.args.get_deb_dir();
+        let deb_name = self.args.get_deb_name();
+        let language_env = self.args.language_env();
+
+        let tool = PiupartsTool::new(piuparts_version, codename, deb_dir, deb_name, language_env);
         ToolRunner::new().run_tool(tool)
     }
 
     pub fn run_autopkgtests(&self) -> Result<(), SbuildError> {
+        let autopkgtest_version = self.args.autopkgtest_version();
+        let changes_file = self.args.get_changes_file();
+        let codename = self.args.codename().clone();
+        let deb_dir = self.args.get_deb_dir();
+        let test_deps = self.args.get_test_deps_not_in_debian();
+        let cache_dir = self.args.cache_dir().clone();
+        let arch = self.args.arch();
+
         let tool = AutopkgtestTool::new(
-            self.config.build_env.lintian_version.clone(),
-            self.get_changes_file(),
-            self.config.build_env.codename.clone(),
-            self.get_deb_dir(),
-            self.get_test_deps_not_in_debian(),
-            self.cache_dir.clone(),
-            self.config.build_env.arch.clone()
+            autopkgtest_version,
+            changes_file,
+            codename,
+            deb_dir,
+            test_deps,
+            cache_dir,
+            arch,
         );
         ToolRunner::new().run_tool(tool)
     }
@@ -227,7 +229,7 @@ mod tests {
     use super::*;
     use env_logger::Env;
     use std::fs::{create_dir_all, File};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
     use std::sync::Once;
     use tempfile::tempdir;
     use types::distribution::Distribution;
@@ -283,10 +285,11 @@ mod tests {
     fn test_clean_when_file_missing() {
         setup();
         let (config, build_files_dir, _) = create_base_config();
-        let build_env = Sbuild::new(config, build_files_dir);
+        let args = SbuildArgs::new(config, build_files_dir.into());
+        let build_env = Sbuild { args: args.clone() };
 
         let result = build_env.clean();
-        let cache_file = build_env.get_cache_file();
+        let cache_file = args.get_cache_file();
 
         assert!(result.is_ok());
         assert!(!Path::new(&cache_file).exists());
@@ -297,8 +300,9 @@ mod tests {
         setup();
         let (config, build_files_dir, cache_dir) = create_base_config();
 
-        let build_env = Sbuild::new(config, build_files_dir);
-        let cache_file = build_env.get_cache_file();
+        let args = SbuildArgs::new(config, build_files_dir.into());
+        let build_env = Sbuild { args: args.clone() };
+        let cache_file = args.get_cache_file();
 
         create_dir_all(cache_dir).unwrap();
         File::create(&cache_file).unwrap();
@@ -314,10 +318,11 @@ mod tests {
     fn test_create_environment() {
         setup();
         let (config, build_files_dir, _) = create_base_config();
-        let build_env = Sbuild::new(config, build_files_dir);
+        let args = SbuildArgs::new(config, build_files_dir.into());
+        let build_env = Sbuild { args: args.clone() };
+        let cache_file = args.get_cache_file();
 
         build_env.clean().unwrap();
-        let cache_file = build_env.get_cache_file();
         assert!(!Path::new(&cache_file).exists());
 
         let result = build_env.create();

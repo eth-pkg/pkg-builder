@@ -57,7 +57,6 @@ impl TryFrom<String> for Url {
     }
 }
 
-
 impl<'de> Deserialize<'de> for Url {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

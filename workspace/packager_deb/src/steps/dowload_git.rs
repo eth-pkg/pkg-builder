@@ -43,12 +43,12 @@ pub enum DownloadGitError {
 
 #[derive(Default)]
 pub struct DownloadGit {
-    build_artifacts_dir: String,
+    build_artifacts_dir: PathBuf,
     package_name: String,
     git_tag: String,
     git_url: String,
     submodules: Vec<SubModule>,
-    tarball_path: String,
+    tarball_path: PathBuf,
 }
 
 impl From<BuildContext> for DownloadGit {
@@ -201,7 +201,7 @@ impl BuildStep for DownloadGit {
                 // "--mtime='2019-01-01 00:00'",
                 "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
                 "-czf",
-                &self.tarball_path,
+                &self.tarball_path.display().to_string(),
                 &self.package_name,
             ])
             .current_dir(&self.build_artifacts_dir)

@@ -1,8 +1,8 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
-use types::distribution::Distribution;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
+use types::distribution::Distribution;
 
 /// Represents options for creating an sbuild chroot environment
 ///
@@ -15,7 +15,7 @@ pub struct SbuildCreateChroot {
     /// Whether to create a tarball
     make_tarball: bool,
     /// Path to the cache file
-    cache_file: Option<String>,
+    cache_file: Option<PathBuf>,
     /// Codename of the distribution (e.g., "bullseye")
     codename: Option<Distribution>,
     /// Directory to use for temporary files
@@ -86,10 +86,10 @@ impl SbuildCreateChroot {
     ///
     /// ```
     /// use debian::sbuild_create_chroot::SbuildCreateChroot;
-    /// let chroot = SbuildCreateChroot::new().cache_file("/path/to/cache");
+    /// let chroot = SbuildCreateChroot::new().cache_file(&"/path/to/cache".into());
     /// ```
-    pub fn cache_file(mut self, path: &str) -> Self {
-        self.cache_file = Some(path.to_string());
+    pub fn cache_file(mut self, path: &PathBuf) -> Self {
+        self.cache_file = Some(path.clone());
         self
     }
 
@@ -120,10 +120,10 @@ impl SbuildCreateChroot {
     /// # Examples
     ///
     /// ```
-    /// use std::path::Path;
+    /// use std::path::PathBuf;
     /// use debian::sbuild_create_chroot::SbuildCreateChroot;
-    /// let temp = Path::new("/tmp/sbuild");
-    /// let chroot = SbuildCreateChroot::new().temp_dir(temp);
+    /// let temp = PathBuf::from("/tmp/sbuild");
+    /// let chroot = SbuildCreateChroot::new().temp_dir(&temp);
     /// ```
     pub fn temp_dir(mut self, dir: &Path) -> Self {
         self.temp_dir = Some(dir.to_string_lossy().to_string());
@@ -160,7 +160,7 @@ impl SbuildCreateChroot {
         }
 
         if let Some(cache) = &self.cache_file {
-            args.push(cache.clone());
+            args.push(cache.display().to_string());
         }
 
         if let Some(name) = &self.codename {
@@ -252,7 +252,7 @@ mod tests {
         let chroot = SbuildCreateChroot::new()
             .chroot_mode("unshare")
             .make_tarball()
-            .cache_file("/var/cache/sbuild.tar.gz")
+            .cache_file(&"/var/cache/sbuild.tar.gz".into())
             .codename(&Distribution::bookworm())
             .temp_dir(&temp_path)
             .repo_url("http://deb.debian.org/debian");

@@ -1,8 +1,8 @@
 use super::execute::{execute_command, Execute, ExecuteError};
 use log::info;
-use types::distribution::Distribution;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use types::distribution::Distribution;
 
 /// A builder for configuring and executing the sbuild command.
 ///
@@ -33,7 +33,7 @@ pub struct SbuildBuilder {
     /// Whether to build source packages only
     build_source: bool,
     /// Path to the sbuild cache file
-    cache_file: Option<String>,
+    cache_file: Option<PathBuf>,
     /// Whether to enable verbose output
     verbose: bool,
     /// Whether to use unshare chroot mode
@@ -128,8 +128,8 @@ impl SbuildBuilder {
     /// # Arguments
     ///
     /// * `cache_file` - Path to the cache file
-    pub fn cache_file(mut self, cache_file: &str) -> Self {
-        self.cache_file = Some(cache_file.to_string());
+    pub fn cache_file(mut self, cache_file: PathBuf) -> Self {
+        self.cache_file = Some(cache_file);
         self
     }
 
@@ -234,7 +234,7 @@ impl SbuildBuilder {
 
         if let Some(cache) = &self.cache_file {
             args.push("-c".to_string());
-            args.push(cache.clone());
+            args.push(cache.display().to_string());
         }
 
         if self.verbose {
@@ -334,7 +334,7 @@ mod tests {
             .distribution(&Distribution::bookworm())
             .build_arch_all()
             .build_source()
-            .cache_file("cache.txt")
+            .cache_file("cache.txt".into())
             .verbose()
             .chroot_mode_unshare()
             .setup_commands(&["--foo".to_string(), "--bar".to_string()])
@@ -347,7 +347,7 @@ mod tests {
         assert_eq!(builder.distribution, Some(Distribution::bookworm()));
         assert!(builder.build_arch_all);
         assert!(builder.build_source);
-        assert_eq!(builder.cache_file, Some("cache.txt".to_string()));
+        assert_eq!(builder.cache_file, Some("cache.txt".into()));
         assert!(builder.verbose);
         assert!(builder.chroot_mode_unshare);
         assert_eq!(

@@ -28,7 +28,7 @@ impl PiupartsTool {
             codename,
             deb_dir,
             language_env,
-            deb_name
+            deb_name,
         }
     }
 }

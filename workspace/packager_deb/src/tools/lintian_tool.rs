@@ -15,10 +15,10 @@ pub struct LintianTool {
 
 impl LintianTool {
     pub fn new(version: Version, changes_file: PathBuf, codename: Distribution) -> Self {
-        LintianTool{
+        LintianTool {
             version,
             changes_file,
-            codename
+            codename,
         }
     }
 }

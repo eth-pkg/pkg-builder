@@ -11,9 +11,9 @@ use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
 pub struct PatchSource {
-    build_files_dir: String,
+    build_files_dir: PathBuf,
     homepage: String,
-    src_dir: String,
+    src_dir: PathBuf,
 }
 
 impl From<BuildContext> for PatchSource {
@@ -27,52 +27,53 @@ impl From<BuildContext> for PatchSource {
 }
 
 impl PatchSource {
-    pub fn patch_quilt(build_files_dir: &String) -> Result<(), BuildError> {
-        let debian_source_format_path = format!("{}/debian/source/format", build_files_dir);
+    pub fn patch_quilt(build_files_dir: &PathBuf) -> Result<(), BuildError> {
+        let debian_source_format_path = build_files_dir.clone().join("debian/source/format");
+
         info!(
-            "Setting up quilt format for patching. Debian source format path: {}",
+            "Setting up quilt format for patching. Debian source format path: {:?}",
             debian_source_format_path
         );
-        let debian_source_dir = PathBuf::from(&build_files_dir).join("debian/source");
-        if !debian_source_dir.exists() {
-            fs::create_dir_all(&debian_source_dir)?;
+        if !debian_source_format_path.parent().unwrap().exists() {
+            fs::create_dir_all(&debian_source_format_path.parent().unwrap())?;
             info!(
                 "Created debian/source directory at: {:?}",
-                debian_source_dir
+                debian_source_format_path.parent().unwrap()
             );
         }
 
         if !Path::new(&debian_source_format_path).exists() {
             fs::write(&debian_source_format_path, "3.0 (quilt)\n")?;
             info!(
-                "Quilt format file created at: {}",
+                "Quilt format file created at: {:?}",
                 debian_source_format_path
             );
         } else {
             info!(
-                "Quilt format file already exists at: {}",
+                "Quilt format file already exists at: {:?}",
                 debian_source_format_path
             );
         }
         Ok(())
     }
 
-    pub fn patch_pc_dir(build_files_dir: &String) -> Result<(), BuildError> {
-        let pc_version_path = format!("{}/.pc/.version", &build_files_dir);
+    pub fn patch_pc_dir(build_files_dir: &PathBuf) -> Result<(), BuildError> {
+        let pc_version_path = build_files_dir.clone().join(".pc/version");
+
         info!("Creating necessary directories for patching");
-        fs::create_dir_all(format!("{}/.pc", &build_files_dir))?;
+        fs::create_dir_all(format!("{:?}/.pc", pc_version_path.parent()))?;
         let mut pc_version_file = fs::File::create(pc_version_path)?;
         writeln!(pc_version_file, "2")?;
         Ok(())
     }
 
     pub fn patch_standards_version(
-        build_files_dir: &String,
+        build_files_dir: &PathBuf,
         homepage: &String,
     ) -> Result<(), BuildError> {
-        let debian_control_path = format!("{}/debian/control", build_files_dir);
+        let debian_control_path: PathBuf = build_files_dir.clone().join("debian/control");
         info!(
-            "Adding Standards-Version to the control file. Debian control path: {}",
+            "Adding Standards-Version to the control file. Debian control path: {:?}",
             debian_control_path
         );
         let input_file = fs::File::open(&debian_control_path)?;
@@ -109,7 +110,7 @@ impl PatchSource {
         Ok(())
     }
 
-    pub fn copy_src_dir(build_files_dir: &String, src_dir: &String) -> Result<(), BuildError> {
+    pub fn copy_src_dir(build_files_dir: &PathBuf, src_dir: &PathBuf) -> Result<(), BuildError> {
         let src_dir_path = Path::new(src_dir);
         if src_dir_path.exists() {
             Self::copy_directory_recursive(Path::new(src_dir), Path::new(&build_files_dir))
@@ -118,13 +119,13 @@ impl PatchSource {
         Ok(())
     }
 
-    pub fn patch_rules_permission(build_files_dir: &str) -> Result<(), BuildError> {
+    pub fn patch_rules_permission(build_files_dir: &PathBuf) -> Result<(), BuildError> {
         info!(
-            "Adding executable permission for {}/debian/rules",
+            "Adding executable permission for {:?}/debian/rules",
             build_files_dir
         );
+        let debian_rules: PathBuf = build_files_dir.clone().join("debian/rules");
 
-        let debian_rules = format!("{}/debian/rules", build_files_dir);
         let mut permissions = fs::metadata(debian_rules.clone())
             .map_err(|_| BuildError::RulesPermissionGet)?
             .permissions();
@@ -199,7 +200,7 @@ mod tests {
 
     #[test]
     fn patch_rules_permission_handles_nonexistent_directory() {
-        let result = PatchSource::patch_rules_permission("/nonexistent/dir");
+        let result = PatchSource::patch_rules_permission(&"/nonexistent/dir".into());
 
         assert!(result.is_err());
     }
@@ -207,9 +208,10 @@ mod tests {
     #[test]
     fn patch_quilt_creates_source_dir_and_format_file() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = tempdir()?;
-        let build_files_dir = temp_dir.path().to_str().unwrap().to_string();
+        let build_files_dir = temp_dir.path().to_path_buf();
 
-        PatchSource::patch_quilt(&build_files_dir)?;
+        let result = PatchSource::patch_quilt(&build_files_dir);
+        assert!(result.is_ok());
 
         let debian_source_dir = temp_dir.path().join("debian/source");
         assert!(debian_source_dir.exists());
@@ -225,12 +227,12 @@ mod tests {
     fn patch_quilt_skips_creation_if_already_exists() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = tempdir()?;
         let temp_dir = temp_dir.path();
-        let build_files_dir = temp_dir.to_str().unwrap().to_string();
+        let build_files_dir = temp_dir.to_path_buf();
 
         fs::create_dir_all(temp_dir.join("debian/source")).expect("Failed to create dir for test.");
         File::create(temp_dir.join("debian/source/format")).expect("Failed to create file.");
 
-        let result = PatchSource::patch_quilt(&build_files_dir);
+        let result = PatchSource::patch_quilt(&build_files_dir.into());
         assert!(result.is_ok());
 
         let entries: Vec<_> = fs::read_dir(temp_dir)?.collect();
@@ -246,7 +248,8 @@ mod tests {
         fs::create_dir_all(temp_dir.path().join("debian")).expect("Could not create dir");
         File::create(&rules_path)?;
 
-        PatchSource::patch_rules_permission(temp_dir.path().to_str().unwrap())?;
+        let result = PatchSource::patch_rules_permission(&temp_dir.path().to_path_buf());
+        assert!(result.is_ok());
 
         let permissions = fs::metadata(&rules_path)?.permissions();
         assert_ne!(permissions.mode() & 0o111, 0);

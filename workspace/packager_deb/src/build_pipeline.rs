@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use debian::debcrafter::DebcrafterCmdError;
 use thiserror::Error;
 
@@ -10,24 +12,18 @@ use crate::{
 pub struct BuildContext {
     pub tarball_url: String,
     pub tarball_hash: String,
-    pub tarball_path: String,
-    pub build_files_dir: String,
+    pub tarball_path: PathBuf,
+    pub build_files_dir: PathBuf,
     pub debcrafter_version: String,
     pub homepage: String,
-    pub build_artifacts_dir: String,
+    pub build_artifacts_dir: PathBuf,
     pub spec_file: String,
-    pub src_dir: String,
+    pub src_dir: PathBuf,
     // only for git package
     pub package_name: String,
     pub git_tag: String,
     pub git_url: String,
     pub submodules: Vec<SubModule>,
-}
-
-impl BuildContext {
-    pub fn new() -> Self {
-        Self::default()
-    }
 }
 
 #[derive(Error, Debug)]

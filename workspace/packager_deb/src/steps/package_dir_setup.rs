@@ -1,10 +1,13 @@
 use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Default)]
 pub struct PackageDirSetup {
-    build_artifacts_dir: String,
+    build_artifacts_dir: PathBuf,
 }
 
 impl From<BuildContext> for PackageDirSetup {
@@ -20,12 +23,12 @@ impl BuildStep for PackageDirSetup {
         let build_artifacts_dir = &self.build_artifacts_dir;
 
         if Path::new(build_artifacts_dir).exists() {
-            info!("Removing previous package folder {}", build_artifacts_dir);
+            info!("Removing previous package folder {:?}", build_artifacts_dir);
 
             fs::remove_dir_all(build_artifacts_dir)?;
         }
 
-        info!("Creating package folder {}", build_artifacts_dir);
+        info!("Creating package folder {:?}", build_artifacts_dir);
 
         fs::create_dir_all(build_artifacts_dir)?;
 
@@ -45,7 +48,7 @@ mod tests {
         let artifacts_dir = temp_dir.path().join("artifacts");
 
         let mut context = BuildContext::new();
-        context.build_artifacts_dir = artifacts_dir.to_string_lossy().to_string();
+        context.build_artifacts_dir = artifacts_dir;
 
         (context, temp_dir)
     }
@@ -91,7 +94,7 @@ mod tests {
 
         let (mut context, _temp_dir) = setup_test_context();
 
-        context.build_artifacts_dir = "/root/forbidden_dir".to_string();
+        context.build_artifacts_dir = "/root/forbidden_dir".into();
 
         let handler = PackageDirSetup::from(context);
         let result = handler.step();

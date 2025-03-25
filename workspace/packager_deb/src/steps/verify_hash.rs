@@ -3,10 +3,11 @@ use log::info;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;
 use std::io::Read;
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct VerifyHash {
-    tarball_path: String,
+    tarball_path: PathBuf,
     tarball_hash: String,
 }
 
@@ -44,7 +45,7 @@ impl VerifyHash {
 
     fn verify_tarball_checksum(
         &self,
-        tarball_path: &str,
+        tarball_path: &PathBuf,
         expected_checksum: &str,
     ) -> Result<bool, BuildError> {
         let mut file = fs::File::open(tarball_path)
@@ -131,7 +132,7 @@ mod tests {
 
         let handler = VerifyHash::from(BuildContext::new());
 
-        let result = handler.verify_tarball_checksum(&file_path, &expected_checksum);
+        let result = handler.verify_tarball_checksum(&file_path.into(), &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -146,7 +147,7 @@ mod tests {
 
         let handler = VerifyHash::from(BuildContext::new());
 
-        let result = handler.verify_tarball_checksum(&file_path, &expected_checksum);
+        let result = handler.verify_tarball_checksum(&file_path.into(), &expected_checksum);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), true);
     }
@@ -160,7 +161,7 @@ mod tests {
 
         let handler = VerifyHash::from(BuildContext::new());
 
-        let result = handler.verify_tarball_checksum(&file_path, &incorrect_checksum);
+        let result = handler.verify_tarball_checksum(&file_path.into(), &incorrect_checksum);
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), BuildError::HashMismatchError));
     }
@@ -175,7 +176,7 @@ mod tests {
 
         let mut context = BuildContext::default();
         context.tarball_hash = expected_checksum;
-        context.tarball_path = file_path;
+        context.tarball_path = file_path.into();
         let handler: VerifyHash = VerifyHash::from(context);
 
         let result = handler.step();
@@ -185,7 +186,7 @@ mod tests {
     #[test]
     fn test_handle_without_checksum() {
         let mut context: BuildContext = BuildContext::default();
-        context.tarball_path = "some/path".to_string();
+        context.tarball_path = "some/path".into();
         let handler: VerifyHash = VerifyHash::from(context);
 
         let result = handler.step();
@@ -198,7 +199,7 @@ mod tests {
         let expected_checksum = "abd0b8e99f983926dbf60bdcbaef13f83ec7b31d56e68f6252ed05981b237c837044ce768038fc34b71f925e2fb19b7dee451897db512bb4a99e0e1bc96d8ab3";
         let mut context: BuildContext = BuildContext::default();
         context.tarball_hash = expected_checksum.to_string();
-        context.tarball_path = tarball_path.to_string();
+        context.tarball_path = tarball_path.into();
         let handler: VerifyHash = VerifyHash::from(context);
 
         let result = handler.step();
@@ -213,7 +214,7 @@ mod tests {
 
         let mut context: BuildContext = BuildContext::default();
         context.tarball_hash = expected_checksum.to_string();
-        context.tarball_path = tarball_path.to_string();
+        context.tarball_path = tarball_path.into();
 
         let handler = VerifyHash::from(context);
         let result = handler.step();
@@ -232,7 +233,7 @@ mod tests {
 
         let mut context: BuildContext = BuildContext::default();
         context.tarball_hash = expected_checksum.to_string();
-        context.tarball_path = tarball_path.to_string();
+        context.tarball_path = tarball_path.into();
         let handler = VerifyHash::from(context);
 
         let result = handler.step();
@@ -247,7 +248,7 @@ mod tests {
 
         let mut context: BuildContext = BuildContext::default();
         context.tarball_hash = expected_checksum.to_string();
-        context.tarball_path = tarball_path.to_string();
+        context.tarball_path = tarball_path.into();
         let handler = VerifyHash::from(context);
 
         let result = handler.step();

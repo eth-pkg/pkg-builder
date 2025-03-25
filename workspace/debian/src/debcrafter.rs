@@ -81,7 +81,7 @@ impl DebcrafterCmd {
     pub fn create_debian_dir(
         &self,
         specification_file: &str,
-        target_dir: &str,
+        target_dir: &PathBuf,
     ) -> Result<(), DebcrafterCmdError> {
         let debcrafter_dir =
             tempdir().map_err(|e| DebcrafterCmdError::CommandFailed(e.to_string().into()))?;
