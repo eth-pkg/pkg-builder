@@ -1,5 +1,5 @@
 use log::info;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use thiserror::Error;
 
 use super::execute::{execute_command, Execute, ExecuteError};
@@ -16,14 +16,14 @@ use super::execute::{execute_command, Execute, ExecuteError};
 /// ```
 /// use debian::autopkgtest::Autopkgtest;
 /// use crate::debian::execute::Execute;
-/// use std::path::Path;
+/// use std::path::PathBuf;
 ///
 /// let result = Autopkgtest::new()
 ///     .changes_file("package.changes")
 ///     .apt_upgrade()
 ///     .setup_commands("apt-get install dependency")
-///     .qemu("/path/to/image.img")
-///     .working_dir(Path::new("/tmp/working_dir"))
+///     .qemu(PathBuf::from("/path/to/image.img"))
+///     .working_dir(&PathBuf::from("/tmp/working_dir"))
 ///     .execute();
 /// ```
 #[derive(Debug, Clone, Default)]
@@ -32,7 +32,7 @@ pub struct Autopkgtest {
     no_built_binaries: bool,
     apt_upgrade: bool,
     setup_commands: Vec<String>,
-    qemu_image: Option<String>,
+    qemu_image: Option<PathBuf>,
     dir: Option<PathBuf>,
 }
 
@@ -155,8 +155,8 @@ impl Autopkgtest {
     /// # Returns
     ///
     /// The updated builder instance.
-    pub fn qemu(mut self, image_path: &str) -> Self {
-        self.qemu_image = Some(image_path.to_string());
+    pub fn qemu(mut self, image_path: PathBuf) -> Self {
+        self.qemu_image = Some(image_path);
         self
     }
 
@@ -172,8 +172,8 @@ impl Autopkgtest {
     /// # Returns
     ///
     /// The updated builder instance.
-    pub fn working_dir(mut self, dir: &Path) -> Self {
-        self.dir = Some(dir.to_path_buf());
+    pub fn working_dir(mut self, dir: &PathBuf) -> Self {
+        self.dir = Some(dir.clone());
         self
     }
 
@@ -211,7 +211,7 @@ impl Autopkgtest {
         if let Some(image) = &self.qemu_image {
             args.push("--".to_string());
             args.push("qemu".to_string());
-            args.push(image.clone());
+            args.push(image.display().to_string());
         }
 
         args
@@ -297,10 +297,10 @@ mod tests {
 
     #[test]
     fn test_qemu() {
-        let autopkgtest = Autopkgtest::new().qemu("/path/to/image.img");
+        let autopkgtest = Autopkgtest::new().qemu(PathBuf::from("/path/to/image.img"));
         assert_eq!(
             autopkgtest.qemu_image,
-            Some("/path/to/image.img".to_string())
+            Some(PathBuf::from("/path/to/image.img"))
         );
     }
 
@@ -319,7 +319,7 @@ mod tests {
             .apt_upgrade()
             .setup_commands("apt-get install pkg1")
             .setup_commands("apt-get install pkg2")
-            .qemu("/path/to/image.img");
+            .qemu("/path/to/image.img".into());
 
         let args = autopkgtest.build_args();
 

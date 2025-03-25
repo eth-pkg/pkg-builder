@@ -27,7 +27,7 @@ pub fn dispatch_package_operation(
     config: ConfigFile<Config>,
     cmd_payload: DebCommandPayload,
 ) -> Result<(), PackageError> {
-    // Parse config first
+    // ReParse config first
     let mut pkg_config =
         ConfigFile::<PkgConfig>::load_and_parse(Some(config.path.display().to_string()))?;
 
@@ -38,7 +38,6 @@ pub fn dispatch_package_operation(
         run_piuparts,
     } = &cmd_payload
     {
-        // Using pattern matching with references to avoid cloning
         if let Some(run_piuparts_value) = run_piuparts {
             pkg_config.build_env.run_piuparts = Some(*run_piuparts_value);
         }
@@ -50,10 +49,8 @@ pub fn dispatch_package_operation(
         }
     }
 
-    // Create packager with parsed config
     let packager = SbuildPackager::new(pkg_config, config.path.parent().unwrap().to_path_buf());
 
-    // Dispatch to appropriate operation based on command payload
     match cmd_payload {
         DebCommandPayload::Verify {
             verify_config,

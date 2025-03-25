@@ -79,7 +79,7 @@ pub enum LanguageEnv {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct DefaultPackageTypeConfig {
-    pub tarball_url: Url,
+    pub tarball_url: String,
     pub tarball_hash: Option<String>,
     pub language_env: LanguageEnv,
 }

@@ -8,3 +8,7 @@ pub mod sbuild_packager;
 mod sbuild_pipelines;
 mod steps;
 mod validation;
+mod distribution;
+mod utils;
+mod sbuild_helper;
+mod tools;
