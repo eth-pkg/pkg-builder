@@ -1,4 +1,4 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use sha2::{Digest, Sha256, Sha512};
 use std::fs;

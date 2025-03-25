@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use types::distribution::Distribution;
 
-use crate::pkg_config::JavascriptConfig;
+use crate::configs::pkg_config::JavascriptConfig;
 
 use super::language_installer::LanguageInstaller;
 

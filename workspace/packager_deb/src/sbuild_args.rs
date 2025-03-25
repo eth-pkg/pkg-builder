@@ -6,9 +6,9 @@ use std::{
 use types::{defaults::WORKDIR_ROOT, distribution::Distribution, version::Version};
 
 use crate::{
-    build_pipeline::BuildContext,
+    configs::pkg_config::{LanguageEnv, PackageType, PkgConfig},
     installers::language_installer::LanguageInstaller,
-    pkg_config::{LanguageEnv, PackageType, PkgConfig},
+    misc::build_pipeline::BuildContext,
 };
 
 #[derive(Debug, Clone)]

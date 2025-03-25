@@ -6,7 +6,7 @@ use debian::{
 use log::info;
 use types::{distribution::Distribution, version::Version};
 
-use crate::{distribution::DistributionTrait, sbuild::SbuildError};
+use crate::{misc::distribution::DistributionTrait, sbuild::SbuildError};
 
 use super::tool_runner::{BuildTool, ToolRunner};
 

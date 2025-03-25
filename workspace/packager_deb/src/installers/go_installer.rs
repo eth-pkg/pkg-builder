@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use types::distribution::Distribution;
 
-use crate::pkg_config::GoConfig;
+use crate::configs::pkg_config::GoConfig;
 
 use super::language_installer::LanguageInstaller;
 

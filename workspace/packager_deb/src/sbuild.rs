@@ -1,14 +1,14 @@
-use crate::build_pipeline::BuildError;
-use crate::distribution::DistributionTrait;
-use crate::pkg_config::PkgConfig;
-use crate::pkg_config_verify::PkgVerifyConfig;
+use crate::configs::pkg_config::PkgConfig;
+use crate::configs::pkg_config_verify::PkgVerifyConfig;
+use crate::misc::build_pipeline::BuildError;
+use crate::misc::distribution::DistributionTrait;
+use crate::misc::utils::{calculate_sha1, ensure_parent_dir, remove_file_or_directory};
 use crate::sbuild_args::SbuildArgs;
 use crate::tools::autopkgtest_tool::AutopkgtestTool;
 use crate::tools::lintian_tool::LintianTool;
 use crate::tools::piuparts_tool::PiupartsTool;
 use crate::tools::sbuild_tool::SbuildTool;
 use crate::tools::tool_runner::ToolRunner;
-use crate::utils::{calculate_sha1, ensure_parent_dir, remove_file_or_directory};
 use debian::autopkgtest::AutopkgtestError;
 use debian::autopkgtest_image::AutopkgtestImageError;
 use debian::execute::Execute;
@@ -229,7 +229,8 @@ impl Sbuild {
 
 #[cfg(test)]
 mod tests {
-    use crate::pkg_config::{
+
+    use crate::configs::pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, LanguageEnv, PackageFields, PackageType,
     };
 

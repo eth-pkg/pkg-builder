@@ -1,7 +1,7 @@
 use log::info;
 use types::version::Version;
 
-use crate::{sbuild::SbuildError, utils::check_tool_version};
+use crate::{misc::utils::check_tool_version, sbuild::SbuildError};
 
 pub trait BuildTool {
     fn name(&self) -> &str;

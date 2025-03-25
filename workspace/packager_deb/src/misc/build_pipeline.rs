@@ -4,7 +4,7 @@ use debian::debcrafter::DebcrafterCmdError;
 use thiserror::Error;
 
 use crate::{
-    pkg_config::SubModule,
+    configs::pkg_config::SubModule,
     steps::{create_empty_tar::CreateEmptyTarError, dowload_git::DownloadGitError},
 };
 

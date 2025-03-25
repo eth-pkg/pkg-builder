@@ -1,4 +1,4 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use std::{fs, io, path::PathBuf, process::Command};
 

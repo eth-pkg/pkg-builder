@@ -8,12 +8,11 @@ use types::{
 };
 
 use crate::{
-    build_pipeline::BuildError,
-    pkg_config::PkgConfig,
-    pkg_config_verify::PkgVerifyConfig,
+    configs::{pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig},
+    misc::build_pipeline::BuildError,
+    misc::validation::ValidationError,
     sbuild::{Sbuild, SbuildError},
     sbuild_args::expand_path,
-    validation::ValidationError,
 };
 
 impl ConfigType for PkgVerifyConfig {

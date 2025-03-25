@@ -1,4 +1,4 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use std::{
     fs,
@@ -39,7 +39,7 @@ impl BuildStep for PackageDirSetup {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::build_pipeline::{BuildContext, BuildError};
+    use crate::misc::build_pipeline::{BuildContext, BuildError};
     use std::path::PathBuf;
     use tempfile::TempDir;
 

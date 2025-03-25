@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap};
 
 use types::distribution::{Distribution, UbuntuCodename};
 
-use crate::pkg_config::DotnetConfig;
+use crate::configs::pkg_config::DotnetConfig;
 
 use super::{command_builder::CommandBuilder, language_installer::LanguageInstaller};
 

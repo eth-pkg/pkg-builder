@@ -7,7 +7,7 @@ use std::{
 
 use log::info;
 
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
 pub struct PatchSource {

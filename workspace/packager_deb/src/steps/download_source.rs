@@ -1,4 +1,4 @@
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 use log::info;
 use std::{fs, path::PathBuf, process::Command};
 
@@ -52,7 +52,7 @@ impl BuildStep for DownloadSource {
 
 #[cfg(test)]
 mod tests {
-    use crate::build_pipeline::BuildContext;
+    use crate::misc::build_pipeline::BuildContext;
 
     use super::*;
     use std::fs::File;

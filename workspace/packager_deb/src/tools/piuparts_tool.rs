@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use debian::{execute::Execute, piuparts::Piuparts};
 use types::{distribution::Distribution, version::Version};
 
-use crate::{distribution::DistributionTrait, pkg_config::LanguageEnv, sbuild::SbuildError};
+use crate::{
+    configs::pkg_config::LanguageEnv, misc::distribution::DistributionTrait, sbuild::SbuildError,
+};
 
 use super::tool_runner::{BuildTool, ToolRunner};
 

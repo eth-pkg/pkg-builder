@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use debian::debcrafter::DebcrafterCmd;
 use log::info;
 
-use crate::build_pipeline::{BuildContext, BuildError, BuildStep};
+use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 
 #[derive(Default)]
 pub struct CreateDebianDir {

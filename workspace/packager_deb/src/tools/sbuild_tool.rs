@@ -5,10 +5,10 @@ use log::info;
 use types::{distribution::Distribution, version::Version};
 
 use crate::{
-    build_pipeline::BuildContext,
-    pkg_config::PackageType,
+    configs::pkg_config::PackageType,
+    misc::build_pipeline::BuildContext,
+    misc::sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
     sbuild::SbuildError,
-    sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
 };
 
 use super::tool_runner::{BuildTool, ToolRunner};

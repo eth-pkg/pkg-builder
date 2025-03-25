@@ -1,5 +1,5 @@
 use crate::{
-    build_pipeline::{BuildContext, BuildError, BuildPipeline},
+    misc::build_pipeline::{BuildContext, BuildError, BuildPipeline},
     steps::{
         create_debian_dir::CreateDebianDir, create_empty_tar::CreateEmptyTar,
         dowload_git::DownloadGit, download_source::DownloadSource, extract_source::ExtractSource,

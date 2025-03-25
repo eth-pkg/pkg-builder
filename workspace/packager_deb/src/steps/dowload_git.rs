@@ -9,8 +9,8 @@ use log::info;
 use thiserror::Error;
 
 use crate::{
-    build_pipeline::{BuildContext, BuildError, BuildStep},
-    pkg_config::SubModule,
+    configs::pkg_config::SubModule,
+    misc::build_pipeline::{BuildContext, BuildError, BuildStep},
 };
 
 #[derive(Error, Debug)]
@@ -221,7 +221,7 @@ impl BuildStep for DownloadGit {
 
 #[cfg(test)]
 mod tests {
-    use crate::pkg_config::{PackageType, PkgConfig};
+    use crate::configs::pkg_config::{PackageType, PkgConfig};
 
     use super::*;
     use tempfile::tempdir;

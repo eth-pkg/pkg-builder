@@ -1,13 +1,8 @@
-mod build_pipeline;
-pub mod deb_command_handler;
-mod distribution;
+mod configs;
+pub mod handler;
 mod installers;
-mod pkg_config;
-mod pkg_config_verify;
+mod misc;
 pub mod sbuild;
 mod sbuild_args;
-mod sbuild_pipelines;
 mod steps;
 mod tools;
-mod utils;
-mod validation;
