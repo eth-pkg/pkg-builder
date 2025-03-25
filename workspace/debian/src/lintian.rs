@@ -320,8 +320,8 @@ mod tests {
 
     #[test]
     fn test_with_codename_other() {
-        let lintian = Lintian::new().with_codename(&Distribution::noble());
-        assert_eq!(lintian.codename, Some(Distribution::noble()));
+        let lintian = Lintian::new().with_codename(&Distribution::bookworm());
+        assert_eq!(lintian.codename, Some(Distribution::bookworm()));
         assert!(!lintian
             .suppress_tags
             .contains(&"malformed-deb-archive".to_string()));

@@ -200,51 +200,6 @@ impl BuildEnv {
     }
 }
 
-// #[derive(Debug, PartialEq, Eq, Clone)]
-// pub struct PkgBuilderVersion(Version);
-
-// impl PkgBuilderVersion {
-//     pub fn new(version: Version) -> Self {
-//         Self(version)
-//     }
-
-//     pub fn version(&self) -> &Version {
-//         &self.0
-//     }
-// }
-
-// impl From<Version> for PkgBuilderVersion {
-//     fn from(version: Version) -> Self {
-//         Self(version)
-//     }
-// }
-
-// impl AsRef<Version> for PkgBuilderVersion {
-//     fn as_ref(&self) -> &Version {
-//         &self.0
-//     }
-// }
-
-// impl Serialize for PkgBuilderVersion {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         serializer.serialize_str(&self.0.to_string())
-//     }
-// }
-
-// impl<'de> Deserialize<'de> for PkgBuilderVersion {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         let version_str = String::deserialize(deserializer)?;
-//         Version::parse(&version_str)
-//             .map(PkgBuilderVersion)
-//             .map_err(|e| de::Error::custom(e.to_string()))
-//     }
-// }
 
 #[cfg(test)]
 mod tests {

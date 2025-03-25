@@ -18,11 +18,12 @@ use types::distribution::{Distribution, UbuntuCodename};
 /// use std::path::Path;
 /// use debian::piuparts::Piuparts;
 /// use crate::debian::execute::Execute;
+/// use types::distribution::Distribution;
 ///
 /// // Basic usage
 /// let deb_file = Path::new("/path/to/package.deb");
 /// let result = Piuparts::new()
-///     .distribution("bookworm")
+///     .distribution(&Distribution::bookworm())
 ///     .mirror("http://deb.debian.org/debian")
 ///     .verbose()
 ///     .deb_file(deb_file)
@@ -30,8 +31,8 @@ use types::distribution::{Distribution, UbuntuCodename};
 ///
 /// // With .NET environment setup
 /// let result = Piuparts::new()
-///     .distribution("bookworm")
-///     .with_dotnet_env(true, "bookworm")
+///     .distribution(&Distribution::bookworm())
+///     .with_dotnet_env(true, &Distribution::bookworm())
 ///     .deb_file(deb_file)
 ///     .execute();
 /// ```

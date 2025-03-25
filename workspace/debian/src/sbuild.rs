@@ -15,9 +15,10 @@ use thiserror::Error;
 /// ```
 /// use debian::sbuild::SbuildBuilder;
 /// use debian::execute::Execute;
+/// use types::distribution::Distribution;
 ///
 /// let result = SbuildBuilder::new()
-///     .distribution("bullseye")
+///     .distribution(&Distribution::bookworm())
 ///     .build_arch_all()
 ///     .verbose()
 ///     .execute();

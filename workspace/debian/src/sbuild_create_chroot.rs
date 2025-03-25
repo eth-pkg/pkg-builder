@@ -103,7 +103,8 @@ impl SbuildCreateChroot {
     ///
     /// ```
     /// use debian::sbuild_create_chroot::SbuildCreateChroot;
-    /// let chroot = SbuildCreateChroot::new().codename("bullseye");
+    /// use types::distribution::Distribution;
+    /// let chroot = SbuildCreateChroot::new().codename(&Distribution::bookworm());
     /// ```
     pub fn codename(mut self, name: &Distribution) -> Self {
         self.codename = Some(name.clone());
@@ -193,11 +194,12 @@ impl Execute for SbuildCreateChroot {
     /// # use debian::sbuild_create_chroot::SbuildCreateChroot;
     /// # use debian::sbuild_create_chroot::SbuildCreateChrootError;
     /// # use debian::execute::Execute;
+    /// # use types::distribution::Distribution;
     /// # fn run() -> Result<(), SbuildCreateChrootError> {
     /// let chroot = SbuildCreateChroot::new()
     ///     .chroot_mode("unshare")
     ///     .make_tarball()
-    ///     .codename("bullseye");
+    ///     .codename(&Distribution::bookworm());
     ///
     /// chroot.execute()?;
     /// # Ok(())
@@ -261,7 +263,7 @@ mod tests {
         assert_eq!(args[0], "--chroot-mode=unshare");
         assert_eq!(args[1], "--make-sbuild-tarball");
         assert_eq!(args[2], "/var/cache/sbuild.tar.gz");
-        assert_eq!(args[3], "bullseye");
+        assert_eq!(args[3], "bookworm");
         assert_eq!(args[4], "/tmp/sbuild");
         assert_eq!(args[5], "http://deb.debian.org/debian");
     }

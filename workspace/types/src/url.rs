@@ -40,6 +40,23 @@ impl Url {
     }
 }
 
+impl<'a> TryFrom<&'a str> for Url {
+    type Error = url::ParseError;
+
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
+        let inner = OriginalUrl::parse(s)?;
+        Ok(Url(inner))
+    }
+}
+
+impl TryFrom<String> for Url {
+    type Error = url::ParseError;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        <Url as TryFrom<&str>>::try_from(&s)
+    }
+}
+
 
 impl<'de> Deserialize<'de> for Url {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

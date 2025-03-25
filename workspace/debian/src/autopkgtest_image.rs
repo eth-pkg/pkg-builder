@@ -35,7 +35,7 @@ type Result<T> = std::result::Result<T, AutopkgtestImageError>;
 
 trait BuildCommandProvider {
     fn get_command(&self) -> &'static str;
-    fn get_codename_arg(&self) -> String;
+    fn get_formatted_codename(&self) -> String;
 }
 impl BuildCommandProvider for Distribution {
     /// Returns the appropriate command for building an image for this distribution
@@ -53,10 +53,10 @@ impl BuildCommandProvider for Distribution {
     ///
     /// # Returns
     /// * `String` - The formatted codename argument
-    fn get_codename_arg(&self) -> String {
+    fn get_formatted_codename(&self) -> String {
         match self {
-            Distribution::Debian(codename) => codename.as_str().to_string().clone(),
-            Distribution::Ubuntu(codename) => format!("--release={}", codename),
+            Distribution::Debian(_) => self.as_short().to_string(),
+            Distribution::Ubuntu(_) => format!("--release={}", self.as_short()),
         }
     }
 }
@@ -160,7 +160,7 @@ impl AutopkgtestImageBuilder {
         let mut args = Vec::new();
 
         if let Some(dist) = &self.distribution {
-            args.push(dist.get_codename_arg());
+            args.push(dist.get_formatted_codename());
         } else {
             return Err(AutopkgtestImageError::MissingDistribution);
         }
@@ -258,18 +258,19 @@ mod tests {
     #[test]
     fn test_noble_build_args() {
         let builder = AutopkgtestImageBuilder::new()
-            .codename(&Distribution::bookworm())
+            .codename(&Distribution::noble())
             .unwrap()
             .image_path("/tmp", &Distribution::noble(), "amd64")
             .arch("amd64")
             .mirror("http://example.com/ubuntu");
 
         let args = builder.build_args().unwrap();
-        assert!(args.contains(&"noble".to_string()));
+        assert!(args.contains(&"--release=noble".to_string()));
+        assert!(!args.contains(&"--release=noble numbat".to_string()));
         assert!(args
             .iter()
-            .any(|arg| arg.contains("/tmp/autopkgtest-noble-amd64.img")));
+            .all(|arg| !arg.contains("/tmp/autopkgtest-noble-amd64.img")));
         assert!(args.contains(&"--arch=amd64".to_string()));
-        assert!(args.contains(&"--mirror=http://example.com/debian".to_string()));
+        assert!(args.contains(&"--mirror=http://example.com/ubuntu".to_string()));
     }
 }

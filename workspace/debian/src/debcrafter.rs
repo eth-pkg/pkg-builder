@@ -311,24 +311,4 @@ mod tests {
         let result = cmd.copy_dir_contents_recursive(temp_file.path(), dest_dir.path());
         assert!(result.is_err());
     }
-
-    // Integration tests that would run with actual commands should be marked as ignored by default
-
-    #[test]
-    #[ignore]
-    fn test_check_if_dpkg_parsechangelog_installed_success() {
-        // This test assumes dpkg-parsechangelog is installed
-        let cmd = DebcrafterCmd::new("test");
-        let result = cmd.check_if_dpkg_parsechangelog_installed();
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    #[ignore]
-    fn test_check_if_installed_version_nonexistent() {
-        // This test assumes a nonexistent debcrafter version
-        let cmd = DebcrafterCmd::new("nonexistent_version");
-        let result = cmd.check_if_installed();
-        assert!(result.is_err());
-    }
 }

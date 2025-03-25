@@ -60,6 +60,26 @@ impl Version {
     }
 }
 
+impl<'a> TryFrom<&'a str> for Version {
+    type Error = semver::Error;
+
+    fn try_from(s: &'a str) -> Result<Self, Self::Error> {
+        let inner = OriginalVersion::parse(s)?;
+        Ok(Version {
+            inner,
+            original_string: Cow::Owned(s.to_string()),
+        })
+    }
+}
+
+impl TryFrom<String> for Version {
+    type Error = semver::Error;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        <Version as TryFrom<&str>>::try_from(&s)
+    }
+}
+
 impl<'de> Deserialize<'de> for Version {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

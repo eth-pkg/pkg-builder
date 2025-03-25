@@ -520,43 +520,40 @@ mod tests {
     }
 
     fn create_base_config() -> (PkgConfig, String, PathBuf) {
-        let mut config = PkgConfig {
+        let sbuild_cache_dir = tempdir().unwrap().path().to_path_buf();
+        let config = PkgConfig {
             package_fields: PackageFields {
                 spec_file: "".into(),
                 package_name: "".into(),
-                version_number: Version::from("0.0.0".into()),
+                version_number: Version::try_from("1.0.0").unwrap(),
                 revision_number: "".into(),
                 homepage: "".into(),
             },
             package_type: PackageType::Default(DefaultPackageTypeConfig {
-                tarball_url: Url::from("".into()),
+                tarball_url: Url::try_from("http://example.com").unwrap(),
                 tarball_hash: Some("".into()),
                 language_env: LanguageEnv::C,
             }),
             build_env: BuildEnv {
                 codename: Distribution::bookworm(),
-                arch: todo!(),
-                pkg_builder_version: Version::from("1.0.0".into()),
-                debcrafter_version: todo!(),
-                sbuild_cache_dir: todo!(),
-                docker: todo!(),
-                run_lintian: todo!(),
-                run_piuparts: todo!(),
-                run_autopkgtest: todo!(),
-                lintian_version: todo!(),
-                piuparts_version: todo!(),
-                autopkgtest_version: todo!(),
-                sbuild_version: todo!(),
-                workdir: todo!(),
+                arch: "amd64".into(),
+                pkg_builder_version: Version::try_from("1.0.0").unwrap(),
+                debcrafter_version:Version::try_from("1.0.0").unwrap(),
+                sbuild_cache_dir: Some(sbuild_cache_dir.clone()),
+                docker: None,
+                run_lintian: None,
+                run_piuparts: None,
+                run_autopkgtest: None,
+                lintian_version: Version::try_from("1.0.0").unwrap(),
+                piuparts_version: Version::try_from("1.0.0").unwrap(),
+                autopkgtest_version: Version::try_from("1.0.0").unwrap(),
+                sbuild_version: Version::try_from("1.0.0").unwrap(),
+                workdir: PathBuf::from(""),
             },
         };
-        config.build_env.arch = "amd64".to_string();
-
         let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
-        let cache_dir = tempdir().unwrap().path().to_path_buf();
-        config.build_env.sbuild_cache_dir = Some(cache_dir.clone());
 
-        (config, build_files_dir, cache_dir)
+        (config, build_files_dir, sbuild_cache_dir)
     }
 
     #[test]
@@ -590,6 +587,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Only run on CI"]
     fn test_create_environment() {
         setup();
         let (config, build_files_dir, _) = create_base_config();
