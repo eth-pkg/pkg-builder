@@ -212,7 +212,13 @@ impl Execute for AutopkgtestImageBuilder {
 
         info!("Running: sudo -S {} {}", cmd, args.join(" "));
 
-        execute_command_with_sudo(cmd, args, self.work_dir.as_deref())?;
+        let result = execute_command_with_sudo(cmd, args.clone(), self.work_dir.as_deref());
+
+        // try again with sudo if the first attempt failed
+        // for some strange reason the first attempt fails, some of the times on ubuntu runners
+        if result.is_err(){
+            execute_command_with_sudo(cmd, args, self.work_dir.as_deref())?;
+        }
 
         Ok(())
     }
