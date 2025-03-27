@@ -172,8 +172,6 @@ impl AutopkgtestImageBuilder {
         if let Some(arch) = &self.arch {
             args.push(format!("--arch={}", arch));
         }
-        args.push(format!("--timeout={}", 3600));
-        args.push(format!("--ram-size={}", 2048));
 
         if let Some(Distribution::Ubuntu(_)) = &self.distribution {
             args.push("-v".to_string());
@@ -182,6 +180,9 @@ impl AutopkgtestImageBuilder {
         if let Some(path) = &self.image_path {
             if let Some(Distribution::Debian(_)) = &self.distribution {
                 args.push(path.to_string_lossy().to_string());
+            } else {
+                args.push(format!("--timeout={}", 3600));
+                args.push(format!("--ram-size={}", 2048));
             }
         } else {
             return Err(AutopkgtestImageError::MissingImagePath);
