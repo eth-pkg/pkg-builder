@@ -256,7 +256,7 @@ mod tests {
                 .unwrap(),
                 workdir: PathBuf::from(""),
             },
-            config_root: tempdir().unwrap().path().to_path_buf(),
+            _config_root: Some(tempdir().unwrap().path().to_path_buf()),
         };
 
         config

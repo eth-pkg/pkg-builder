@@ -47,7 +47,7 @@ impl TryFrom<PkgConfig> for SbuildArgs {
     type Error = std::io::Error;
 
     fn try_from(config: PkgConfig) -> Result<Self, Self::Error> {
-        let config_root = config.config_root;
+        let config_root = config._config_root.unwrap();
         // Cache directory
         let cache_dir = config
             .build_env
@@ -126,7 +126,7 @@ impl TryFrom<PkgConfig> for SbuildArgs {
                     } else {
                         expand_path(
                             &PathBuf::from(tarball_url),
-                            Some(&PathBuf::from(&config_root)),
+                            Some(&PathBuf::from(&config_root.clone())),
                         )
                         .display()
                         .to_string()
@@ -392,7 +392,7 @@ mod tests {
                 .unwrap(),
                 workdir: PathBuf::from("/tmp/workdir/packages"),
             },
-            config_root: "/test/config/root".into(),
+            _config_root: Some("/test/config/root".into()),
         };
 
         config

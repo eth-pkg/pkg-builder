@@ -154,12 +154,12 @@ pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
     pub build_env: BuildEnv,
-    pub config_root: PathBuf,
+    pub _config_root: Option<PathBuf>,
 }
 
 impl PkgConfig {
     pub fn resolve_paths(mut self, config_root: PathBuf) -> Self {
-        self.config_root = config_root.clone();
+        self._config_root = Some(config_root.clone());
         // Set workdir to default if empty
         let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
         default_work_dir.push(self.build_env.codename.as_ref());
