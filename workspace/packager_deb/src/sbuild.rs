@@ -26,14 +26,6 @@ pub struct Sbuild {
     args: SbuildArgs,
 }
 
-impl Sbuild {
-    pub fn new(config: PkgConfig) -> Self {
-        let args: SbuildArgs = SbuildArgs::try_from(config).unwrap();
-
-        Sbuild { args }
-    }
-}
-
 impl TryFrom<PkgConfig> for Sbuild {
     type Error = SbuildError;
 
