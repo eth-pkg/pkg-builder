@@ -43,12 +43,3 @@ autopkgtest_version = "5.28"
 sbuild_version = "0.85.6"
 # package directory
 workdir = "~/.pkg-builder/packages/bookworm"
-
-
-[verify]
-# if tarball_url is specified
-tarball_hash = ""
-# if git_source is specified and package_is_git
-git_commit = ""
-# output hash
-bin_bash = ""
