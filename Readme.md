@@ -1,5 +1,7 @@
 # pkg-builder
 
+[![Tests](https://github.com/eth-pkg/pkg-builder/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/eth-pkg/pkg-builder/actions/workflows/tests.yml)
+
 A tool that simplifies building packages for Linux distributions by automating the packaging process using a configuration file approach.
 
 ## Overview
