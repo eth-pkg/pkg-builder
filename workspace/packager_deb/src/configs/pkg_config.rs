@@ -31,7 +31,7 @@ pub struct JavascriptConfig {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GradleConfig {
-    pub gradle_version: Version,
+    pub gradle_version: String,
     pub gradle_binary_url: Url,
     pub gradle_binary_checksum: String,
 }

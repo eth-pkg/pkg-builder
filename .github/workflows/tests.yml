@@ -62,7 +62,7 @@ jobs:
           distro: bookworm
           language: ${{matrix.language}}
           run_piuparts: false
-          run_autopkgtest: false
+          run_autopkgtest: true
 
   jammy_amd64_packaging:
     runs-on: ubuntu-24.04
@@ -99,7 +99,7 @@ jobs:
           distro: jammy
           language: ${{matrix.language}}
           run_piuparts: false
-          run_autopkgtest: false
+          run_autopkgtest: true
 
   noble_amd64_packaging:
     runs-on: ubuntu-24.04
@@ -147,5 +147,5 @@ jobs:
           distro: noble
           language: ${{matrix.language}}
           run_piuparts: false
-          run_autopkgtest: false
+          run_autopkgtest: true
           
