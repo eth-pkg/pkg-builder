@@ -11,25 +11,15 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-
 jobs:
   unit_tests:
     runs-on: ubuntu-24.04
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Sbuild setup
-        run: |
-          sudo apt-get update
-          # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools 
-          sudo apt-get -y install pkg-config libssl-dev uidmap
-          sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
-          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
-          sudo sbuild-adduser `whoami`
+      
+      - name: Setup sbuild
+        uses: ./.github/actions/setup-sbuild
+      
       - name: Build
         run: cargo build --verbose
 
@@ -38,7 +28,6 @@ jobs:
 
   bookworm_amd64_packaging:
     runs-on: ubuntu-24.04
-
     strategy:
       matrix:
         language:
@@ -56,74 +45,27 @@ jobs:
       max-parallel: 3
       fail-fast: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Sbuild setup
-        run: |
-          sudo apt-get update
-          # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools autopkgtest vmdb2 qemu-system-x86
-          sudo apt-get install -y pkg-config libssl-dev uidmap
-          sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          # change this into actually built version and cache it
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
-          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
-
-      - name: Build
-        run: |
-          cargo build --verbose
-
-      - name: Install
-        run: |
-          cargo build --release
-          mkdir -p ${HOME}/.local/bin
-          mv target/release/pkg-builder ${HOME}/.local/bin
-          # add to path the prebuilt debcrafter binaries as well
-          cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/debcrafter_*
-          ls -al ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/pkg-builder
-          echo "${HOME}/.local/bin" >> $GITHUB_PATH
-
+      - uses: actions/checkout@v4
+      
+      - name: Setup environment
+        uses: ./.github/actions/setup-packaging-env
+        
       - name: Create chroot env
         run: |
           cd examples/bookworm/${{matrix.language}}/hello-world
           pkg-builder env create
           echo "${HOME}/.cache/sbuild/bookworm-amd64.tar.gz" >> $GITHUB_PATH
 
-      - name: package
-        run: |
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false  --run-autopkgtest false
-
-
-      # - name: piuparts
-      #   run: |
-      #     # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-      #     # sudo apt-get install -y debian-archive-keyring
-      #     cd examples/bookworm/${{matrix.language}}/hello-world
-      #     ${HOME}/.local/bin/pkg-builder piuparts
-
-      # TODO version parsing fails, as it doesn't use semver
-      # - name: autopkgtest
-      #   run: |
-      #     sudo cp -R ${HOME}/.pkg-builder /root
-      #     apt list --installed autopkgtest
-      #     cd examples/bookworm/${{matrix.language}}/hello-world
-      #     sudo ${HOME}/.local/bin/pkg-builder autopkgtest
-
-
-      - name: verify
-        run: |
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          ${HOME}/.local/bin/pkg-builder verify  --no-package true
-
+      - name: Run packaging tests
+        uses: ./.github/actions/run-packaging-tests
+        with:
+          distro: bookworm
+          language: ${{matrix.language}}
+          run_piuparts: false
+          run_autopkgtest: false
 
   jammy_amd64_packaging:
     runs-on: ubuntu-24.04
-  
     strategy:
       matrix:
         language:
@@ -140,77 +82,27 @@ jobs:
       max-parallel: 3
       fail-fast: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Sbuild setup
-        run: |
-          sudo apt-get update
-          # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools autopkgtest vmdb2 qemu-system-x86
-          sudo apt-get install -y pkg-config libssl-dev uidmap
-          sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          sudo apt-get install -y genisoimage
-          # change this into actually built version and cache it
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
-          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
-
-      - name: Build
-        run: |
-          cargo build --verbose
-
-      - name: Install
-        run: |
-          cargo build --release
-          mkdir -p ${HOME}/.local/bin
-          mv target/release/pkg-builder ${HOME}/.local/bin
-          # add to path the prebuilt debcrafter binaries as well
-          cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/debcrafter_*
-          ls -al ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/pkg-builder
-          echo "${HOME}/.local/bin" >> $GITHUB_PATH
-
+      - uses: actions/checkout@v4
+      
+      - name: Setup environment
+        uses: ./.github/actions/setup-packaging-env
+        
       - name: Create chroot env
         run: |
           cd examples/jammy/${{matrix.language}}/hello-world
           pkg-builder env create
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
-      - name: package
-        run: |
-          cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false --run-autopkgtest false
-
-
-      # - name: piuparts
-      #   run: |
-      #     # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-      #     # sudo apt-get install -y debian-archive-keyring
-      #     cd examples/jammy/${{matrix.language}}/hello-world
-      #     ${HOME}/.local/bin/pkg-builder piuparts
-
-      # TODO version parsing fails, as it doesn't use semver
-      # - name: autopkgtest
-      #   run: |
-      #    sudo cp -R ${HOME}/.pkg-builder /root
-      #    apt list --installed autopkgtest
-      #    echo $AUTOPKGTEST_KEEP_APT_SOURCES
-      #    echo $AUTOPKGTEST_APT_SOURCES_FILE
-      #    cd examples/jammy/${{matrix.language}}/hello-world
-      #    sudo ${HOME}/.local/bin/pkg-builder autopkgtest
-
-
-      - name: verify
-        run: |
-          cd examples/jammy/${{matrix.language}}/hello-world
-          ${HOME}/.local/bin/pkg-builder verify --no-package true
-
+      - name: Run packaging tests
+        uses: ./.github/actions/run-packaging-tests
+        with:
+          distro: jammy
+          language: ${{matrix.language}}
+          run_piuparts: false
+          run_autopkgtest: false
 
   noble_amd64_packaging:
     runs-on: ubuntu-24.04
-
     strategy:
       matrix:
         language:
@@ -229,74 +121,31 @@ jobs:
       max-parallel: 3
       fail-fast: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Sbuild setup
+      - uses: actions/checkout@v4
+      
+      - name: Setup environment
+        uses: ./.github/actions/setup-packaging-env
+        with:
+          include_genisoimage: true
+      
+      - name: Additional noble setup
         run: |
-          sudo apt-get update
-          # Note this is an older version of sbuild, no need to patch it, yet
-          sudo apt install -y debhelper schroot ubuntu-dev-tools autopkgtest vmdb2 qemu-system-x86
-          sudo apt-get install -y pkg-config libssl-dev uidmap
-          sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
-          sudo apt-get install -y genisoimage
-          # change this into actually built version and cache it
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
-          wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
-          sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
           sudo sbuild-adduser `whoami`
-          #newgrp sbuild
-
-      - name: Build
-        run: |
-          cargo build --verbose
-
-      - name: Install
-        run: |
-          cargo build --release
-          mkdir -p ${HOME}/.local/bin
-          mv target/release/pkg-builder ${HOME}/.local/bin
-          # add to path the prebuilt debcrafter binaries as well
-          cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/debcrafter_*
-          ls -al ${HOME}/.local/bin
-          chmod +x ${HOME}/.local/bin/pkg-builder
-          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+          #sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
+          #sudo cat /etc/subuid
 
       - name: Create chroot env
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          sudo sysctl -w kernel.unprivileged_userns_clone=1
-          #sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
-          # sudo ${HOME}/.local/bin/pkg-builder env create 
-          # First will fail, try again
-          #sudo cat /etc/subuid
           pkg-builder env create 
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
-      - name: package
-        run: |
-          cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder package --run-piuparts false  --run-autopkgtest false
-
-
-      # - name: piuparts
-      #   run: |
-      #     # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-      #     # sudo apt-get install -y debian-archive-keyring
-      #     cd examples/noble/${{matrix.language}}/hello-world
-      #     ${HOME}/.local/bin/pkg-builder piuparts
-
-      # TODO version parsing fails, as it doesn't use semver
-      # - name: autopkgtest
-      #   run: |
-      #    sudo cp -R ${HOME}/.pkg-builder /root
-      #    apt list --installed autopkgtest
-      #    cd examples/noble/${{matrix.language}}/hello-world
-      #    sudo ${HOME}/.local/bin/pkg-builder autopkgtest
-
-
-      - name: verify
-        run: |
-          cd examples/noble/${{matrix.language}}/hello-world
-          ${HOME}/.local/bin/pkg-builder verify --no-package true 
+      - name: Run packaging tests
+        uses: ./.github/actions/run-packaging-tests
+        with:
+          distro: noble
+          language: ${{matrix.language}}
+          run_piuparts: false
+          run_autopkgtest: false
+          

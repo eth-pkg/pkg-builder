@@ -1,0 +1,39 @@
+name: 'Setup Packaging Environment'
+description: 'Sets up environment for packaging tests'
+
+inputs:
+  include_genisoimage:
+    description: 'Whether to include genisoimage'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup sbuild
+      uses: ./.github/actions/setup-sbuild
+      
+    - name: Additional dependencies
+      shell: bash
+      run: |
+        sudo apt install -y autopkgtest vmdb2 qemu-system-x86
+        if [ "${{ inputs.include_genisoimage }}" = "true" ]; then
+          sudo apt-get install -y genisoimage
+        fi
+
+    - name: Build pkg-builder
+      shell: bash
+      run: |
+        cargo build --verbose
+        cargo build --release
+        
+    - name: Install pkg-builder
+      shell: bash
+      run: |
+        mkdir -p ${HOME}/.local/bin
+        mv target/release/pkg-builder ${HOME}/.local/bin
+        # add to path the prebuilt debcrafter binaries as well
+        cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
+        chmod +x ${HOME}/.local/bin/debcrafter_*
+        chmod +x ${HOME}/.local/bin/pkg-builder
+        echo "${HOME}/.local/bin" >> $GITHUB_PATH

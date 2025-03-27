@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::Command};
 
 use debian::{execute::Execute, sbuild::SbuildBuilder};
 use log::{error, info, warn};
-use types::{distribution::Distribution, version::Version};
+use types::distribution::Distribution;
 
 use crate::{
     configs::{pkg_config::PackageType, sbuild_version::SbuildVersion},

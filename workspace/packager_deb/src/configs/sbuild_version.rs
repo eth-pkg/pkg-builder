@@ -72,7 +72,7 @@ impl From<OriginalVersion> for SbuildVersion {
 impl<'a> TryFrom<&'a str> for SbuildVersion {
     type Error = cargo_metadata::semver::Error;
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
-        let version_str = if s.contains('\n') {
+        let version_str = if s.contains("sbuild") {
             SbuildVersion::extract_version(s)
                 .unwrap_or_else(|| s.lines().next().unwrap_or(s).to_string())
         } else {
@@ -113,7 +113,7 @@ impl<'de> Deserialize<'de> for SbuildVersion {
             where
                 E: de::Error,
             {
-                let version_str = if value.contains('\n') {
+                let version_str = if value.contains("sbuild") {
                     SbuildVersion::extract_version(value).ok_or_else(|| {
                         de::Error::custom("Could not extract version from the first line")
                     })?

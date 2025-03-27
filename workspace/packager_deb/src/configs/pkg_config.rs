@@ -39,7 +39,7 @@ pub struct GradleConfig {
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct JavaConfig {
     pub is_oracle: bool,
-    pub jdk_version: Version,
+    pub jdk_version: String,
     pub jdk_binary_url: Url,
     pub jdk_binary_checksum: String,
     pub gradle: Option<GradleConfig>,
