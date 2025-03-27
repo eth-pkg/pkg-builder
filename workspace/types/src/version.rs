@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Version {
     inner: OriginalVersion,
-    original_string: Cow<'static, str>, // Use Cow to handle both owned and static strings
+    original_string: Cow<'static, str>,
 }
 
 impl fmt::Display for Version {

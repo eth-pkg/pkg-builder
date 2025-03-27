@@ -1,18 +1,15 @@
-use std::path::PathBuf;
 use thiserror::Error;
 
 use types::{
     config::{Config, ConfigError, ConfigFile, ConfigType},
     debian::DebCommandPayload,
-    defaults::{CONFIG_FILE_NAME, VERIFY_CONFIG_FILE_NAME, WORKDIR_ROOT},
+    defaults::{CONFIG_FILE_NAME, VERIFY_CONFIG_FILE_NAME},
 };
 
 use crate::{
     configs::{pkg_config::PkgConfig, pkg_config_verify::PkgVerifyConfig},
-    misc::build_pipeline::BuildError,
-    misc::validation::ValidationError,
+    misc::{build_pipeline::BuildError, validation::ValidationError},
     sbuild::{Sbuild, SbuildError},
-    sbuild_args::expand_path,
 };
 
 impl ConfigType for PkgVerifyConfig {
@@ -45,7 +42,8 @@ pub fn dispatch_package_operation(
 ) -> Result<(), PackageError> {
     // ReParse config first
     let mut pkg_config =
-        ConfigFile::<PkgConfig>::load_and_parse(Some(config.path.display().to_string()))?;
+        ConfigFile::<PkgConfig>::load_and_parse(Some(config.path.display().to_string()))?
+            .resolve_paths(config.path.parent().unwrap().to_path_buf());
 
     // Apply CLI overrides if needed
     if let DebCommandPayload::Package {
@@ -65,8 +63,13 @@ pub fn dispatch_package_operation(
         }
     }
 
+    // do not run piuparts or autopkgtest on verify
+    if let DebCommandPayload::Verify { .. } = &cmd_payload {
+        pkg_config.build_env.run_piuparts = Some(false);
+        pkg_config.build_env.run_autopkgtest = Some(false);
+    }
+
     let config_root = config.path.parent().unwrap().to_path_buf();
-    normalize_config(&mut pkg_config, config_root.clone());
     let packager = Sbuild::new(pkg_config, config_root.clone());
     match cmd_payload {
         DebCommandPayload::Verify {
@@ -85,21 +88,4 @@ pub fn dispatch_package_operation(
         DebCommandPayload::EnvClean => packager.run_env_clean(),
     }?;
     Ok(())
-}
-
-pub fn normalize_config(config: &mut PkgConfig, config_root: PathBuf) -> () {
-    let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
-    default_work_dir.push(config.build_env.codename.as_ref());
-    let mut workdir = config.build_env.workdir.clone();
-    if workdir.as_os_str().is_empty() {
-        workdir = default_work_dir;
-    }
-    let workdir = expand_path(&workdir, None);
-    config.build_env.workdir = workdir;
-
-    // Update the spec file path
-    let config_root_path = PathBuf::from(&config_root);
-    let spec_file = config.package_fields.spec_file.clone();
-    let spec_file_canonical = config_root_path.join(spec_file);
-    config.package_fields.spec_file = spec_file_canonical.to_str().unwrap().to_string();
 }

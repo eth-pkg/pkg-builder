@@ -6,7 +6,10 @@ use std::{
 use types::{defaults::WORKDIR_ROOT, distribution::Distribution, version::Version};
 
 use crate::{
-    configs::pkg_config::{LanguageEnv, PackageType, PkgConfig},
+    configs::{
+        autopkg_version::AutopkgVersion,
+        pkg_config::{LanguageEnv, PackageType, PkgConfig},
+    },
     installers::language_installer::LanguageInstaller,
     misc::build_pipeline::BuildContext,
 };
@@ -65,7 +68,7 @@ impl SbuildArgs {
         self.config.build_env.piuparts_version.clone()
     }
 
-    pub fn autopkgtest_version(&self) -> Version {
+    pub fn autopkgtest_version(&self) -> AutopkgVersion {
         self.config.build_env.autopkgtest_version.clone()
     }
 

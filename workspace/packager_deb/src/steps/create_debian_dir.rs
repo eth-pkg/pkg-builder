@@ -9,7 +9,7 @@ use crate::misc::build_pipeline::{BuildContext, BuildError, BuildStep};
 pub struct CreateDebianDir {
     build_files_dir: PathBuf,
     debcrafter_version: String,
-    spec_file: String,
+    spec_file: PathBuf,
 }
 
 impl From<BuildContext> for CreateDebianDir {
@@ -27,7 +27,7 @@ impl BuildStep for CreateDebianDir {
         let debcrafter = DebcrafterCmd::new(self.debcrafter_version.as_str());
         debcrafter.check_if_dpkg_parsechangelog_installed()?;
         debcrafter.check_if_installed()?;
-        debcrafter.create_debian_dir(self.spec_file.as_str(), &self.build_files_dir)?;
+        debcrafter.create_debian_dir(&self.spec_file, &self.build_files_dir)?;
         info!(
             "Created /debian dir under build_files_dir folder: {:?}",
             self.build_files_dir

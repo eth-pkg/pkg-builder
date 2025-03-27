@@ -1,5 +1,6 @@
 use log::warn;
 use semver::Version;
+use serde::de::Error as SerdeError;
 use serde::{Deserialize, Serialize};
 use std::{
     borrow::Cow,
@@ -10,6 +11,7 @@ use std::{
     path::PathBuf,
 };
 use thiserror::Error;
+use toml::de::Error as TomlError;
 
 use crate::{
     defaults::{CONFIG_FILE_NAME, WORKDIR_ROOT},
@@ -108,7 +110,15 @@ impl<T: ConfigType> ConfigFile<T> {
     where
         T: for<'de> serde::Deserialize<'de>,
     {
-        toml::from_str::<T>(&self.content).map_err(ConfigError::from)
+        toml::from_str::<T>(&self.content).map_err(|e| {
+            if let Some(span) = e.span() {
+                let detailed_message =
+                    format!("Error at position {}-{}: {}", span.start, span.end, e);
+                ConfigError::from(TomlError::custom(detailed_message))
+            } else {
+                ConfigError::from(e)
+            }
+        })
     }
 
     /// Convenience method to load and parse in one operation

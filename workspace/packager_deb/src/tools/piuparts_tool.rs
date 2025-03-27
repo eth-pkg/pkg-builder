@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Command};
 
 use debian::{execute::Execute, piuparts::Piuparts};
+use log::{info, warn};
 use types::{distribution::Distribution, version::Version};
 
 use crate::{
@@ -37,10 +38,35 @@ impl PiupartsTool {
 
 impl BuildTool for PiupartsTool {
     fn name(&self) -> &str {
-        "lintian"
+        "piuparts"
     }
-    fn version(&self) -> &Version {
-        &self.version
+    fn check_tool_version(&self) -> Result<(), SbuildError> {
+        let output = Command::new(self.name()).arg("--version").output()?;
+        if !output.status.success() {
+            return Err(SbuildError::GenericError(format!(
+                "Failed to check {} version",
+                self.name()
+            )));
+        }
+        let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
+        let actual_version = Version::try_from(stdout_str)?;
+
+        match self.version.cmp(&actual_version) {
+            std::cmp::Ordering::Less => warn!(
+                "Using newer {} version ({}) than expected ({})",
+                self.name(),
+                actual_version,
+                self.version
+            ),
+            std::cmp::Ordering::Greater => warn!(
+                "Using older {} version ({}) than expected ({})",
+                self.name(),
+                actual_version,
+                self.version
+            ),
+            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.version),
+        }
+        Ok(())
     }
     fn configure(&mut self, _runner: &mut ToolRunner) -> Result<(), SbuildError> {
         // Configure piuparts

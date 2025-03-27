@@ -1,7 +1,11 @@
 use std::path::PathBuf;
 
 use serde::Deserialize;
-use types::{distribution::Distribution, url::Url, version::Version};
+use types::{defaults::WORKDIR_ROOT, distribution::Distribution, url::Url, version::Version};
+
+use crate::sbuild_args::expand_path;
+
+use super::autopkg_version::AutopkgVersion;
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct RustConfig {
@@ -119,7 +123,7 @@ impl PackageType {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct PackageFields {
-    pub spec_file: String,
+    pub spec_file: PathBuf,
     pub package_name: String,
     pub version_number: Version,
     pub revision_number: String,
@@ -131,7 +135,7 @@ pub struct BuildEnv {
     pub codename: Distribution,
     pub arch: String,
     pub pkg_builder_version: Version,
-    pub debcrafter_version: Version,
+    pub debcrafter_version: String,
     pub sbuild_cache_dir: Option<PathBuf>,
     pub docker: Option<bool>,
     pub run_lintian: Option<bool>,
@@ -139,7 +143,7 @@ pub struct BuildEnv {
     pub run_autopkgtest: Option<bool>,
     pub lintian_version: Version,
     pub piuparts_version: Version,
-    pub autopkgtest_version: Version,
+    pub autopkgtest_version: AutopkgVersion,
     pub sbuild_version: Version,
     pub workdir: PathBuf,
 }
@@ -149,4 +153,24 @@ pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
     pub build_env: BuildEnv,
+}
+
+impl PkgConfig {
+    pub fn resolve_paths(mut self, config_root: PathBuf) -> Self {
+        // Set workdir to default if empty
+        let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
+        default_work_dir.push(self.build_env.codename.as_ref());
+
+        if self.build_env.workdir.as_os_str().is_empty() {
+            self.build_env.workdir = default_work_dir;
+        }
+
+        // Expand workdir path
+        self.build_env.workdir = expand_path(&self.build_env.workdir, None);
+
+        // Update spec file path to canonical form
+        self.package_fields.spec_file = config_root.join(&self.package_fields.spec_file);
+
+        self
+    }
 }

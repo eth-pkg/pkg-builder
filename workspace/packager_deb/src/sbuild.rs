@@ -55,10 +55,10 @@ pub enum SbuildError {
 
     #[error(transparent)]
     SbuildCmdError(#[from] SbuildCmdError),
-    // Add an error variant for verification errors
+
     #[error("Verification error: {0}")]
     VerificationError(String),
-    // Add a generic error variant
+
     #[error("{0}")]
     GenericError(String),
 
@@ -230,6 +230,7 @@ impl Sbuild {
 #[cfg(test)]
 mod tests {
 
+    use crate::configs::autopkg_version::AutopkgVersion;
     use crate::configs::pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, LanguageEnv, PackageFields, PackageType,
     };
@@ -271,7 +272,7 @@ mod tests {
                 codename: Distribution::bookworm(),
                 arch: "amd64".into(),
                 pkg_builder_version: Version::try_from("1.0.0").unwrap(),
-                debcrafter_version: Version::try_from("1.0.0").unwrap(),
+                debcrafter_version: "1.0.0".into(),
                 sbuild_cache_dir: Some(sbuild_cache_dir.clone()),
                 docker: None,
                 run_lintian: None,
@@ -279,7 +280,7 @@ mod tests {
                 run_autopkgtest: None,
                 lintian_version: Version::try_from("1.0.0").unwrap(),
                 piuparts_version: Version::try_from("1.0.0").unwrap(),
-                autopkgtest_version: Version::try_from("1.0.0").unwrap(),
+                autopkgtest_version: AutopkgVersion::try_from("2.5").unwrap(),
                 sbuild_version: Version::try_from("1.0.0").unwrap(),
                 workdir: PathBuf::from(""),
             },

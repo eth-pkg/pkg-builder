@@ -71,16 +71,18 @@ impl DownloadGit {
         path: &str,
         git_submodules: &Vec<SubModule>,
     ) -> Result<(), DownloadGitError> {
+        // Check if git-lfs is installed
         match Command::new("which").arg("git-lfs").output() {
             Ok(_) => Ok(()),
             Err(_) => Err(DownloadGitError::GitLfsNotInstalled),
         }?;
 
+        // Clone repository with specific tag
         let output = Command::new("git")
             .args(&[
                 "clone",
-                "--depth",
-                "1",
+                "--depth=1",
+                //"1",
                 "--branch",
                 tag_version,
                 git_url,
@@ -99,7 +101,26 @@ impl DownloadGit {
         // Initialize submodules
         let output = Command::new("git")
             .current_dir(path)
-            .args(&["submodule", "update", "--init", "--recursive"])
+            .args(&["submodule", "init"])
+            .output()
+            .map_err(|e| DownloadGitError::IoError(e))?;
+
+        if !output.status.success() {
+            return Err(DownloadGitError::SubmoduleInitFailed(
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ));
+        }
+
+        // Update submodules
+        let output = Command::new("git")
+            .current_dir(path)
+            .args(&[
+                "submodule",
+                "update",
+                "--depth=1",
+                "--no-fetch",
+                "--recursive",
+            ])
             .output()
             .map_err(|e| DownloadGitError::IoError(e))?;
 
@@ -153,7 +174,7 @@ impl DownloadGit {
                 let file_path = entry.path();
 
                 if file_type.is_dir() {
-                    stack.push(file_path.clone()); // Push directory onto stack for processing
+                    stack.push(file_path.clone());
                     filetime::set_file_mtime(&file_path, timestamp)?;
                     filetime::set_file_atime(&file_path, timestamp)?;
                 } else if file_type.is_file() {
@@ -171,25 +192,32 @@ impl DownloadGit {
 
 impl BuildStep for DownloadGit {
     fn step(&self) -> Result<(), BuildError> {
-        let path = Path::new(&self.build_artifacts_dir).join(&self.package_name);
+        let path = &self.build_artifacts_dir.join(&self.package_name);
+
+        // Clean up existing directory if it exists
         if path.exists() {
-            fs::remove_dir_all(path.clone()).map_err(DownloadGitError::IoError)?;
+            fs::remove_dir_all(path).map_err(DownloadGitError::IoError)?;
         }
-        fs::create_dir_all(&path.clone()).map_err(DownloadGitError::IoError)?;
-        //let path = Path::new("/tmp/nimbus");
+
+        // Create the directory
+        fs::create_dir_all(path).map_err(DownloadGitError::IoError)?;
+
+        // Clone and checkout the repository
         Self::clone_and_checkout_tag(
             &self.git_url,
             &self.git_tag,
             path.clone().to_str().unwrap(),
             &self.submodules,
         )?;
-        // remove .git directory, no need to package it
+
+        // Remove .git directory
         fs::remove_dir_all(path.join(".git")).map_err(DownloadGitError::IoError)?;
 
         // // Back in the path for reproducibility: January 1, 2022
         let timestamp = FileTime::from_unix_time(1640995200, 0);
         Self::set_creation_time(path.clone(), timestamp).map_err(DownloadGitError::IoError)?;
 
+        // Create tarball
         info!("Creating tar from git repo from {}", path.display());
         let output = Command::new("tar")
             .args(&[
@@ -234,8 +262,17 @@ mod tests {
         let repo_path = temp_dir.path();
         let repo_path_str = repo_path.to_str().unwrap();
         let tag_version = "v24.3.0";
-        let str = fs::read_to_string("examples/bookworm/git-package/nimbus/pkg-builder.toml")
-            .expect("File does not exist");
+        let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let cargo_workspace_dir = Path::new(cargo_manifest_dir)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        let toml_file =
+            cargo_workspace_dir.join("examples/bookworm/git-package/nimbus/pkg-builder.toml");
+
+        let str = fs::read_to_string(toml_file).expect("Cannot read example toml");
         let config: PkgConfig = toml::from_str(&str).expect("Cannot parse file.");
         match config.package_type {
             PackageType::Git(gitconfig) => {

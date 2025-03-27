@@ -80,22 +80,22 @@ impl DebcrafterCmd {
     /// Creates a debian directory using the specified specification file
     pub fn create_debian_dir(
         &self,
-        specification_file: &str,
+        specification_file: &PathBuf,
         target_dir: &PathBuf,
     ) -> Result<(), DebcrafterCmdError> {
         let debcrafter_dir =
             tempdir().map_err(|e| DebcrafterCmdError::CommandFailed(e.to_string().into()))?;
 
-        let spec_file_path = fs::canonicalize(PathBuf::from(specification_file)).map_err(|_| {
+        let spec_file_path = fs::canonicalize(specification_file).map_err(|_| {
             DebcrafterCmdError::FileNotFound(format!(
-                "{} spec_file doesn't exist",
+                "{:?} spec_file doesn't exist",
                 specification_file
             ))
         })?;
 
         if !spec_file_path.exists() {
             return Err(DebcrafterCmdError::FileNotFound(format!(
-                "{} spec_file doesn't exist",
+                "{:?} spec_file doesn't exist",
                 specification_file
             )));
         }

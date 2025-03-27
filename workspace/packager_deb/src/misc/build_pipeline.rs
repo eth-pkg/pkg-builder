@@ -17,7 +17,7 @@ pub struct BuildContext {
     pub debcrafter_version: String,
     pub homepage: String,
     pub build_artifacts_dir: PathBuf,
-    pub spec_file: String,
+    pub spec_file: PathBuf,
     pub src_dir: PathBuf,
     // only for git package
     pub package_name: String,

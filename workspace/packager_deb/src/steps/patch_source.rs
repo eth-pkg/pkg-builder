@@ -60,8 +60,9 @@ impl PatchSource {
     pub fn patch_pc_dir(build_files_dir: &PathBuf) -> Result<(), BuildError> {
         let pc_version_path = build_files_dir.clone().join(".pc/version");
 
-        info!("Creating necessary directories for patching");
-        fs::create_dir_all(format!("{:?}/.pc", pc_version_path.parent()))?;
+        info!("Creating necessary directories for patching .pc");
+        let pc_parent = pc_version_path.parent().unwrap().join(".pc");
+        fs::create_dir_all(pc_parent)?;
         let mut pc_version_file = fs::File::create(pc_version_path)?;
         writeln!(pc_version_file, "2")?;
         Ok(())

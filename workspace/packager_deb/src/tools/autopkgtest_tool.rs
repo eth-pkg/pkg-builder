@@ -1,17 +1,20 @@
-use std::{fs::create_dir_all, path::PathBuf};
+use std::{fs::create_dir_all, path::PathBuf, process::Command};
 
 use debian::{
     autopkgtest::Autopkgtest, autopkgtest_image::AutopkgtestImageBuilder, execute::Execute,
 };
-use log::info;
-use types::{distribution::Distribution, version::Version};
+use log::{info, warn};
+use types::distribution::Distribution;
 
-use crate::{misc::distribution::DistributionTrait, sbuild::SbuildError};
+use crate::{
+    configs::autopkg_version::AutopkgVersion, misc::distribution::DistributionTrait,
+    sbuild::SbuildError,
+};
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
 pub struct AutopkgtestTool {
-    version: Version,
+    version: AutopkgVersion,
     changes_file: PathBuf,
     codename: Distribution,
     deb_dir: PathBuf,
@@ -23,7 +26,7 @@ pub struct AutopkgtestTool {
 
 impl AutopkgtestTool {
     pub fn new(
-        version: Version,
+        version: AutopkgVersion,
         changes_file: PathBuf,
         codename: Distribution,
         deb_dir: PathBuf,
@@ -46,11 +49,39 @@ impl AutopkgtestTool {
 
 impl BuildTool for AutopkgtestTool {
     fn name(&self) -> &str {
-        "autopkgtests"
+        "autopkgtest"
     }
-    fn version(&self) -> &Version {
-        &self.version
+    fn check_tool_version(&self) -> Result<(), SbuildError> {
+        let output = Command::new("apt")
+            .args(vec!["list", "--installed", "autopkgtest"])
+            .output()?;
+        if !output.status.success() {
+            return Err(SbuildError::GenericError(format!(
+                "Failed to check {} version",
+                self.name()
+            )));
+        }
+        let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
+        let actual_version = AutopkgVersion::try_from(stdout_str)?;
+
+        match self.version.cmp(&actual_version) {
+            std::cmp::Ordering::Less => warn!(
+                "Using newer {} version ({}) than expected ({})",
+                self.name(),
+                actual_version,
+                self.version
+            ),
+            std::cmp::Ordering::Greater => warn!(
+                "Using older {} version ({}) than expected ({})",
+                self.name(),
+                actual_version,
+                self.version
+            ),
+            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.version),
+        }
+        Ok(())
     }
+
     fn configure(&mut self, _runner: &mut ToolRunner) -> Result<(), SbuildError> {
         info!("Running prepare_autopkgtest_image");
         let builder = AutopkgtestImageBuilder::new()
