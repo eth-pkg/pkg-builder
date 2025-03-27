@@ -10,29 +10,21 @@ use crate::{
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
+pub struct PiupartsToolArgs {
+    pub(crate) version: Version,
+    pub(crate) codename: Distribution,
+    pub(crate) deb_dir: PathBuf,
+    pub(crate) language_env: Option<LanguageEnv>,
+    pub(crate) deb_name: PathBuf,
+}
+
 pub struct PiupartsTool {
-    version: Version,
-    codename: Distribution,
-    deb_dir: PathBuf,
-    language_env: Option<LanguageEnv>,
-    deb_name: PathBuf,
+    args: PiupartsToolArgs,
 }
 
 impl PiupartsTool {
-    pub fn new(
-        version: Version,
-        codename: Distribution,
-        deb_dir: PathBuf,
-        deb_name: PathBuf,
-        language_env: Option<LanguageEnv>,
-    ) -> Self {
-        PiupartsTool {
-            version,
-            codename,
-            deb_dir,
-            language_env,
-            deb_name,
-        }
+    pub fn new(args: PiupartsToolArgs) -> Self {
+        PiupartsTool { args }
     }
 }
 
@@ -51,20 +43,20 @@ impl BuildTool for PiupartsTool {
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
         let actual_version = Version::try_from(stdout_str.replace("piuparts ", "").trim())?;
 
-        match self.version.cmp(&actual_version) {
+        match self.args.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(
                 "Using newer {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
             std::cmp::Ordering::Greater => warn!(
                 "Using older {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
-            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.version),
+            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.args.version),
         }
         Ok(())
     }
@@ -74,17 +66,17 @@ impl BuildTool for PiupartsTool {
     }
     fn execute(&self) -> Result<(), SbuildError> {
         Piuparts::new()
-            .distribution(&self.codename)
-            .mirror(&self.codename.get_repo_url())
+            .distribution(&self.args.codename)
+            .mirror(&self.args.codename.get_repo_url())
             .bindmount_dev()
-            .keyring(&self.codename.get_keyring())
+            .keyring(&self.args.codename.get_keyring())
             .verbose()
             .with_dotnet_env(
-                matches!(self.language_env, Some(LanguageEnv::Dotnet(_))),
-                &self.codename,
+                matches!(self.args.language_env, Some(LanguageEnv::Dotnet(_))),
+                &self.args.codename,
             )
-            .deb_file(&self.deb_name)
-            .deb_path(&self.deb_dir)
+            .deb_file(&self.args.deb_name)
+            .deb_path(&self.args.deb_dir)
             .execute()?;
         Ok(())
     }

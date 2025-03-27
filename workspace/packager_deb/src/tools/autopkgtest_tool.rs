@@ -13,37 +13,24 @@ use crate::{
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
+pub struct AutopkgtestToolArgs {
+    pub (crate) version: AutopkgtestVersion,
+    pub (crate) changes_file: PathBuf,
+    pub (crate) codename: Distribution,
+    pub (crate) deb_dir: PathBuf,
+    pub (crate) test_deps: Vec<String>,
+    pub (crate) image_path: Option<PathBuf>,
+    pub (crate) cache_dir: PathBuf,
+    pub (crate) arch: String,
+}
+
 pub struct AutopkgtestTool {
-    version: AutopkgtestVersion,
-    changes_file: PathBuf,
-    codename: Distribution,
-    deb_dir: PathBuf,
-    test_deps: Vec<String>,
-    image_path: Option<PathBuf>,
-    cache_dir: PathBuf,
-    arch: String,
+    args: AutopkgtestToolArgs,
 }
 
 impl AutopkgtestTool {
-    pub fn new(
-        version: AutopkgtestVersion,
-        changes_file: PathBuf,
-        codename: Distribution,
-        deb_dir: PathBuf,
-        test_deps: Vec<String>,
-        cache_dir: PathBuf,
-        arch: String,
-    ) -> Self {
-        AutopkgtestTool {
-            version,
-            changes_file,
-            codename,
-            image_path: None,
-            deb_dir,
-            test_deps,
-            cache_dir,
-            arch,
-        }
+    pub fn new(args: AutopkgtestToolArgs) -> Self {
+        AutopkgtestTool { args }
     }
 }
 
@@ -66,20 +53,20 @@ impl BuildTool for AutopkgtestTool {
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
         let actual_version = extract_version_from_apt_output(&stdout_str)?;
 
-        match self.version.cmp(&actual_version) {
+        match self.args.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(
                 "Using newer {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
             std::cmp::Ordering::Greater => warn!(
                 "Using older {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
-            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.version),
+            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.args.version),
         }
 
         Ok(())
@@ -88,14 +75,14 @@ impl BuildTool for AutopkgtestTool {
     fn configure(&mut self, _runner: &mut ToolRunner) -> Result<(), SbuildError> {
         info!("Running prepare_autopkgtest_image");
         let builder = AutopkgtestImageBuilder::new()
-            .codename(&self.codename)?
+            .codename(&self.args.codename)?
             .image_path(
-                &self.cache_dir.display().to_string(),
-                &self.codename,
-                &self.arch,
+                &self.args.cache_dir.display().to_string(),
+                &self.args.codename,
+                &self.args.arch,
             )
-            .mirror(self.codename.get_repo_url())
-            .arch(&self.arch);
+            .mirror(self.args.codename.get_repo_url())
+            .arch(&self.args.arch);
         let image_path = builder.get_image_path().unwrap();
         let image_path_parent = image_path.parent().unwrap();
         if !image_path.exists() {
@@ -104,19 +91,19 @@ impl BuildTool for AutopkgtestTool {
             builder.execute()?;
         }
 
-        self.image_path = Some(image_path.clone());
+        self.args.image_path = Some(image_path.clone());
         Ok(())
     }
     fn execute(&self) -> Result<(), SbuildError> {
         Autopkgtest::new()
-            .changes_file(self.changes_file.to_str().ok_or(SbuildError::GenericError(
+            .changes_file(self.args.changes_file.to_str().ok_or(SbuildError::GenericError(
                 "Invalid changes file path".to_string(),
             ))?)
             .no_built_binaries()
             .apt_upgrade()
-            .test_deps_not_in_debian(&&self.test_deps)
-            .qemu(self.image_path.clone().unwrap())
-            .working_dir(&self.deb_dir)
+            .test_deps_not_in_debian(&&self.args.test_deps)
+            .qemu(self.args.image_path.clone().unwrap())
+            .working_dir(&self.args.deb_dir)
             .execute()?;
         Ok(())
     }
@@ -133,7 +120,7 @@ fn extract_version_from_apt_output(output: &str) -> Result<AutopkgtestVersion, S
             has_digits && has_dot
         })
         .ok_or_else(|| SbuildError::GenericError("Could not find version string".to_string()))?;
-    
+
     // For Ubuntu-style versions (e.g., "5.38ubuntu1~24.04.1"), take only major.minor
     // For Debian-style versions (e.g., "5.20.3-1"), take the full version
     let cleaned_version = if version.contains("ubuntu") || version.contains('~') {
@@ -147,7 +134,7 @@ fn extract_version_from_apt_output(output: &str) -> Result<AutopkgtestVersion, S
         // Debian-style: take the full version
         version.trim()
     };
-    
+
     let version = AutopkgtestVersion::try_from(cleaned_version)?;
     Ok(version)
 }
@@ -193,7 +180,8 @@ mod tests {
     #[test]
     fn test_extract_version_from_apt_output_ubuntu() {
         // Standard apt list output
-        let output = "Listing...\nautopkgtest/noble-updates,now 5.38ubuntu1~24.04.1 all [installed]";
+        let output =
+            "Listing...\nautopkgtest/noble-updates,now 5.38ubuntu1~24.04.1 all [installed]";
         let extracted = extract_version_from_apt_output(output);
         assert!(extracted.is_ok());
         let expected_version = AutopkgtestVersion::try_from("5.38").unwrap();
@@ -215,6 +203,5 @@ mod tests {
         let output = "";
         let extracted = extract_version_from_apt_output(output);
         assert!(extracted.is_err());
-
     }
 }

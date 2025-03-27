@@ -33,8 +33,8 @@ pub trait LanguageInstaller {
     fn get_test_deps(&self, codename: &Distribution) -> Vec<String>;
 }
 
-impl From<&LanguageEnv> for Box<dyn LanguageInstaller> {
-    fn from(lang_env: &LanguageEnv) -> Self {
+impl From<LanguageEnv> for Box<dyn LanguageInstaller> {
+    fn from(lang_env: LanguageEnv) -> Self {
         match lang_env {
             LanguageEnv::Rust(config) => Box::new(RustInstaller(config.clone())),
             LanguageEnv::Go(config) => Box::new(GoInstaller(config.clone())),

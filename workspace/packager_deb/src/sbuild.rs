@@ -18,7 +18,7 @@ use debian::sbuild::SbuildCmdError;
 use debian::sbuild_create_chroot::{SbuildCreateChroot, SbuildCreateChrootError};
 use log::info;
 use rand::random;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{env, fs};
 use thiserror::Error;
 
@@ -27,10 +27,19 @@ pub struct Sbuild {
 }
 
 impl Sbuild {
-    pub fn new(config: PkgConfig, config_root: PathBuf) -> Self {
-        let args = SbuildArgs::new(config, config_root);
+    pub fn new(config: PkgConfig) -> Self {
+        let args: SbuildArgs = SbuildArgs::try_from(config).unwrap();
 
         Sbuild { args }
+    }
+}
+
+impl TryFrom<PkgConfig> for Sbuild {
+    type Error = SbuildError;
+
+    fn try_from(config: PkgConfig) -> Result<Sbuild, Self::Error> {
+        let args: SbuildArgs = SbuildArgs::try_from(config)?;
+        Ok(Sbuild { args })
     }
 }
 
@@ -99,32 +108,14 @@ impl Sbuild {
     }
 
     pub fn run_package(&self) -> Result<(), SbuildError> {
-        let sbuild_version = self.args.sbuild_version();
-        let codename = self.args.codename();
-        let cache_file = self.args.get_cache_file();
-        let build_chroot_setup_commands = self.args.build_chroot_setup_commands();
-        let run_lintian = self.args.run_lintian();
-        let run_piuparts = self.args.run_piuparts();
-        let run_autopkgtest = self.args.run_autopkgtests();
-        let build_files_dir = self.args.build_files_dir();
-        let package_type = self.args.package_type();
-        let context = self.args.context();
+        let args = self.args.get_sbuild_tool_args();
 
-        let tool = SbuildTool::new(
-            sbuild_version,
-            codename.clone(),
-            cache_file,
-            build_chroot_setup_commands,
-            run_lintian,
-            build_files_dir.clone(),
-            package_type,
-            context,
-        );
+        let tool = SbuildTool::new(args);
         ToolRunner::new().run_tool(tool)?;
-        if run_piuparts {
+        if self.args.run_piuparts() {
             self.run_piuparts()?;
         }
-        if run_autopkgtest {
+        if self.args.run_autopkgtests() {
             self.run_autopkgtests()?;
         }
         Ok(())
@@ -186,43 +177,20 @@ impl Sbuild {
     }
 
     pub fn run_lintian(&self) -> Result<(), SbuildError> {
-        let lintian_version = self.args.lintian_version();
-        let changes_file = self.args.get_changes_file();
-        let codename = self.args.codename().clone();
-
-        let tool = LintianTool::new(lintian_version, changes_file, codename);
+        let args = self.args.get_lintian_tool_args();
+        let tool = LintianTool::new(args);
         ToolRunner::new().run_tool(tool)
     }
 
     pub fn run_piuparts(&self) -> Result<(), SbuildError> {
-        let piuparts_version = self.args.piuparts_version();
-        let codename = self.args.codename().clone();
-        let deb_dir = self.args.get_deb_dir();
-        let deb_name = self.args.get_deb_name();
-        let language_env = self.args.language_env();
-
-        let tool = PiupartsTool::new(piuparts_version, codename, deb_dir, deb_name, language_env);
+        let args = self.args.get_piuparts_tool_args();
+        let tool = PiupartsTool::new(args);
         ToolRunner::new().run_tool(tool)
     }
 
     pub fn run_autopkgtests(&self) -> Result<(), SbuildError> {
-        let autopkgtest_version = self.args.autopkgtest_version();
-        let changes_file = self.args.get_changes_file();
-        let codename = self.args.codename().clone();
-        let deb_dir = self.args.get_deb_dir();
-        let test_deps = self.args.get_test_deps_not_in_debian();
-        let cache_dir = self.args.cache_dir().clone();
-        let arch = self.args.arch();
-
-        let tool = AutopkgtestTool::new(
-            autopkgtest_version,
-            changes_file,
-            codename,
-            deb_dir,
-            test_deps,
-            cache_dir,
-            arch,
-        );
+        let args = self.args.get_autopkg_tool_args();
+        let tool = AutopkgtestTool::new(args);
         ToolRunner::new().run_tool(tool)
     }
 }
@@ -254,7 +222,7 @@ mod tests {
         });
     }
 
-    fn create_base_config() -> (PkgConfig, String, PathBuf) {
+    fn create_base_config() -> PkgConfig {
         let sbuild_cache_dir = tempdir().unwrap().path().to_path_buf();
         let config = PkgConfig {
             package_fields: PackageFields {
@@ -288,17 +256,17 @@ mod tests {
                 .unwrap(),
                 workdir: PathBuf::from(""),
             },
+            config_root: tempdir().unwrap().path().to_path_buf(),
         };
-        let build_files_dir = tempdir().unwrap().path().to_str().unwrap().to_string();
 
-        (config, build_files_dir, sbuild_cache_dir)
+        config
     }
 
     #[test]
     fn test_clean_when_file_missing() {
         setup();
-        let (config, build_files_dir, _) = create_base_config();
-        let args = SbuildArgs::new(config, build_files_dir.into());
+        let config = create_base_config();
+        let args = SbuildArgs::try_from(config).unwrap();
         let build_env = Sbuild { args: args.clone() };
 
         let result = build_env.run_env_clean();
@@ -311,9 +279,11 @@ mod tests {
     #[test]
     fn test_clean_with_existing_file() {
         setup();
-        let (config, build_files_dir, cache_dir) = create_base_config();
+        let config = create_base_config();
+        let cache_dir = config.build_env.sbuild_cache_dir.clone().unwrap();
 
-        let args = SbuildArgs::new(config, build_files_dir.into());
+        let args = SbuildArgs::try_from(config).unwrap();
+
         let build_env = Sbuild { args: args.clone() };
         let cache_file = args.get_cache_file();
 
@@ -330,8 +300,10 @@ mod tests {
     #[ignore = "Only run on CI"]
     fn test_create_environment() {
         setup();
-        let (config, build_files_dir, _) = create_base_config();
-        let args = SbuildArgs::new(config, build_files_dir.into());
+        let config = create_base_config();
+
+        let args = SbuildArgs::try_from(config).unwrap();
+
         let build_env = Sbuild { args: args.clone() };
         let cache_file = args.get_cache_file();
 

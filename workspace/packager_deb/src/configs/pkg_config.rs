@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use serde::Deserialize;
 use types::{defaults::WORKDIR_ROOT, distribution::Distribution, url::Url, version::Version};
 
-use crate::sbuild_args::expand_path;
+
+use crate::misc::utils::expand_path;
 
 use super::{autopkgtest_version::AutopkgtestVersion, sbuild_version::SbuildVersion};
 
@@ -153,10 +154,12 @@ pub struct PkgConfig {
     pub package_fields: PackageFields,
     pub package_type: PackageType,
     pub build_env: BuildEnv,
+    pub config_root: PathBuf,
 }
 
 impl PkgConfig {
     pub fn resolve_paths(mut self, config_root: PathBuf) -> Self {
+        self.config_root = config_root.clone();
         // Set workdir to default if empty
         let mut default_work_dir = PathBuf::from(WORKDIR_ROOT);
         default_work_dir.push(self.build_env.codename.as_ref());

@@ -69,8 +69,7 @@ pub fn dispatch_package_operation(
         pkg_config.build_env.run_autopkgtest = Some(false);
     }
 
-    let config_root = config.path.parent().unwrap().to_path_buf();
-    let packager = Sbuild::new(pkg_config, config_root.clone());
+    let packager: Sbuild = pkg_config.try_into()?;
     match cmd_payload {
         DebCommandPayload::Verify {
             verify_config,

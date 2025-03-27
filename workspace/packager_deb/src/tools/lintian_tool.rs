@@ -8,19 +8,19 @@ use crate::sbuild::SbuildError;
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
+pub struct LintianToolArgs {
+    pub (crate) version: Version,
+    pub (crate) changes_file: PathBuf,
+    pub (crate) codename: Distribution,
+}
+
 pub struct LintianTool {
-    version: Version,
-    changes_file: PathBuf,
-    codename: Distribution,
+    args: LintianToolArgs,
 }
 
 impl LintianTool {
-    pub fn new(version: Version, changes_file: PathBuf, codename: Distribution) -> Self {
-        LintianTool {
-            version,
-            changes_file,
-            codename,
-        }
+    pub fn new(args: LintianToolArgs) -> Self {
+        LintianTool { args }
     }
 }
 
@@ -39,20 +39,20 @@ impl BuildTool for LintianTool {
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
         let actual_version = Version::try_from(stdout_str)?;
 
-        match self.version.cmp(&actual_version) {
+        match self.args.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(
                 "Using newer {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
             std::cmp::Ordering::Greater => warn!(
                 "Using older {} version ({}) than expected ({})",
                 self.name(),
                 actual_version,
-                self.version
+                self.args.version
             ),
-            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.version),
+            std::cmp::Ordering::Equal => info!("{} versions match ({})", self.name(), self.args.version),
         }
         Ok(())
     }
@@ -65,12 +65,12 @@ impl BuildTool for LintianTool {
             .suppress_tag("bad-distribution-in-changes-file")
             .info()
             .extended_info()
-            .changes_file(&self.changes_file)
+            .changes_file(&self.args.changes_file)
             .tag_display_limit(0)
             .fail_on_warning()
             .fail_on_error()
             .suppress_tag("debug-file-with-no-debug-symbols")
-            .with_codename(&self.codename)
+            .with_codename(&self.args.codename)
             .execute()?;
         Ok(())
     }
