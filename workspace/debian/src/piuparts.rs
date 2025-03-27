@@ -308,12 +308,11 @@ impl<'a> Execute for Piuparts<'a> {
     fn execute(&self) -> Result<()> {
         let args = self.build_args();
 
-        let deb_file = self.deb_file.ok_or_else(|| PiupartsError::MissingDebFile)?;
 
         info!(
             "Running: sudo -S piuparts {} {:?}",
             args.join(" "),
-            deb_file
+            self.deb_file.unwrap()
         );
 
         execute_command_with_sudo("piuparts", args, self.deb_path)?;

@@ -62,7 +62,12 @@ impl BuildTool for AutopkgtestTool {
             )));
         }
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
-        let actual_version = AutopkgtestVersion::try_from(stdout_str)?;
+        let version = stdout_str
+            .lines()
+            .flat_map(|line| line.split_whitespace())
+            .find(|&word| word.chars().any(|c| c.is_digit(10)) && word.contains('.'))
+            .unwrap_or("");
+        let actual_version = AutopkgtestVersion::try_from(version.trim())?;
 
         match self.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(

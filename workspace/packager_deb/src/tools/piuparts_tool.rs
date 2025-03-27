@@ -49,7 +49,7 @@ impl BuildTool for PiupartsTool {
             )));
         }
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
-        let actual_version = Version::try_from(stdout_str)?;
+        let actual_version = Version::try_from(stdout_str.replace("piuparts ", "").trim())?;
 
         match self.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(
