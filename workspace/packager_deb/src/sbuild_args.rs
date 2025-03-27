@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use types::{defaults::WORKDIR_ROOT, distribution::Distribution, version::Version};
+use types::{config::Architecture, defaults::WORKDIR_ROOT, distribution::Distribution, version::Version};
 
 use crate::{
     configs::{
@@ -32,7 +32,7 @@ pub struct SbuildArgs {
     autopkgtest_version: AutopkgtestVersion,
     sbuild_version: SbuildVersion,
     package_type: PackageType,
-    arch: String,
+    arch: Architecture,
     context: BuildContext,
     deb_dir: PathBuf,
     deb_name: PathBuf,
@@ -375,7 +375,7 @@ mod tests {
             }),
             build_env: BuildEnv {
                 codename: Distribution::bookworm(),
-                arch: "amd64".into(),
+                arch: Architecture::Amd64,
                 pkg_builder_version: Version::try_from("1.0.0").unwrap(),
                 debcrafter_version: "1.0.0".into(),
                 sbuild_cache_dir: None,

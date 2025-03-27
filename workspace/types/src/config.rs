@@ -2,6 +2,7 @@ use log::warn;
 use semver::Version;
 use serde::de::Error as SerdeError;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -207,6 +208,20 @@ impl BuildEnv {
         }
 
         Ok(self)
+    }
+}
+
+
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub enum Architecture {
+    Amd64
+}
+
+impl fmt::Display for Architecture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Architecture::Amd64 => write!(f, "amd64"),
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use debian::{
     autopkgtest::Autopkgtest, autopkgtest_image::AutopkgtestImageBuilder, execute::Execute,
 };
 use log::{info, warn};
-use types::distribution::Distribution;
+use types::{config::Architecture, distribution::Distribution};
 
 use crate::{
     configs::autopkgtest_version::AutopkgtestVersion, misc::distribution::DistributionTrait,
@@ -21,7 +21,7 @@ pub struct AutopkgtestToolArgs {
     pub (crate) test_deps: Vec<String>,
     pub (crate) image_path: Option<PathBuf>,
     pub (crate) cache_dir: PathBuf,
-    pub (crate) arch: String,
+    pub (crate) arch: Architecture,
 }
 
 pub struct AutopkgtestTool {

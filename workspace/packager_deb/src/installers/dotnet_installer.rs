@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use types::distribution::{Distribution, UbuntuCodename};
+use types::{config::Architecture, distribution::{Distribution, UbuntuCodename}};
 
 use crate::configs::pkg_config::DotnetConfig;
 
@@ -18,7 +18,7 @@ impl LanguageInstaller for DotnetInstaller {
         let subs = HashMap::new();
         subs
     }
-    fn get_build_deps(&self, arch: &str, codename: &Distribution) -> Vec<String> {
+    fn get_build_deps(&self, arch: &Architecture, codename: &Distribution) -> Vec<String> {
         let dotnet_packages = &self.0.dotnet_packages;
         let deps = self.0.deps.clone().unwrap_or_default();
         let mut builder = CommandBuilder::new();
@@ -119,7 +119,7 @@ impl LanguageInstaller for DotnetInstaller {
     }
 }
 
-fn transform_name(input: &str, arch: &str) -> String {
+fn transform_name(input: &str, arch: &Architecture) -> String {
     if let Some(pos) = input.find(format!("_{}", arch).as_str()) {
         let trimmed = &input[..pos];
         trimmed.replace('_', "=")

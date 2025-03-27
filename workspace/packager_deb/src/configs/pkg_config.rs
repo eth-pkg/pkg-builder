@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use serde::Deserialize;
-use types::{defaults::WORKDIR_ROOT, distribution::Distribution, url::Url, version::Version};
+use types::{config::Architecture, defaults::WORKDIR_ROOT, distribution::Distribution, url::Url, version::Version};
 
 
 use crate::misc::utils::expand_path;
@@ -131,10 +131,12 @@ pub struct PackageFields {
     pub homepage: String,
 }
 
+
+
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct BuildEnv {
     pub codename: Distribution,
-    pub arch: String,
+    pub arch: Architecture,
     pub pkg_builder_version: Version,
     pub debcrafter_version: String,
     pub sbuild_cache_dir: Option<PathBuf>,

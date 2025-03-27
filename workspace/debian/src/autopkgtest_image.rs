@@ -9,7 +9,7 @@ use super::execute::{execute_command_with_sudo, Execute};
 use log::info;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use types::distribution::Distribution;
+use types::{config::Architecture, distribution::Distribution};
 
 /// Custom error type for autopkgtest image building operations
 #[derive(Error, Debug)]
@@ -111,7 +111,7 @@ impl AutopkgtestImageBuilder {
     ///
     /// # Returns
     /// * `Self` - Modified builder
-    pub fn image_path(mut self, cache_dir: &str, codename: &Distribution, arch: &str) -> Self {
+    pub fn image_path(mut self, cache_dir: &str, codename: &Distribution, arch: &Architecture) -> Self {
         let image_name = format!("autopkgtest-{}-{}.img", codename.as_short(), arch);
         let cache_dir = shellexpand::tilde(cache_dir).to_string();
         let image_path = Path::new(&cache_dir).join(&image_name);
@@ -139,7 +139,7 @@ impl AutopkgtestImageBuilder {
     ///
     /// # Returns
     /// * `Self` - Modified builder
-    pub fn arch(mut self, arch: &str) -> Self {
+    pub fn arch(mut self, arch: &Architecture) -> Self {
         self.arch = Some(arch.to_string());
         self
     }
@@ -227,6 +227,7 @@ impl Execute for AutopkgtestImageBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use types::{config::Architecture, distribution::Distribution};
 
     /// Tests creation of Distribution from various codenames
     #[test]
@@ -250,8 +251,8 @@ mod tests {
         let builder = AutopkgtestImageBuilder::new()
             .codename(&Distribution::bookworm())
             .unwrap()
-            .image_path("/tmp", &Distribution::bookworm(), "amd64")
-            .arch("amd64")
+            .image_path("/tmp", &Distribution::bookworm(), &Architecture::Amd64)
+            .arch(&Architecture::Amd64)
             .mirror("http://example.com/debian");
 
         let args = builder.build_args().unwrap();
@@ -268,8 +269,8 @@ mod tests {
         let builder = AutopkgtestImageBuilder::new()
             .codename(&Distribution::noble())
             .unwrap()
-            .image_path("/tmp", &Distribution::noble(), "amd64")
-            .arch("amd64")
+            .image_path("/tmp", &Distribution::noble(), &Architecture::Amd64)
+            .arch(&Architecture::Amd64)
             .mirror("http://example.com/ubuntu");
 
         let args = builder.build_args().unwrap();

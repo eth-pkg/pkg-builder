@@ -198,6 +198,7 @@ mod tests {
 
     use super::*;
     use env_logger::Env;
+    use types::config::Architecture;
     use std::fs::{create_dir_all, File};
     use std::path::{Path, PathBuf};
     use std::sync::Once;
@@ -231,7 +232,7 @@ mod tests {
             }),
             build_env: BuildEnv {
                 codename: Distribution::bookworm(),
-                arch: "amd64".into(),
+                arch: Architecture::Amd64,
                 pkg_builder_version: Version::try_from("1.0.0").unwrap(),
                 debcrafter_version: "1.0.0".into(),
                 sbuild_cache_dir: Some(sbuild_cache_dir.clone()),

@@ -1,4 +1,4 @@
-use types::distribution::Distribution;
+use types::{config::Architecture, distribution::Distribution};
 
 use super::{
     command_builder::CommandBuilder, dotnet_installer::DotnetInstaller,
@@ -12,7 +12,7 @@ pub trait LanguageInstaller {
     fn recipe(&self) -> Cow<'static, str>;
     fn substitutions(&self) -> HashMap<&str, &str>;
 
-    fn get_build_deps(&self, _arch: &str, _codename: &Distribution) -> Vec<String> {
+    fn get_build_deps(&self, _arch: &Architecture, _codename: &Distribution) -> Vec<String> {
         let mut builder = CommandBuilder::new();
         let recipe = self.recipe();
         let substitutions = self.substitutions();
