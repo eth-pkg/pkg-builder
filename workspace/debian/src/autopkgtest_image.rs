@@ -172,6 +172,8 @@ impl AutopkgtestImageBuilder {
         if let Some(arch) = &self.arch {
             args.push(format!("--arch={}", arch));
         }
+        args.push(format!("--timeout={}", 3600));
+        args.push(format!("--ram-size={}", 2048));
 
         if let Some(Distribution::Ubuntu(_)) = &self.distribution {
             args.push("-v".to_string());
