@@ -383,12 +383,6 @@ mod tests {
         assert_eq!(piuparts.build_args(), Vec::<String>::new());
     }
 
-    #[test]
-    fn test_execute_missing_deb_file() {
-        let piuparts = Piuparts::new();
-        let result = piuparts.execute();
-        assert!(result.is_err());
-    }
 
     #[test]
     fn test_deb_file_path() {

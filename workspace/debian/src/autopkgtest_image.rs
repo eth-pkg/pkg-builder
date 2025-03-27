@@ -215,7 +215,6 @@ impl Execute for AutopkgtestImageBuilder {
     }
 }
 
-/// Unit tests for AutopkgtestImageBuilder functionality
 #[cfg(test)]
 mod tests {
     use super::*;
