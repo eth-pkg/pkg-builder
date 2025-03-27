@@ -7,14 +7,14 @@ use log::{info, warn};
 use types::distribution::Distribution;
 
 use crate::{
-    configs::autopkg_version::AutopkgVersion, misc::distribution::DistributionTrait,
+    configs::autopkgtest_version::AutopkgtestVersion, misc::distribution::DistributionTrait,
     sbuild::SbuildError,
 };
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
 pub struct AutopkgtestTool {
-    version: AutopkgVersion,
+    version: AutopkgtestVersion,
     changes_file: PathBuf,
     codename: Distribution,
     deb_dir: PathBuf,
@@ -26,7 +26,7 @@ pub struct AutopkgtestTool {
 
 impl AutopkgtestTool {
     pub fn new(
-        version: AutopkgVersion,
+        version: AutopkgtestVersion,
         changes_file: PathBuf,
         codename: Distribution,
         deb_dir: PathBuf,
@@ -62,7 +62,7 @@ impl BuildTool for AutopkgtestTool {
             )));
         }
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
-        let actual_version = AutopkgVersion::try_from(stdout_str)?;
+        let actual_version = AutopkgtestVersion::try_from(stdout_str)?;
 
         match self.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(

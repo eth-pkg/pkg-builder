@@ -7,8 +7,9 @@ use types::{defaults::WORKDIR_ROOT, distribution::Distribution, version::Version
 
 use crate::{
     configs::{
-        autopkg_version::AutopkgVersion,
+        autopkgtest_version::AutopkgtestVersion,
         pkg_config::{LanguageEnv, PackageType, PkgConfig},
+        sbuild_version::SbuildVersion,
     },
     installers::language_installer::LanguageInstaller,
     misc::build_pipeline::BuildContext,
@@ -68,11 +69,11 @@ impl SbuildArgs {
         self.config.build_env.piuparts_version.clone()
     }
 
-    pub fn autopkgtest_version(&self) -> AutopkgVersion {
+    pub fn autopkgtest_version(&self) -> AutopkgtestVersion {
         self.config.build_env.autopkgtest_version.clone()
     }
 
-    pub fn sbuild_version(&self) -> Version {
+    pub fn sbuild_version(&self) -> SbuildVersion {
         self.config.build_env.sbuild_version.clone()
     }
 

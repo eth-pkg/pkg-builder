@@ -1,7 +1,7 @@
 use std::{
     fs, io,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output},
 };
 
 use filetime::FileTime;
@@ -53,7 +53,7 @@ pub struct DownloadGit {
 
 impl From<BuildContext> for DownloadGit {
     fn from(context: BuildContext) -> Self {
-        DownloadGit {
+        Self {
             build_artifacts_dir: context.build_artifacts_dir.clone(),
             package_name: context.package_name.clone(),
             git_tag: context.git_tag.clone(),
@@ -65,160 +65,146 @@ impl From<BuildContext> for DownloadGit {
 }
 
 impl DownloadGit {
-    pub fn clone_and_checkout_tag(
-        git_url: &str,
-        tag_version: &str,
-        path: &str,
-        git_submodules: &Vec<SubModule>,
-    ) -> Result<(), DownloadGitError> {
-        // Check if git-lfs is installed
-        match Command::new("which").arg("git-lfs").output() {
-            Ok(_) => Ok(()),
-            Err(_) => Err(DownloadGitError::GitLfsNotInstalled),
-        }?;
+    fn check_git_lfs() -> Result<(), DownloadGitError> {
+        Command::new("which")
+            .arg("git-lfs")
+            .output()
+            .map(|_| ())
+            .map_err(|_| DownloadGitError::GitLfsNotInstalled)
+    }
 
-        // Clone repository with specific tag
+    fn get_error_message(output: &Output) -> String {
+        String::from_utf8_lossy(&output.stderr).to_string()
+    }
+
+    fn run_git_command(
+        args: &[&str],
+        current_dir: Option<&Path>,
+        error_type: impl FnOnce(String) -> DownloadGitError,
+    ) -> Result<(), DownloadGitError> {
+        let mut cmd = Command::new("git");
+
+        if let Some(dir) = current_dir {
+            cmd.current_dir(dir);
+        }
+
+        let output = cmd.args(args).output().map_err(DownloadGitError::IoError)?;
+
+        if !output.status.success() {
+            return Err(error_type(Self::get_error_message(&output)));
+        }
+
+        Ok(())
+    }
+
+    fn clone_repo(git_url: &str, tag_version: &str, path: &Path) -> Result<(), DownloadGitError> {
         let output = Command::new("git")
             .args(&[
                 "clone",
                 "--depth=1",
-                //"1",
                 "--branch",
                 tag_version,
                 git_url,
-                path,
+                &path.display().to_string(),
             ])
             .output()
-            .map_err(|e| DownloadGitError::IoError(e))?;
+            .map_err(DownloadGitError::IoError)?;
 
         if !output.status.success() {
             return Err(DownloadGitError::CheckoutTagFailed {
                 tag: tag_version.to_string(),
-                reason: String::from_utf8_lossy(&output.stderr).to_string(),
+                reason: Self::get_error_message(&output),
             });
         }
 
-        // Initialize submodules
-        let output = Command::new("git")
-            .current_dir(path)
-            .args(&["submodule", "init"])
+        Ok(())
+    }
+
+    fn init_submodules(path: &Path) -> Result<(), DownloadGitError> {
+        Self::run_git_command(
+            &["submodule", "init"],
+            Some(&path),
+            DownloadGitError::SubmoduleInitFailed,
+        )?;
+
+        Self::run_git_command(
+            &["submodule", "update", "--depth=1", "--recursive"],
+            Some(path),
+            DownloadGitError::SubmoduleInitFailed,
+        )
+    }
+
+    fn checkout_submodule_commits(
+        submodule: &SubModule,
+        base_path: &Path,
+    ) -> Result<(), DownloadGitError> {
+        let submodule_path = Path::new(base_path).join(&submodule.path);
+        println!(
+            "Checking out path: {:?} commit:{}",
+            submodule_path, submodule.commit
+        );
+
+        let fetch_commit_output = Command::new("git")
+            .current_dir(submodule_path.clone())
+            .args(&["fetch", "origin", &submodule.commit.trim()])
             .output()
-            .map_err(|e| DownloadGitError::IoError(e))?;
+            .map_err(|err| DownloadGitError::SubmoduleCheckoutFailed(err.to_string()))?;
+
+        if !fetch_commit_output.status.success() {
+            return Err(DownloadGitError::SubmoduleCommitFailed {
+                commit: submodule.commit.clone(),
+                path: submodule.path.clone(),
+                reason: Self::get_error_message(&fetch_commit_output),
+            });
+        }
+        let output = Command::new("git")
+            .current_dir(submodule_path)
+            .args(&["checkout", &submodule.commit.trim()])
+            .output()
+            .map_err(|err| DownloadGitError::SubmoduleCheckoutFailed(err.to_string()))?;
 
         if !output.status.success() {
-            return Err(DownloadGitError::SubmoduleInitFailed(
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ));
+            return Err(DownloadGitError::SubmoduleCommitFailed {
+                commit: submodule.commit.clone(),
+                path: submodule.path.clone(),
+                reason: Self::get_error_message(&output),
+            });
         }
 
-        // Update submodules
-        let output = Command::new("git")
-            .current_dir(path)
-            .args(&[
-                "submodule",
-                "update",
-                "--depth=1",
-                "--no-fetch",
-                "--recursive",
-            ])
-            .output()
-            .map_err(|e| DownloadGitError::IoError(e))?;
+        Ok(())
+    }
 
-        if !output.status.success() {
-            return Err(DownloadGitError::SubmoduleInitFailed(
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ));
-        }
-
+    pub fn clone_and_checkout_tag(
+        git_url: &str,
+        tag_version: &str,
+        path: &Path,
+        git_submodules: &[SubModule],
+    ) -> Result<(), DownloadGitError> {
+        Self::check_git_lfs()?;
+        Self::clone_repo(git_url, tag_version, path)?;
+        Self::init_submodules(path)?;
         Self::update_submodules(git_submodules, path)?;
 
         Ok(())
     }
 
     pub fn update_submodules(
-        git_submodules: &Vec<SubModule>,
-        current_dir: &str,
+        git_submodules: &[SubModule],
+        current_dir: &Path,
     ) -> Result<(), DownloadGitError> {
-        // DO not use git2, it has very little git supported functionality
-        // Initialize all submodules if they are not already initialized
-        // Update submodules to specific commits
-        for submodule in git_submodules.clone() {
-            let output = Command::new("git")
-                .current_dir(Path::new(current_dir).join(submodule.path.clone()))
-                .args(&["checkout", &submodule.commit.clone()])
-                .output()
-                .map_err(|err| DownloadGitError::SubmoduleCheckoutFailed(err.to_string()))?;
-
-            if !output.status.success() {
-                return Err(DownloadGitError::SubmoduleCommitFailed {
-                    commit: submodule.commit,
-                    path: submodule.path,
-                    reason: String::from_utf8_lossy(&output.stderr).to_string(),
-                });
-            }
+        for submodule in git_submodules {
+            Self::checkout_submodule_commits(submodule, current_dir)?;
         }
 
         Ok(())
     }
 
-    fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Result<()> {
-        filetime::set_file_mtime(&dir_path, timestamp)?;
-        filetime::set_file_atime(&dir_path, timestamp)?;
+    fn create_tarball(&self) -> Result<(), DownloadGitError> {
+        info!(
+            "Creating tar from git repo from {}",
+            self.build_artifacts_dir.join(&self.package_name).display()
+        );
 
-        let mut stack = vec![PathBuf::from(dir_path.as_ref())];
-
-        while let Some(current) = stack.pop() {
-            for entry in fs::read_dir(&current)? {
-                let entry = entry?;
-                let file_type = entry.file_type()?;
-                let file_path = entry.path();
-
-                if file_type.is_dir() {
-                    stack.push(file_path.clone());
-                    filetime::set_file_mtime(&file_path, timestamp)?;
-                    filetime::set_file_atime(&file_path, timestamp)?;
-                } else if file_type.is_file() {
-                    filetime::set_file_mtime(&file_path, timestamp)?;
-                    filetime::set_file_atime(&file_path, timestamp)?;
-                } else if file_type.is_symlink() {
-                    filetime::set_symlink_file_times(&file_path, timestamp, timestamp)?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
-impl BuildStep for DownloadGit {
-    fn step(&self) -> Result<(), BuildError> {
-        let path = &self.build_artifacts_dir.join(&self.package_name);
-
-        // Clean up existing directory if it exists
-        if path.exists() {
-            fs::remove_dir_all(path).map_err(DownloadGitError::IoError)?;
-        }
-
-        // Create the directory
-        fs::create_dir_all(path).map_err(DownloadGitError::IoError)?;
-
-        // Clone and checkout the repository
-        Self::clone_and_checkout_tag(
-            &self.git_url,
-            &self.git_tag,
-            path.clone().to_str().unwrap(),
-            &self.submodules,
-        )?;
-
-        // Remove .git directory
-        fs::remove_dir_all(path.join(".git")).map_err(DownloadGitError::IoError)?;
-
-        // // Back in the path for reproducibility: January 1, 2022
-        let timestamp = FileTime::from_unix_time(1640995200, 0);
-        Self::set_creation_time(path.clone(), timestamp).map_err(DownloadGitError::IoError)?;
-
-        // Create tarball
-        info!("Creating tar from git repo from {}", path.display());
         let output = Command::new("tar")
             .args(&[
                 "--sort=name",
@@ -238,10 +224,72 @@ impl BuildStep for DownloadGit {
 
         if !output.status.success() {
             return Err(DownloadGitError::TarballCreationFailed(
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            )
-            .into());
+                Self::get_error_message(&output),
+            ));
         }
+
+        Ok(())
+    }
+
+    fn set_creation_time<P: AsRef<Path>>(dir_path: P, timestamp: FileTime) -> io::Result<()> {
+        filetime::set_file_mtime(&dir_path, timestamp)?;
+        filetime::set_file_atime(&dir_path, timestamp)?;
+
+        let mut stack = vec![PathBuf::from(dir_path.as_ref())];
+
+        while let Some(current) = stack.pop() {
+            for entry in fs::read_dir(&current)? {
+                let entry = entry?;
+                let file_type = entry.file_type()?;
+                let file_path = entry.path();
+
+                match file_type {
+                    _ if file_type.is_dir() => {
+                        stack.push(file_path.clone());
+                        filetime::set_file_mtime(&file_path, timestamp)?;
+                        filetime::set_file_atime(&file_path, timestamp)?;
+                    }
+                    _ if file_type.is_file() => {
+                        filetime::set_file_mtime(&file_path, timestamp)?;
+                        filetime::set_file_atime(&file_path, timestamp)?;
+                    }
+                    _ if file_type.is_symlink() => {
+                        filetime::set_symlink_file_times(&file_path, timestamp, timestamp)?;
+                    }
+                    _ => (), // Skip other file types
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn prepare_build_directory(&self) -> Result<PathBuf, DownloadGitError> {
+        let path = self.build_artifacts_dir.join(&self.package_name);
+
+        if path.exists() {
+            fs::remove_dir_all(&path)?;
+        }
+
+        fs::create_dir_all(&path)?;
+
+        Ok(path)
+    }
+}
+
+impl BuildStep for DownloadGit {
+    fn step(&self) -> Result<(), BuildError> {
+        let path = self.prepare_build_directory()?;
+
+        Self::clone_and_checkout_tag(&self.git_url, &self.git_tag, &path, &self.submodules)?;
+
+        fs::remove_dir_all(path.join(".git"))?;
+
+        // Set consistent file timestamps for reproducibility: January 1, 2022
+        let timestamp = FileTime::from_unix_time(1640995200, 0);
+        Self::set_creation_time(path, timestamp)?;
+
+        self.create_tarball()?;
 
         Ok(())
     }
@@ -260,7 +308,6 @@ mod tests {
         let url = "https://github.com/status-im/nimbus-eth2.git";
         let temp_dir = tempdir().expect("Failed to create temporary directory");
         let repo_path = temp_dir.path();
-        let repo_path_str = repo_path.to_str().unwrap();
         let tag_version = "v24.3.0";
         let cargo_manifest_dir = env!("CARGO_MANIFEST_DIR");
         let cargo_workspace_dir = Path::new(cargo_manifest_dir)
@@ -279,7 +326,7 @@ mod tests {
                 let result = DownloadGit::clone_and_checkout_tag(
                     url,
                     tag_version,
-                    repo_path_str,
+                    repo_path,
                     &gitconfig.submodules,
                 );
                 assert!(

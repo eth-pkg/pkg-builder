@@ -5,18 +5,18 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AutopkgVersion {
+pub struct AutopkgtestVersion {
     inner: OriginalVersion,
     original_string: Cow<'static, str>,
 }
 
-impl fmt::Display for AutopkgVersion {
+impl fmt::Display for AutopkgtestVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.original_string)
     }
 }
 
-impl AutopkgVersion {
+impl AutopkgtestVersion {
     pub fn as_str(&self) -> &str {
         &self.original_string
     }
@@ -40,67 +40,67 @@ impl AutopkgVersion {
     }
 }
 
-impl Serialize for AutopkgVersion {
+impl Serialize for AutopkgtestVersion {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         // Remove the leading "0." if it was added during deserialization
-        let output = AutopkgVersion::denormalize_version(&self.original_string);
+        let output = AutopkgtestVersion::denormalize_version(&self.original_string);
         serializer.serialize_str(&output)
     }
 }
 
-impl Deref for AutopkgVersion {
+impl Deref for AutopkgtestVersion {
     type Target = OriginalVersion;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl DerefMut for AutopkgVersion {
+impl DerefMut for AutopkgtestVersion {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl From<OriginalVersion> for AutopkgVersion {
+impl From<OriginalVersion> for AutopkgtestVersion {
     fn from(version: OriginalVersion) -> Self {
         let original_string = Cow::Owned(version.to_string());
-        AutopkgVersion {
+        AutopkgtestVersion {
             inner: version,
             original_string,
         }
     }
 }
 
-impl<'a> TryFrom<&'a str> for AutopkgVersion {
+impl<'a> TryFrom<&'a str> for AutopkgtestVersion {
     type Error = cargo_metadata::semver::Error;
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
-        let normalized = AutopkgVersion::normalize_version(s);
+        let normalized = AutopkgtestVersion::normalize_version(s);
         let inner = OriginalVersion::parse(&normalized)?;
-        Ok(AutopkgVersion {
+        Ok(AutopkgtestVersion {
             inner,
             original_string: Cow::Owned(s.to_string()), // Keep the original format
         })
     }
 }
 
-impl TryFrom<String> for AutopkgVersion {
+impl TryFrom<String> for AutopkgtestVersion {
     type Error = cargo_metadata::semver::Error;
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        <AutopkgVersion as TryFrom<&str>>::try_from(&s)
+        <AutopkgtestVersion as TryFrom<&str>>::try_from(&s)
     }
 }
 
-impl<'de> Deserialize<'de> for AutopkgVersion {
+impl<'de> Deserialize<'de> for AutopkgtestVersion {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         struct AutopkgVersionVisitor;
         impl<'de> de::Visitor<'de> for AutopkgVersionVisitor {
-            type Value = AutopkgVersion;
+            type Value = AutopkgtestVersion;
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a string containing a valid version (e.g., 2.5 or 1.2.3)")
             }
@@ -108,9 +108,9 @@ impl<'de> Deserialize<'de> for AutopkgVersion {
             where
                 E: de::Error,
             {
-                let normalized = AutopkgVersion::normalize_version(value);
+                let normalized = AutopkgtestVersion::normalize_version(value);
                 let inner = OriginalVersion::parse(&normalized).map_err(de::Error::custom)?;
-                Ok(AutopkgVersion {
+                Ok(AutopkgtestVersion {
                     inner,
                     original_string: Cow::Owned(value.to_string()), // Keep original format
                 })

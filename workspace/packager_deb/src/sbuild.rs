@@ -230,10 +230,11 @@ impl Sbuild {
 #[cfg(test)]
 mod tests {
 
-    use crate::configs::autopkg_version::AutopkgVersion;
+    use crate::configs::autopkgtest_version::AutopkgtestVersion;
     use crate::configs::pkg_config::{
         BuildEnv, DefaultPackageTypeConfig, LanguageEnv, PackageFields, PackageType,
     };
+    use crate::configs::sbuild_version::SbuildVersion;
 
     use super::*;
     use env_logger::Env;
@@ -280,8 +281,11 @@ mod tests {
                 run_autopkgtest: None,
                 lintian_version: Version::try_from("1.0.0").unwrap(),
                 piuparts_version: Version::try_from("1.0.0").unwrap(),
-                autopkgtest_version: AutopkgVersion::try_from("2.5").unwrap(),
-                sbuild_version: Version::try_from("1.0.0").unwrap(),
+                autopkgtest_version: AutopkgtestVersion::try_from("2.5").unwrap(),
+                sbuild_version: SbuildVersion::try_from(
+                    "sbuild (Debian sbuild) 0.85.6 (26 February 2024)",
+                )
+                .unwrap(),
                 workdir: PathBuf::from(""),
             },
         };

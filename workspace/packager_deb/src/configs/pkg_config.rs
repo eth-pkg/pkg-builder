@@ -5,7 +5,7 @@ use types::{defaults::WORKDIR_ROOT, distribution::Distribution, url::Url, versio
 
 use crate::sbuild_args::expand_path;
 
-use super::autopkg_version::AutopkgVersion;
+use super::{autopkgtest_version::AutopkgtestVersion, sbuild_version::SbuildVersion};
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct RustConfig {
@@ -143,8 +143,8 @@ pub struct BuildEnv {
     pub run_autopkgtest: Option<bool>,
     pub lintian_version: Version,
     pub piuparts_version: Version,
-    pub autopkgtest_version: AutopkgVersion,
-    pub sbuild_version: Version,
+    pub autopkgtest_version: AutopkgtestVersion,
+    pub sbuild_version: SbuildVersion,
     pub workdir: PathBuf,
 }
 

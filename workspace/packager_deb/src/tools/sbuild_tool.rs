@@ -5,16 +5,18 @@ use log::{error, info, warn};
 use types::{distribution::Distribution, version::Version};
 
 use crate::{
-    configs::pkg_config::PackageType,
-    misc::build_pipeline::BuildContext,
-    misc::sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
+    configs::{pkg_config::PackageType, sbuild_version::SbuildVersion},
+    misc::{
+        build_pipeline::BuildContext,
+        sbuild_pipelines::{SbuildGitPipeline, SbuildSourcePipeline, SbuildVirtualPipeline},
+    },
     sbuild::SbuildError,
 };
 
 use super::tool_runner::{BuildTool, ToolRunner};
 
 pub struct SbuildTool {
-    version: Version,
+    version: SbuildVersion,
     codename: Distribution,
     cache_file: PathBuf,
     build_chroot_setup_commands: Vec<String>,
@@ -26,7 +28,7 @@ pub struct SbuildTool {
 
 impl SbuildTool {
     pub fn new(
-        version: Version,
+        version: SbuildVersion,
         codename: Distribution,
         cache_file: PathBuf,
         build_chroot_setup_commands: Vec<String>,
@@ -61,7 +63,7 @@ impl BuildTool for SbuildTool {
             )));
         }
         let stdout_str = String::from_utf8_lossy(&output.stdout).to_string();
-        let actual_version = Version::try_from(stdout_str)?;
+        let actual_version = SbuildVersion::try_from(stdout_str)?;
 
         match self.version.cmp(&actual_version) {
             std::cmp::Ordering::Less => warn!(
