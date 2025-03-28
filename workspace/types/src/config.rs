@@ -214,6 +214,7 @@ impl BuildEnv {
 
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub enum Architecture {
+    #[serde(rename = "amd64")]
     Amd64
 }
 
