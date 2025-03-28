@@ -44,12 +44,13 @@ pkg-builder autopkgtests path/to/pkg-builder.toml
 ## Examples
 
 See [examples documentation](EXAMPLES.md) for sample configurations for various languages:
-- Virtual Packages
+- C
 - Rust
 - TypeScript/JavaScript
 - Nim
 - .NET
-- Java
+- Java w/o Gradle
+- Golang
 
 ## Documentation
 
