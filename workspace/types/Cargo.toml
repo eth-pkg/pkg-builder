@@ -1,0 +1,17 @@
+[package]
+name = "types"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "types"
+path = "src/mod.rs"  
+
+[dependencies]
+serde ={ workspace = true}
+thiserror = { workspace = true}
+log = { workspace = true}
+toml = { workspace = true}
+semver = { workspace = true}
+tempfile = {workspace = true}
+url = { workspace = true }

@@ -20,7 +20,7 @@ nim_version_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224
 [build_env]
 codename="jammy jellyfish"
 arch = "amd64"
-pkg_builder_version="0.2.11"
+pkg_builder_version="0.3.0"
 debcrafter_version = "8189263"
 run_lintian=true
 run_piuparts=true

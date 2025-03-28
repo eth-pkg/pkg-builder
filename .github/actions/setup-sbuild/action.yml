@@ -1,0 +1,18 @@
+name: 'Setup sbuild'
+description: 'Sets up sbuild environment'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Sbuild setup
+      shell: bash
+      run: |
+        sudo apt-get update
+        # Note this is an older version of sbuild, no need to patch it, yet
+        sudo apt install -y debhelper schroot ubuntu-dev-tools 
+        sudo apt-get -y install pkg-config libssl-dev uidmap
+        sudo apt-get install -y libfilesys-df-perl libmime-lite-perl
+        wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/sbuild_0.85.6_all.deb
+        wget https://github.com/eth-pkg/sbuild-ubuntu/releases/download/0.85-6-1/libsbuild-perl_0.85.6_all.deb
+        sudo dpkg -i sbuild_0.85.6_all.deb libsbuild-perl_0.85.6_all.deb || true
+        sudo sbuild-adduser `whoami`
