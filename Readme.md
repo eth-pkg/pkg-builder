@@ -27,7 +27,7 @@ sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest vmdb
 sudo sbuild-adduser `whoami`
 ```
 
-See [installation docs](INSTALL.md) for sbuild setup.
+See [installation docs](docs/install.md) for sbuild setup.
 
 ### Basic Usage
 
