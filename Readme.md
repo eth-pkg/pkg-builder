@@ -6,7 +6,7 @@ A tool to create reproducible builds for Debian-based systems (Ubuntu Jammy, Nob
 
 ## Overview
 
-pkg-builder uses debcrafter to generate Debian packages from a TOML config, streamlining reproducible packaging for developers.
+pkg-builder uses debcrafter to generate Debian packages from a TOML config, simplifying reproducible packaging for developers.
 
 ## Key Features
 
