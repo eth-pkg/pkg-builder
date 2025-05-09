@@ -128,7 +128,7 @@ impl DownloadGit {
         )?;
 
         Self::run_git_command(
-            &["submodule", "update", "--depth=1", "--recursive"],
+            &["submodule", "update", "--init", "--recursive"],
             Some(path),
             DownloadGitError::SubmoduleInitFailed,
         )
