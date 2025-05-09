@@ -3,11 +3,11 @@ spec_file = "hello-world-go.sss"
 package_name = "hello-world-go"
 version_number = "1.0.0"
 revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
 # virtual | git | default
-package_type="default"
+package_type = "default"
 tarball_url = "hello-world-go-1.0.0.tar.gz"
 tarball_hash = "c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d15ffb763f2f3ea6022116e3ce44df25384522fbdd40dd79a3a84252640cb"
 
@@ -18,16 +18,16 @@ go_binary_url = "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz"
 go_binary_checksum = "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"
 
 [build_env]
-codename="bookworm"
+codename = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=true
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
+run_lintian = true
+run_piuparts = true
+run_autopkgtest = true
+lintian_version = "2.116.3"
+piuparts_version = "1.1.7"
+autopkgtest_version = "5.28"
+sbuild_version = "0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"

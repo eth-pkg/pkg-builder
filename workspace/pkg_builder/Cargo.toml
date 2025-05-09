@@ -1,6 +1,6 @@
 [package]
 name = "pkg-builder"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 build = "src/build.rs"
 
@@ -8,11 +8,10 @@ build = "src/build.rs"
 name = "pkg-builder"
 path = "src/main.rs"
 
-
 [build-dependencies]
-thiserror = { workspace =  true }
+thiserror = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
 
 [dependencies]
-cli = { workspace =  true }
+cli = { workspace = true }

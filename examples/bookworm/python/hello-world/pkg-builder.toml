@@ -3,11 +3,11 @@ spec_file = "hello-world-python.sss"
 package_name = "hello-world-python"
 version_number = "1.0.0"
 revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
 # virtual | git | default
-package_type="default"
+package_type = "default"
 tarball_url = "hello-world-1.0.0.tar.gz"
 tarball_hash = "1915a59fabb5859cfd4c14eb2cde7064acf3b9ff6e9e78fa68ed06f4acc482b5"
 
@@ -15,16 +15,16 @@ tarball_hash = "1915a59fabb5859cfd4c14eb2cde7064acf3b9ff6e9e78fa68ed06f4acc482b5
 language_env = "python"
 
 [build_env]
-codename="bookworm"
+codename = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=true
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
+run_lintian = true
+run_piuparts = true
+run_autopkgtest = true
+lintian_version = "2.116.3"
+piuparts_version = "1.1.7"
+autopkgtest_version = "5.28"
+sbuild_version = "0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"

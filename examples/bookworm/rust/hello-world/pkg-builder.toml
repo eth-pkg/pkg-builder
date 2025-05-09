@@ -3,19 +3,19 @@ spec_file = "hello-world-rust.sss"
 package_name = "hello-world-rust"
 version_number = "1.0.0"
 revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
 # virtual | git | default
-package_type="default"
+package_type = "default"
 tarball_url = "hello-world-rust-1.0.0.tar.gz"
 tarball_hash = "f5bab501028b666be71da81dcd675082d05ad4b8e1650350d27a89209a0e239a209a05b7cd3f89b1ec909260a6a2382f1c929b09ca61353594fe5836420b232d"
 
 [package_type.language_env]
 language_env = "rust"
-rust_version="1.77.2"
-rust_binary_url="https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz"
-rust_binary_gpg_asc="""
+rust_version = "1.77.2"
+rust_binary_url = "https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz"
+rust_binary_gpg_asc = """
 -----BEGIN PGP SIGNATURE-----
 
 wsFcBAABCgAQBQJmFa+iCRCFq5bm+hvl/gAAc4oP/12rJYjE54yHsCgcpf6Lg+jz
@@ -35,16 +35,16 @@ KGFMBQELjcFWLGcBVE45DRuVR8E3XYunjSdgLFXjfZfeGF3uiS6fNHGCH41ryqfj
 """
 
 [build_env]
-codename="bookworm"
+codename = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=true
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
+run_lintian = true
+run_piuparts = true
+run_autopkgtest = true
+lintian_version = "2.116.3"
+piuparts_version = "1.1.7"
+autopkgtest_version = "5.28"
+sbuild_version = "0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"

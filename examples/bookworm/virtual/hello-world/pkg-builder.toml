@@ -3,22 +3,22 @@ spec_file = "test-virtual-package.sss"
 package_name = "test-virtual-package"
 version_number = "1.0.0"
 revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
-package_type="virtual"
+package_type = "virtual"
 
 [build_env]
-codename="bookworm"
+codename = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=false
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
+run_lintian = true
+run_piuparts = true
+run_autopkgtest = false
+lintian_version = "2.116.3"
+piuparts_version = "1.1.7"
+autopkgtest_version = "5.28"
+sbuild_version = "0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"

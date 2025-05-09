@@ -19,7 +19,7 @@ package_type = "default|git|virtual"
 [build_env]
 codename = "bookworm"
 arch = "amd64"
-pkg_builder_version = "0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
 # Additional build environment options
 ```
@@ -168,7 +168,7 @@ nim_version_checksum = "..."
 [build_env]
 codename = "bookworm"                # Target distribution
 arch = "amd64"                       # Target architecture
-pkg_builder_version = "0.3.1"        # Tool version
+pkg_builder_version = "0.3.2"        # Tool version
 debcrafter_version = "8189263"       # Debcrafter version
 sbuild_cache_dir = "/path/to/cache"  # Optional cache directory, defaults to ~/.cache/sbuild
 run_lintian = true                   # Enable lintian checks
