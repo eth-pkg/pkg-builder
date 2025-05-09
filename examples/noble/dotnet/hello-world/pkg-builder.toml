@@ -27,7 +27,7 @@ dotnet_packages = [
     { name = "dotnet-runtime-8.0_8.0.4-0ubuntu1_amd64", hash = "4bb4c314fd3315f0cb872ba116908be299e7e429", url = "http://backup.eth-nodes.com/20240529-noble/dotnet-runtime-8.0_8.0.4-0ubuntu1_amd64.deb" },
     { name = "aspnetcore-targeting-pack-8.0_8.0.4-0ubuntu1_amd64", hash = "76c84a5e08f12af30f6764ea773f2dd8c756a920", url = "http://backup.eth-nodes.com/20240529-noble/aspnetcore-targeting-pack-8.0_8.0.4-0ubuntu1_amd64.deb" },
     { name = "aspnetcore-runtime-8.0_8.0.4-0ubuntu1_amd64", hash = "17f4b7c511729bb1424ec760cd035d91fe51cb79", url = "http://backup.eth-nodes.com/20240529-noble/aspnetcore-runtime-8.0_8.0.4-0ubuntu1_amd64.deb" },
-    { name = "dotnet-templates-8.0_8.0.104-0ubuntu1_amd64", hash = "c1b234dcf4ac1db094600d5636590ff53d9225cd", url="http://backup.eth-nodes.com/20240529-noble/dotnet-templates-8.0_8.0.104-0ubuntu1_amd64.deb"},
+    { name = "dotnet-templates-8.0_8.0.104-0ubuntu1_amd64", hash = "c1b234dcf4ac1db094600d5636590ff53d9225cd", url = "http://backup.eth-nodes.com/20240529-noble/dotnet-templates-8.0_8.0.104-0ubuntu1_amd64.deb" },
     { name = "dotnet-sdk-8.0_8.0.104-0ubuntu1_amd64", hash = "d5bc66de113c1798283839006317182b44bce338", url = "http://backup.eth-nodes.com/20240529-noble/dotnet-sdk-8.0_8.0.104-0ubuntu1_amd64.deb" },
     { name = "dotnet8_8.0.104-8.0.4-0ubuntu1_amd64", hash = "a2ada74cdc4a74a7f22aa48205cfc45999c94974", url = "http://backup.eth-nodes.com/20240529-noble/dotnet8_8.0.104-8.0.4-0ubuntu1_amd64.deb" },
 ]
@@ -36,7 +36,7 @@ use_backup_version = true
 [build_env]
 codename = "noble numbat"
 arch = "amd64"
-pkg_builder_version = "0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
 run_lintian = true
 run_piuparts = true

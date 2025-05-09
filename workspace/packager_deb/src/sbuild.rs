@@ -152,8 +152,8 @@ impl Sbuild {
 
                 (actual_sha1 != output.hash).then(|| {
                     format!(
-                        "SHA1 mismatch for {}: expected {}, got {}",
-                        output.name, output.hash, actual_sha1
+                        "SHA1 mismatch for {}\n  got: {} expected: {},",
+                        output.name, output.hash, actual_sha1, 
                     )
                 })
             })
@@ -164,7 +164,7 @@ impl Sbuild {
             Ok(())
         } else {
             // Convert the error collection to a proper error
-            Err(SbuildError::VerificationError(errors.join("; ")))
+            Err(SbuildError::VerificationError(errors.join("\n")))
         }
     }
 

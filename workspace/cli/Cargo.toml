@@ -1,21 +1,21 @@
 [package]
 name = "cli"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 
 [lib]
 name = "cli"
-path = "src/mod.rs"  
+path = "src/mod.rs"
 
 [dependencies]
-types = { workspace = true}
-packager_deb = { workspace = true}
-clap = { workspace = true}
-toml = { workspace = true}
-serde = { workspace = true}
-env_logger ={ workspace = true}
-log = { workspace = true}
-cargo_metadata = { workspace = true}
-regex = { workspace = true}
-thiserror = { workspace = true}
-tempfile = { workspace =  true }
+types = { workspace = true }
+packager_deb = { workspace = true }
+clap = { workspace = true }
+toml = { workspace = true }
+serde = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+cargo_metadata = { workspace = true }
+regex = { workspace = true }
+thiserror = { workspace = true }
+tempfile = { workspace = true }

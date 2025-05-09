@@ -3,11 +3,11 @@ spec_file = "hello-world-typescript.sss"
 package_name = "hello-world-typescript"
 version_number = "1.0.0"
 revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
 
 [package_type]
 # virtual | git | default
-package_type="default"
+package_type = "default"
 tarball_url = "hello-world-typescript-1.0.0.tar.gz"
 tarball_hash = "e28af9271dd941888317597af77246c14671c83254a06c756d5fc56f0291a411e89fb730c1d19a848b3c3ac185c0ba20ed1accdd5feb6cc2a1c1c3a2febeba5c"
 
@@ -19,16 +19,16 @@ node_binary_checksum = "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625
 yarn_version = "1.22.19"
 
 [build_env]
-codename="jammy jellyfish"
+codename = "jammy jellyfish"
 arch = "amd64"
-pkg_builder_version="0.3.1"
+pkg_builder_version = "0.3.2"
 debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=true
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.20"
-sbuild_version="0.85.6"
+run_lintian = true
+run_piuparts = true
+run_autopkgtest = true
+lintian_version = "2.116.3"
+piuparts_version = "1.1.7"
+autopkgtest_version = "5.20"
+sbuild_version = "0.85.6"
 # package directory
-workdir="~/.pkg-builder/packages/jammy"
+workdir = "~/.pkg-builder/packages/jammy"
