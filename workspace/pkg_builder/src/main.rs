@@ -23,10 +23,20 @@ fn format_error(err: &dyn Error) -> String {
         chain.push(source.to_string());
         current = source.source();
     }
+    
     let chain_str = chain
         .iter()
-        .map(|s| s.lines().next().unwrap_or_default())
+        .enumerate()
+        .map(|(i, s)| {
+            let indent = "  ".repeat(i);
+            format!("{}{}", indent, s.lines().next().unwrap_or_default())
+        })
         .collect::<Vec<_>>()
-        .join(" -> ");
-    format!("Error:\n>{}\n{}", chain_str, message)
+        .join("\n");
+    
+    format!(
+        "Error:\n{}\n\nFull error message:\n{}",
+        chain_str,
+        message
+    )
 }
