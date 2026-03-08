@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '0 0 * * 0'    
   workflow_dispatch:
 
 env:
@@ -17,10 +19,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup sbuild
         uses: ./.github/actions/setup-sbuild
-      
+
       - name: Build
         run: cargo build --verbose
 
@@ -47,10 +49,10 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup environment
         uses: ./.github/actions/setup-packaging-env
-        
+
       - name: Create chroot env
         run: |
           cd examples/bookworm/${{matrix.language}}/hello-world
@@ -84,10 +86,10 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup environment
         uses: ./.github/actions/setup-packaging-env
-        
+
       - name: Create chroot env
         run: |
           cd examples/jammy/${{matrix.language}}/hello-world
@@ -123,12 +125,12 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup environment
         uses: ./.github/actions/setup-packaging-env
         with:
           include_genisoimage: true
-      
+
       - name: Additional noble setup
         run: |
           sudo sbuild-adduser `whoami`
@@ -139,7 +141,7 @@ jobs:
       - name: Create chroot env
         run: |
           cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder env create 
+          pkg-builder env create
           echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: Run packaging tests
@@ -149,4 +151,3 @@ jobs:
           language: ${{matrix.language}}
           run_piuparts: false
           run_autopkgtest: true
-          
