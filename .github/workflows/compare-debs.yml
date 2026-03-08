@@ -1,0 +1,85 @@
+name: Compare DEBs
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: compare-debs-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-old:
+    name: Build with main branch
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup sbuild
+        uses: ./.github/actions/setup-sbuild
+
+      - name: Build pkg-builder
+        run: |
+          cargo build --release
+          mkdir -p ${HOME}/.local/bin
+          mv target/release/pkg-builder ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/pkg-builder
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
+      - name: Create chroot env
+        run: |
+          cd examples/bookworm/c/hello-world
+          pkg-builder env create
+
+      - name: Build package
+        run: |
+          cd examples/bookworm/c/hello-world
+          pkg-builder package --run-piuparts false --run-autopkgtest false
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-old-main
+          path: ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/
+          retention-days: 5
+
+  build-new:
+    name: Build with current branch
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup sbuild
+        uses: ./.github/actions/setup-sbuild
+
+      - name: Build pkg-builder
+        run: |
+          cargo build --release
+          mkdir -p ${HOME}/.local/bin
+          mv target/release/pkg-builder ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/pkg-builder
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
+      - name: Create chroot env
+        run: |
+          cd examples/bookworm/c/hello-world
+          pkg-builder env create
+
+      - name: Build package
+        run: |
+          cd examples/bookworm/c/hello-world
+          pkg-builder package --run-piuparts false --run-autopkgtest false
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-new-branch
+          path: ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/
+          retention-days: 5
