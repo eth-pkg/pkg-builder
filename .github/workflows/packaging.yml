@@ -1,0 +1,47 @@
+name: Packaging
+
+on:
+  workflow_call:
+    inputs:
+      distro:
+        required: true
+        type: string
+      language:
+        required: true
+        type: string
+      include_genisoimage:
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-packaging-env
+        with:
+          include_genisoimage: ${{ inputs.include_genisoimage }}
+
+      - name: Additional noble setup
+        if: inputs.distro == 'noble'
+        shell: bash
+        run: |
+          sudo sbuild-adduser `whoami`
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+
+      - name: Create chroot env
+        run: |
+          cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
+          pkg-builder env create
+          echo "${HOME}/.cache/sbuild/${{ inputs.distro }}-amd64.tar.gz" >> $GITHUB_PATH
+
+      - name: Run packaging tests
+        uses: ./.github/actions/run-packaging-tests
+        with:
+          distro: ${{ inputs.distro }}
+          language: ${{ inputs.language }}
+          run_piuparts: false
+          run_autopkgtest: true

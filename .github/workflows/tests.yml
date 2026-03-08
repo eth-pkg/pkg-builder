@@ -16,174 +16,101 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup sbuild
         uses: ./.github/actions/setup-sbuild
-      
+
       - name: Build
         run: cargo build --verbose
 
       - name: Run unit tests
         run: cargo test --lib --verbose -- --ignored
 
-  bookworm_amd64_packaging:
-    runs-on: ubuntu-24.04
+  bookworm:
     strategy:
       matrix:
         language:
           - c
-          #- dotnet
-          #- go
-          #- java
-          #- java-gradle
-          #- javascript
-          #- nim
-          #- rust
-          #- typescript
-          #- virtual
-          #- python
+          # - dotnet
+          # - go
+          # - java
+          # - java-gradle
+          # - javascript
+          # - nim
+          # - python
+          # - rust
+          # - typescript
+          # - virtual
       max-parallel: 3
       fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-        
-      - name: Create chroot env
-        run: |
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/bookworm-amd64.tar.gz" >> $GITHUB_PATH
+    uses: ./.github/workflows/packaging.yml
+    with:
+      distro: bookworm
+      language: ${{ matrix.language }}
 
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: bookworm
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-
-  jammy_amd64_packaging:
-    if: false
-    runs-on: ubuntu-24.04
+  trixie:
     strategy:
       matrix:
         language:
           - c
-          - dotnet
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
+          # - dotnet
+          # - go
+          # - java
+          # - java-gradle
+          # - javascript
+          # - nim
+          # - python
+          # - rust
+          # - typescript
+          # - virtual
       max-parallel: 3
       fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-        
-      - name: Create chroot env
-        run: |
-          cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
+    uses: ./.github/workflows/packaging.yml
+    with:
+      distro: trixie
+      language: ${{ matrix.language }}
 
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: jammy
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-
-  trixie_amd64_packaging:
-    runs-on: ubuntu-24.04
+  noble:
     strategy:
       matrix:
         language:
           - c
-          #- dotnet
-          #- go
-          #- java
-          #- java-gradle
-          #- javascript
-          #- nim
-          #- rust
-          #- typescript
-          #- virtual
+          # - dotnet
+          # - dotnet-9
+          # - go
+          # - java
+          # - java-gradle
+          # - javascript
+          # - nim
+          # - python
+          # - rust
+          # - typescript
+          # - virtual
       max-parallel: 3
       fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
+    uses: ./.github/workflows/packaging.yml
+    with:
+      distro: noble
+      language: ${{ matrix.language }}
+      include_genisoimage: true
 
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-
-      - name: Create chroot env
-        run: |
-          cd examples/trixie/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/trixie-amd64.tar.gz" >> $GITHUB_PATH
-
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: trixie
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-
-  noble_amd64_packaging:
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        language:
-          - c
-          #- dotnet
-          #- dotnet-9
-          #- go
-          #- java
-          #- java-gradle
-          #- javascript
-          #- nim
-          #- rust
-          #- typescript
-          #- virtual
-          #- python
-      max-parallel: 3
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-        with:
-          include_genisoimage: true
-      
-      - name: Additional noble setup
-        run: |
-          sudo sbuild-adduser `whoami`
-          sudo sysctl -w kernel.unprivileged_userns_clone=1
-          #sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
-          #sudo cat /etc/subuid
-
-      - name: Create chroot env
-        run: |
-          cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder env create 
-          echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
-
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: noble
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-          
+  # jammy:
+  #   strategy:
+  #     matrix:
+  #       language:
+  #         - c
+  #         - dotnet
+  #         - go
+  #         - java
+  #         - java-gradle
+  #         - javascript
+  #         - nim
+  #         - rust
+  #         - typescript
+  #         - virtual
+  #     max-parallel: 3
+  #     fail-fast: false
+  #   uses: ./.github/workflows/packaging.yml
+  #   with:
+  #     distro: jammy
+  #     language: ${{ matrix.language }}
