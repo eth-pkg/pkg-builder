@@ -31,6 +31,9 @@ jobs:
           mkdir -p ${HOME}/.local/bin
           mv target/release/pkg-builder ${HOME}/.local/bin
           chmod +x ${HOME}/.local/bin/pkg-builder
+          # Install prebuilt debcrafter binaries (required by old code)
+          cp workspace/pkg_builder/bin_dependencies/debcrafter_* ${HOME}/.local/bin
+          chmod +x ${HOME}/.local/bin/debcrafter_*
           echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
       - name: Create chroot env
@@ -47,7 +50,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: deb-old-main
-          path: ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/
+          path: |
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.deb
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.dsc
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.tar.*
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.changes
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.buildinfo
           retention-days: 5
 
   build-new:
@@ -81,5 +89,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: deb-new-branch
-          path: ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/
+          path: |
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.deb
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.dsc
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.tar.*
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.changes
+            ~/.pkg-builder/packages/bookworm/hello-world-1.0.0-1/*.buildinfo
           retention-days: 5
