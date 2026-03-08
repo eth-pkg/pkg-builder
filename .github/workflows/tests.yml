@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -27,90 +31,30 @@ jobs:
         run: cargo test --lib --verbose -- --ignored
 
   bookworm:
-    strategy:
-      matrix:
-        language:
-          - c
-          # - dotnet
-          # - go
-          # - java
-          # - java-gradle
-          # - javascript
-          # - nim
-          # - python
-          # - rust
-          # - typescript
-          # - virtual
-      max-parallel: 3
-      fail-fast: false
     uses: ./.github/workflows/packaging.yml
     with:
       distro: bookworm
-      language: ${{ matrix.language }}
+      languages: >-
+        ["c"]
 
   trixie:
-    strategy:
-      matrix:
-        language:
-          - c
-          # - dotnet
-          # - go
-          # - java
-          # - java-gradle
-          # - javascript
-          # - nim
-          # - python
-          # - rust
-          # - typescript
-          # - virtual
-      max-parallel: 3
-      fail-fast: false
     uses: ./.github/workflows/packaging.yml
     with:
       distro: trixie
-      language: ${{ matrix.language }}
+      languages: >-
+        ["c"]
 
   noble:
-    strategy:
-      matrix:
-        language:
-          - c
-          # - dotnet
-          # - dotnet-9
-          # - go
-          # - java
-          # - java-gradle
-          # - javascript
-          # - nim
-          # - python
-          # - rust
-          # - typescript
-          # - virtual
-      max-parallel: 3
-      fail-fast: false
     uses: ./.github/workflows/packaging.yml
     with:
       distro: noble
-      language: ${{ matrix.language }}
+      languages: >-
+        ["c"]
       include_genisoimage: true
 
   # jammy:
-  #   strategy:
-  #     matrix:
-  #       language:
-  #         - c
-  #         - dotnet
-  #         - go
-  #         - java
-  #         - java-gradle
-  #         - javascript
-  #         - nim
-  #         - rust
-  #         - typescript
-  #         - virtual
-  #     max-parallel: 3
-  #     fail-fast: false
   #   uses: ./.github/workflows/packaging.yml
   #   with:
   #     distro: jammy
-  #     language: ${{ matrix.language }}
+  #     languages: >-
+  #       ["c", "dotnet", "go", "java", "java-gradle", "javascript", "nim", "rust", "typescript", "virtual"]

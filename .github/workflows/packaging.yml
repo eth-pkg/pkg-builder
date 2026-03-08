@@ -6,7 +6,7 @@ on:
       distro:
         required: true
         type: string
-      language:
+      languages:
         required: true
         type: string
       include_genisoimage:
@@ -17,6 +17,11 @@ on:
 jobs:
   package:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        language: ${{ fromJSON(inputs.languages) }}
+      max-parallel: 3
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +39,7 @@ jobs:
 
       - name: Create chroot env
         run: |
-          cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
+          cd examples/${{ inputs.distro }}/${{ matrix.language }}/hello-world
           pkg-builder env create
           echo "${HOME}/.cache/sbuild/${{ inputs.distro }}-amd64.tar.gz" >> $GITHUB_PATH
 
@@ -42,6 +47,6 @@ jobs:
         uses: ./.github/actions/run-packaging-tests
         with:
           distro: ${{ inputs.distro }}
-          language: ${{ inputs.language }}
+          language: ${{ matrix.language }}
           run_piuparts: false
           run_autopkgtest: true
