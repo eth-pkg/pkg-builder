@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use config::build_env::{Architecture, Distribution};
 use log::info;
 
-use crate::command::{run_command, run_command_sudo};
+use crate::command::run_command_sudo;
 use crate::ToolError;
 
 /// Autopkgtest command wrapper.
@@ -19,7 +19,7 @@ impl Autopkgtest<'_> {
     pub fn run(&self) -> Result<(), ToolError> {
         let args = self.build_args();
         info!("Running: autopkgtest {}", args.join(" "));
-        run_command("autopkgtest", &args, Some(self.deb_dir))
+        run_command_sudo("autopkgtest", &args, Some(self.deb_dir))
     }
 
     fn build_args(&self) -> Vec<String> {
