@@ -27,7 +27,7 @@ pub fn extract_source(ws: &Workspace) -> Result<(), PipelineError> {
 /// Run debcrafter to create the debian/ directory.
 pub fn setup_debian_dir(ws: &Workspace) -> Result<(), PipelineError> {
     debcrafter_wrapper::check_dpkg_parsechangelog()?;
-    debcrafter_wrapper::generate_debian_dir(&ws.config.package.spec_file, &ws.build_files_dir)?;
+    debcrafter_wrapper::generate_debian_dir(&ws.config.package.spec_file, &ws.build_artifacts_dir)?;
 
     Ok(())
 }
