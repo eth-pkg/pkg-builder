@@ -1,0 +1,21 @@
+[package]
+name = "pkg-builder-debcrafter"
+version = "0.4.0"
+edition = "2021"
+
+[lib]
+name = "debcrafter_wrapper"
+path = "src/lib.rs"
+
+[dependencies]
+log = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+serde = { workspace = true }
+
+# debcrafter library - pinned to the version we support
+debcrafter = { git = "https://github.com/Kixunil/debcrafter", rev = "8189263" }
+either = "1.6.1"
+void = "1"
+fmt2io = "0.2.0"
+rfc822-like = "0.2.0"

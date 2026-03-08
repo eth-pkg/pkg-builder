@@ -97,7 +97,7 @@ mod tests {
                 distribution: Distribution::bookworm(),
                 arch: Architecture::Amd64,
                 pkg_builder_version: "0.3.1".to_string(),
-                debcrafter_version: "8189263".to_string(),
+
                 sbuild_cache_dir: PathBuf::from("/tmp/cache/sbuild"),
                 workdir: PathBuf::from(workdir),
                 testing: TestingConfig {

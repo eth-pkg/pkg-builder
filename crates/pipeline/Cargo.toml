@@ -10,6 +10,7 @@ path = "src/lib.rs"
 [dependencies]
 pkg-builder-config = { path = "../config" }
 pkg-builder-tool = { path = "../tool" }
+pkg-builder-debcrafter = { path = "../debcrafter" }
 pkg-builder-runtime = { path = "../runtime" }
 log = { workspace = true }
 thiserror = { workspace = true }

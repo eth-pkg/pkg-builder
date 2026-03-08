@@ -219,7 +219,6 @@ pub struct BuildEnv {
     pub distribution: Distribution,
     pub arch: Architecture,
     pub pkg_builder_version: String,
-    pub debcrafter_version: String,
     pub sbuild_cache_dir: PathBuf,
     pub workdir: PathBuf,
     pub testing: TestingConfig,

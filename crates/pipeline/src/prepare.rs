@@ -26,13 +26,8 @@ pub fn extract_source(ws: &Workspace) -> Result<(), PipelineError> {
 
 /// Run debcrafter to create the debian/ directory.
 pub fn setup_debian_dir(ws: &Workspace) -> Result<(), PipelineError> {
-    let debcrafter = tool::debcrafter::Debcrafter {
-        version: &ws.config.build_env.debcrafter_version,
-    };
-
-    debcrafter.check_installed()?;
-    debcrafter.check_dpkg_parsechangelog()?;
-    debcrafter.create_debian_dir(&ws.config.package.spec_file, &ws.build_files_dir)?;
+    debcrafter_wrapper::check_dpkg_parsechangelog()?;
+    debcrafter_wrapper::generate_debian_dir(&ws.config.package.spec_file, &ws.build_files_dir)?;
 
     Ok(())
 }
@@ -339,7 +334,7 @@ mod tests {
                 distribution: config::build_env::Distribution::bookworm(),
                 arch: config::build_env::Architecture::Amd64,
                 pkg_builder_version: "0.3.1".to_string(),
-                debcrafter_version: "8189263".to_string(),
+
                 sbuild_cache_dir: dir.path().join("cache"),
                 workdir: dir.path().to_path_buf(),
                 testing: config::build_env::TestingConfig {

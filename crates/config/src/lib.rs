@@ -166,7 +166,9 @@ struct RawBuildEnv {
     codename: build_env::Distribution,
     arch: build_env::Architecture,
     pkg_builder_version: String,
-    debcrafter_version: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    debcrafter_version: Option<String>,
     #[serde(default)]
     sbuild_cache_dir: Option<PathBuf>,
     #[serde(default)]
@@ -207,7 +209,6 @@ impl RawConfig {
             distribution: self.build_env.codename,
             arch: self.build_env.arch,
             pkg_builder_version: self.build_env.pkg_builder_version,
-            debcrafter_version: self.build_env.debcrafter_version,
             sbuild_cache_dir: self
                 .build_env
                 .sbuild_cache_dir

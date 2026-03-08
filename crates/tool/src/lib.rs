@@ -1,7 +1,6 @@
 pub mod archive;
 pub mod autopkgtest;
 pub mod command;
-pub mod debcrafter;
 pub mod lintian;
 pub mod piuparts;
 pub mod sbuild;
