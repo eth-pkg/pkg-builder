@@ -1,0 +1,5 @@
+[verify]
+package_hash=[
+    {name= "hello-world_1.0.0-1.dsc", hash="924c9e4711c1f05e42817ec25027e8a43887cddc"},
+    {name= "hello-world_1.0.0-1_amd64.deb", hash="f809d1e6697717b1720ddfebc08519c9f525ae64"}
+]

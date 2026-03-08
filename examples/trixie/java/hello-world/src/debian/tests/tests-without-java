@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+
+exec 2>&1
+
+set -e
+
+# sanity check if permissions are not correct this will fail
+test_binary_in_path(){
+  output="$(which hello-world 2>&1 || true)"
+  assertEquals "/usr/bin/hello-world" "$output"
+}
+
+# does not work, skipping, not going to spend more than an hour on this stupid test
+# test_invocation(){
+#   run_hello_world() {
+#     (set +e; hello-world 2>/dev/null || true)
+#   }
+#   output="$(run_hello_world)"
+#   assertContains "java: command not found" "$output"
+# }
+
+. shunit2
+
+

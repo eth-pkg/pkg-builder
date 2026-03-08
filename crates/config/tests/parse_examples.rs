@@ -262,6 +262,143 @@ fn parse_bookworm_git_nimbus() {
     assert!(!cfg.build_env.testing.run_autopkgtest);
 }
 
+// ─── Trixie examples ───
+
+#[test]
+fn parse_trixie_c() {
+    let cfg = load_example("trixie", "c", "hello-world");
+    assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::C));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_rust() {
+    let cfg = load_example("trixie", "rust", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Rust(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_go() {
+    let cfg = load_example("trixie", "go", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Go(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_java() {
+    let cfg = load_example("trixie", "java", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Java(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_java_gradle() {
+    let cfg = load_example("trixie", "java-gradle", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Java(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_javascript() {
+    let cfg = load_example("trixie", "javascript", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::JavaScript(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_typescript() {
+    let cfg = load_example("trixie", "typescript", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::JavaScript(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_dotnet() {
+    let cfg = load_example("trixie", "dotnet", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Dotnet(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_nim() {
+    let cfg = load_example("trixie", "nim", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Nim(_)));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_python() {
+    let cfg = load_example("trixie", "python", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    match &cfg.source {
+        SourceKind::Tarball { language, .. } => {
+            assert!(matches!(language, LanguageEnv::Python));
+        }
+        _ => panic!("Expected Tarball source"),
+    }
+}
+
+#[test]
+fn parse_trixie_virtual() {
+    let cfg = load_example("trixie", "virtual", "hello-world");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    assert!(matches!(cfg.source, SourceKind::Virtual));
+}
+
+#[test]
+fn parse_trixie_git_nimbus() {
+    let cfg = load_example("trixie", "git-package", "nimbus");
+    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
+    assert!(matches!(cfg.source, SourceKind::Git { .. }));
+}
+
 // ─── Noble examples ───
 
 #[test]
@@ -460,7 +597,7 @@ fn parse_all_pkg_builder_configs() {
         failures.join("\n")
     );
     // Ensure we actually found configs
-    assert!(count >= 30, "Expected at least 30 example configs, found {}", count);
+    assert!(count >= 42, "Expected at least 42 example configs, found {}", count);
 }
 
 #[test]

@@ -20,6 +20,7 @@ pub enum Distribution {
 #[derive(Debug, Clone, PartialEq)]
 pub enum DebianCodename {
     Bookworm,
+    Trixie,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,6 +33,7 @@ impl DebianCodename {
     pub fn as_str(&self) -> &'static str {
         match self {
             DebianCodename::Bookworm => "bookworm",
+            DebianCodename::Trixie => "trixie",
         }
     }
 }
@@ -69,6 +71,10 @@ impl Distribution {
         Distribution::Debian(DebianCodename::Bookworm)
     }
 
+    pub fn trixie() -> Self {
+        Distribution::Debian(DebianCodename::Trixie)
+    }
+
     pub fn noble() -> Self {
         Distribution::Ubuntu(UbuntuCodename::Noble)
     }
@@ -80,6 +86,7 @@ impl Distribution {
     pub fn from_codename(codename: &str) -> Result<Self, DistributionError> {
         match codename {
             "bookworm" => Ok(Self::bookworm()),
+            "trixie" => Ok(Self::trixie()),
             "noble" | "noble numbat" => Ok(Self::noble()),
             "jammy" | "jammy jellyfish" => Ok(Self::jammy()),
             _ => Err(DistributionError::UnsupportedCodename(codename.to_string())),
@@ -260,12 +267,17 @@ mod tests {
             Distribution::from_codename("jammy jellyfish"),
             Ok(Distribution::Ubuntu(UbuntuCodename::Jammy))
         ));
+        assert!(matches!(
+            Distribution::from_codename("trixie"),
+            Ok(Distribution::Debian(DebianCodename::Trixie))
+        ));
         assert!(Distribution::from_codename("unknown").is_err());
     }
 
     #[test]
     fn test_distribution_as_short() {
         assert_eq!(Distribution::bookworm().as_short(), "bookworm");
+        assert_eq!(Distribution::trixie().as_short(), "trixie");
         assert_eq!(Distribution::noble().as_short(), "noble");
         assert_eq!(Distribution::jammy().as_short(), "jammy");
     }
@@ -274,6 +286,10 @@ mod tests {
     fn test_distribution_repo_url() {
         assert_eq!(
             Distribution::bookworm().repo_url(),
+            "http://deb.debian.org/debian"
+        );
+        assert_eq!(
+            Distribution::trixie().repo_url(),
             "http://deb.debian.org/debian"
         );
         assert_eq!(
@@ -289,6 +305,9 @@ mod tests {
     #[test]
     fn test_distribution_keyring() {
         assert!(Distribution::bookworm()
+            .keyring()
+            .contains("debian-archive-keyring"));
+        assert!(Distribution::trixie()
             .keyring()
             .contains("debian-archive-keyring"));
         assert!(Distribution::noble()
@@ -311,6 +330,11 @@ mod tests {
     }
 
     #[test]
+    fn test_trixie_no_extra_chroot_commands() {
+        assert!(Distribution::trixie().extra_chroot_commands().is_empty());
+    }
+
+    #[test]
     fn test_jammy_no_extra_chroot_commands() {
         assert!(Distribution::jammy().extra_chroot_commands().is_empty());
     }
@@ -329,6 +353,7 @@ mod tests {
     #[test]
     fn test_debian_no_lintian_suppressions() {
         assert!(Distribution::bookworm().lintian_suppressions().is_empty());
+        assert!(Distribution::trixie().lintian_suppressions().is_empty());
     }
 
     #[test]
@@ -337,6 +362,8 @@ mod tests {
         assert!(!Distribution::noble().is_debian());
         assert!(Distribution::bookworm().is_debian());
         assert!(!Distribution::bookworm().is_ubuntu());
+        assert!(Distribution::trixie().is_debian());
+        assert!(!Distribution::trixie().is_ubuntu());
     }
 
     #[test]
