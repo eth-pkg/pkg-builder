@@ -1,0 +1,16 @@
+[package]
+name = "pkg-builder-tool"
+version = "0.4.0"
+edition = "2021"
+
+[lib]
+name = "tool"
+path = "src/lib.rs"
+
+[dependencies]
+pkg-builder-config = { path = "../config" }
+log = { workspace = true }
+thiserror = { workspace = true }
+shellexpand = { workspace = true }
+tempfile = { workspace = true }
+filetime = { workspace = true }

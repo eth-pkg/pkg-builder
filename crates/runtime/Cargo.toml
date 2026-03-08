@@ -1,0 +1,13 @@
+[package]
+name = "pkg-builder-runtime"
+version = "0.4.0"
+edition = "2021"
+
+[lib]
+name = "runtime"
+path = "src/lib.rs"
+
+[dependencies]
+pkg-builder-config = { path = "../config" }
+pkg-builder-tool = { path = "../tool" }
+log = { workspace = true }
