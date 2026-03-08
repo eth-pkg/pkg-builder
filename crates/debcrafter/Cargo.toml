@@ -10,7 +10,6 @@ path = "src/lib.rs"
 [dependencies]
 log = { workspace = true }
 thiserror = { workspace = true }
-toml = { workspace = true }
 serde = { workspace = true }
 
 # debcrafter library - pinned to the version we support

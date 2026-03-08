@@ -220,7 +220,7 @@ fn load_package(source_dir: &Path, package: &VPackageName) -> (Package, PathBuf,
     let filename = package.sps_path(source_dir);
     let source = std::fs::read_to_string(&filename)
         .unwrap_or_else(|error| panic!("failed to read {}: {}", filename.display(), error));
-    let package = toml::from_str::<debcrafter::input::Package>(&source)
+    let package = debcrafter::input::Package::load(&filename)
         .expect("Failed to parse package")
         .try_into()
         .unwrap_or_else(|error: debcrafter::im_repr::PackageError| error.report(filename.display().to_string(), &source));

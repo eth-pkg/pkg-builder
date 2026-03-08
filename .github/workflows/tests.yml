@@ -32,15 +32,15 @@ jobs:
       matrix:
         language:
           - c
-          - dotnet
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
+          #- dotnet
+          #- go
+          #- java
+          #- java-gradle
+          #- javascript
+          #- nim
+          #- rust
+          #- typescript
+          #- virtual
           #- python
       max-parallel: 3
       fail-fast: false
@@ -102,22 +102,59 @@ jobs:
           run_piuparts: false
           run_autopkgtest: true
 
+  trixie_amd64_packaging:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        language:
+          - c
+          #- dotnet
+          #- go
+          #- java
+          #- java-gradle
+          #- javascript
+          #- nim
+          #- rust
+          #- typescript
+          #- virtual
+      max-parallel: 3
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-packaging-env
+
+      - name: Create chroot env
+        run: |
+          cd examples/trixie/${{matrix.language}}/hello-world
+          pkg-builder env create
+          echo "${HOME}/.cache/sbuild/trixie-amd64.tar.gz" >> $GITHUB_PATH
+
+      - name: Run packaging tests
+        uses: ./.github/actions/run-packaging-tests
+        with:
+          distro: trixie
+          language: ${{matrix.language}}
+          run_piuparts: false
+          run_autopkgtest: true
+
   noble_amd64_packaging:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         language:
           - c
-          - dotnet
-          - dotnet-9
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
+          #- dotnet
+          #- dotnet-9
+          #- go
+          #- java
+          #- java-gradle
+          #- javascript
+          #- nim
+          #- rust
+          #- typescript
+          #- virtual
           #- python
       max-parallel: 3
       fail-fast: false

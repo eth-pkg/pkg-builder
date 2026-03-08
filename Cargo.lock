@@ -657,7 +657,6 @@ dependencies = [
  "rfc822-like",
  "serde",
  "thiserror",
- "toml 0.8.20",
  "void",
 ]
 
