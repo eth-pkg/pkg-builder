@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - main
-  # Temporarily disabled for deb comparison
-  # pull_request:
-  #   branches:
-  #     - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
