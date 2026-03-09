@@ -40,12 +40,12 @@ jobs:
       languages: >-
         ["c"]
 
-  trixie:
-    uses: ./.github/workflows/packaging.yml
-    with:
-      distro: trixie
-      languages: >-
-        ["c"]
+  # trixie:
+  #   uses: ./.github/workflows/packaging.yml
+  #   with:
+  #     distro: trixie
+  #     languages: >-
+  #       ["c"]
 
   noble:
     uses: ./.github/workflows/packaging.yml

@@ -12,6 +12,7 @@ pub struct Piuparts<'a> {
     pub deb_file: &'a Path,
     pub deb_dir: &'a Path,
     pub is_dotnet: bool,
+    pub repo_url: &'a str,
 }
 
 impl Piuparts<'_> {
@@ -28,7 +29,7 @@ impl Piuparts<'_> {
         args.push(self.distribution.as_short().to_string());
 
         args.push("-m".to_string());
-        args.push(self.distribution.repo_url().to_string());
+        args.push(self.repo_url.to_string());
 
         args.push("--bindmount=/dev".to_string());
         args.push(format!("--keyring={}", self.distribution.keyring()));
@@ -75,6 +76,7 @@ mod tests {
             deb_file: Path::new("hello_1.0.0-1_amd64.deb"),
             deb_dir: Path::new("/build"),
             is_dotnet: false,
+            repo_url: dist.repo_url(),
         };
 
         let args = piuparts.build_args();
@@ -88,6 +90,22 @@ mod tests {
     }
 
     #[test]
+    fn test_piuparts_build_args_snapshot_url() {
+        let dist = Distribution::Debian(DebianCodename::Bookworm);
+        let snapshot_url = "http://snapshot.debian.org/archive/debian/20250101T000000Z/";
+        let piuparts = Piuparts {
+            distribution: &dist,
+            deb_file: Path::new("hello_1.0.0-1_amd64.deb"),
+            deb_dir: Path::new("/build"),
+            is_dotnet: false,
+            repo_url: snapshot_url,
+        };
+
+        let args = piuparts.build_args();
+        assert!(args.contains(&snapshot_url.to_string()));
+    }
+
+    #[test]
     fn test_piuparts_build_args_dotnet_debian() {
         let dist = Distribution::Debian(DebianCodename::Bookworm);
         let piuparts = Piuparts {
@@ -95,6 +113,7 @@ mod tests {
             deb_file: Path::new("hello_1.0.0-1_amd64.deb"),
             deb_dir: Path::new("/build"),
             is_dotnet: true,
+            repo_url: dist.repo_url(),
         };
 
         let args = piuparts.build_args();
@@ -110,6 +129,7 @@ mod tests {
             deb_file: Path::new("hello.deb"),
             deb_dir: Path::new("/build"),
             is_dotnet: true,
+            repo_url: dist.repo_url(),
         };
 
         let args = piuparts.build_args();
@@ -125,6 +145,7 @@ mod tests {
             deb_file: Path::new("hello.deb"),
             deb_dir: Path::new("/build"),
             is_dotnet: true,
+            repo_url: dist.repo_url(),
         };
 
         let args = piuparts.build_args();

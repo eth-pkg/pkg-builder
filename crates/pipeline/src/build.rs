@@ -59,6 +59,26 @@ fn build_chroot_commands(ws: &Workspace) -> Vec<String> {
     // Add distribution-specific commands (Noble needs universe/restricted/multiverse)
     commands.extend(ws.config.build_env.distribution.extra_chroot_commands());
 
+    // Snapshot archive workarounds
+    if ws.config.build_env.uses_snapshot() {
+        // Disable Valid-Until checking for expired snapshot archives
+        commands.insert(
+            0,
+            r#"echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot"#
+                .to_string(),
+        );
+
+        // Add security snapshot repo if configured
+        if let Some(security_url) = ws.config.build_env.security_repo_url() {
+            let codename = ws.config.build_env.distribution.as_short();
+            commands.push(format!(
+                "echo 'deb {} {}-security main' > /etc/apt/sources.list.d/security-snapshot.list",
+                security_url, codename
+            ));
+            commands.push("apt-get update".to_string());
+        }
+    }
+
     // Format as sbuild --chroot-setup-commands args
     commands
         .into_iter()

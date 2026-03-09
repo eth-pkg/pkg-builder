@@ -53,7 +53,10 @@ impl Workspace {
 
         let cache_dir_expanded =
             shellexpand::tilde(&env.sbuild_cache_dir.display().to_string()).to_string();
-        let cache_file_name = format!("{}-{}.tar.gz", env.distribution.as_short(), env.arch);
+        let cache_file_name = match &env.snapshot_date {
+            Some(date) => format!("{}-{}-{}.tar.gz", env.distribution.as_short(), env.arch, date),
+            None => format!("{}-{}.tar.gz", env.distribution.as_short(), env.arch),
+        };
         let cache_file = PathBuf::from(cache_dir_expanded).join(cache_file_name);
 
         let src_dir = config.config_root.join("src");
@@ -111,6 +114,8 @@ mod tests {
                     piuparts: "1.1.7".to_string(),
                     autopkgtest: "5.28".to_string(),
                 },
+                snapshot_date: None,
+                snapshot_security_date: None,
             },
             config_root: PathBuf::from("/test/config"),
         }
@@ -181,5 +186,16 @@ mod tests {
         let cfg = test_config("/tmp/workdir/packages");
         let ws = Workspace::new(Arc::new(cfg)).unwrap();
         assert_eq!(ws.src_dir, PathBuf::from("/test/config/src"));
+    }
+
+    #[test]
+    fn test_workspace_cache_file_with_snapshot() {
+        let mut cfg = test_config("/tmp/workdir/packages");
+        cfg.build_env.snapshot_date = Some("20250101T000000Z".to_string());
+        let ws = Workspace::new(Arc::new(cfg)).unwrap();
+        assert_eq!(
+            ws.cache_file,
+            PathBuf::from("/tmp/cache/sbuild/bookworm-amd64-20250101T000000Z.tar.gz")
+        );
     }
 }

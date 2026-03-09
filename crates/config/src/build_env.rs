@@ -223,6 +223,33 @@ pub struct BuildEnv {
     pub workdir: PathBuf,
     pub testing: TestingConfig,
     pub tool_versions: ToolVersions,
+    pub snapshot_date: Option<String>,
+    pub snapshot_security_date: Option<String>,
+}
+
+impl BuildEnv {
+    /// Returns the repo URL, using snapshot.debian.org when a snapshot date is set.
+    pub fn repo_url(&self) -> String {
+        match &self.snapshot_date {
+            Some(date) => format!("http://snapshot.debian.org/archive/debian/{}/", date),
+            None => self.distribution.repo_url().to_string(),
+        }
+    }
+
+    /// Returns the security repo URL when a snapshot security date is set.
+    pub fn security_repo_url(&self) -> Option<String> {
+        self.snapshot_security_date.as_ref().map(|date| {
+            format!(
+                "http://snapshot.debian.org/archive/debian-security/{}/",
+                date
+            )
+        })
+    }
+
+    /// Whether this build env uses snapshot pinning.
+    pub fn uses_snapshot(&self) -> bool {
+        self.snapshot_date.is_some()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -238,6 +265,26 @@ pub struct ToolVersions {
     pub lintian: String,
     pub piuparts: String,
     pub autopkgtest: String,
+}
+
+/// Normalize a snapshot date: accept `YYYYMMDD` (append `T000000Z`) or full `YYYYMMDDTHHMMSSZ`.
+pub fn normalize_snapshot_date(date: &str) -> Result<String, String> {
+    // Full format: YYYYMMDDTHHMMSSZ (16 chars)
+    if date.len() == 16 && date.chars().nth(8) == Some('T') && date.ends_with('Z') {
+        let digits_ok = date[..8].chars().all(|c| c.is_ascii_digit())
+            && date[9..15].chars().all(|c| c.is_ascii_digit());
+        if digits_ok {
+            return Ok(date.to_string());
+        }
+    }
+    // Short format: YYYYMMDD (8 chars)
+    if date.len() == 8 && date.chars().all(|c| c.is_ascii_digit()) {
+        return Ok(format!("{}T000000Z", date));
+    }
+    Err(format!(
+        "Invalid snapshot date '{}': expected YYYYMMDD or YYYYMMDDTHHMMSSZ",
+        date
+    ))
 }
 
 #[cfg(test)]
@@ -378,5 +425,83 @@ mod tests {
     #[test]
     fn test_architecture_display() {
         assert_eq!(Architecture::Amd64.to_string(), "amd64");
+    }
+
+    fn test_build_env(snapshot_date: Option<&str>, snapshot_security_date: Option<&str>) -> BuildEnv {
+        BuildEnv {
+            distribution: Distribution::bookworm(),
+            arch: Architecture::Amd64,
+            pkg_builder_version: "0.3.1".to_string(),
+            sbuild_cache_dir: PathBuf::from("/tmp/cache"),
+            workdir: PathBuf::from("/tmp/work"),
+            testing: TestingConfig {
+                run_lintian: false,
+                run_piuparts: false,
+                run_autopkgtest: false,
+            },
+            tool_versions: ToolVersions {
+                sbuild: "0.85.6".to_string(),
+                lintian: "2.116.3".to_string(),
+                piuparts: "1.1.7".to_string(),
+                autopkgtest: "5.28".to_string(),
+            },
+            snapshot_date: snapshot_date.map(String::from),
+            snapshot_security_date: snapshot_security_date.map(String::from),
+        }
+    }
+
+    #[test]
+    fn test_repo_url_without_snapshot() {
+        let env = test_build_env(None, None);
+        assert_eq!(env.repo_url(), "http://deb.debian.org/debian");
+        assert!(!env.uses_snapshot());
+    }
+
+    #[test]
+    fn test_repo_url_with_snapshot() {
+        let env = test_build_env(Some("20250101T000000Z"), None);
+        assert_eq!(
+            env.repo_url(),
+            "http://snapshot.debian.org/archive/debian/20250101T000000Z/"
+        );
+        assert!(env.uses_snapshot());
+    }
+
+    #[test]
+    fn test_security_repo_url_without_snapshot() {
+        let env = test_build_env(None, None);
+        assert!(env.security_repo_url().is_none());
+    }
+
+    #[test]
+    fn test_security_repo_url_with_snapshot() {
+        let env = test_build_env(Some("20250101T000000Z"), Some("20250115T000000Z"));
+        assert_eq!(
+            env.security_repo_url().unwrap(),
+            "http://snapshot.debian.org/archive/debian-security/20250115T000000Z/"
+        );
+    }
+
+    #[test]
+    fn test_normalize_snapshot_date_full() {
+        assert_eq!(
+            normalize_snapshot_date("20250101T120000Z").unwrap(),
+            "20250101T120000Z"
+        );
+    }
+
+    #[test]
+    fn test_normalize_snapshot_date_short() {
+        assert_eq!(
+            normalize_snapshot_date("20250101").unwrap(),
+            "20250101T000000Z"
+        );
+    }
+
+    #[test]
+    fn test_normalize_snapshot_date_invalid() {
+        assert!(normalize_snapshot_date("2025-01-01").is_err());
+        assert!(normalize_snapshot_date("abc").is_err());
+        assert!(normalize_snapshot_date("").is_err());
     }
 }

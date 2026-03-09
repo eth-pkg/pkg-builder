@@ -16,10 +16,14 @@ pub fn create_env(ws: &Workspace) -> Result<(), PipelineError> {
         fs::create_dir_all(parent)?;
     }
 
+    let repo_url = ws.config.build_env.repo_url();
+
     tool::sbuild::SbuildCreateChroot {
         distribution: &ws.config.build_env.distribution,
         cache_file: &ws.cache_file,
         temp_dir: &temp_dir,
+        repo_url: &repo_url,
+        snapshot: ws.config.build_env.uses_snapshot(),
     }
     .run()?;
 

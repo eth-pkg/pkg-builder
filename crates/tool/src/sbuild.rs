@@ -72,6 +72,8 @@ pub struct SbuildCreateChroot<'a> {
     pub distribution: &'a Distribution,
     pub cache_file: &'a Path,
     pub temp_dir: &'a Path,
+    pub repo_url: &'a str,
+    pub snapshot: bool,
 }
 
 impl SbuildCreateChroot<'_> {
@@ -82,14 +84,22 @@ impl SbuildCreateChroot<'_> {
     }
 
     fn build_args(&self) -> Vec<String> {
-        vec![
+        let mut args = vec![
             "--chroot-mode=unshare".to_string(),
             "--make-sbuild-tarball".to_string(),
             self.cache_file.display().to_string(),
-            self.distribution.as_short().to_string(),
-            self.temp_dir.display().to_string(),
-            self.distribution.repo_url().to_string(),
-        ]
+        ];
+
+        if self.snapshot {
+            // Snapshot archives have expired Valid-Until; tell debootstrap to ignore it
+            args.push("--debootstrapopts=--no-check-gpg".to_string());
+        }
+
+        args.push(self.distribution.as_short().to_string());
+        args.push(self.temp_dir.display().to_string());
+        args.push(self.repo_url.to_string());
+
+        args
     }
 }
 
@@ -165,6 +175,8 @@ mod tests {
             distribution: &dist,
             cache_file: Path::new("/cache/bookworm-amd64.tar.gz"),
             temp_dir: Path::new("/tmp/temp_12345"),
+            repo_url: "http://deb.debian.org/debian",
+            snapshot: false,
         };
 
         let args = chroot.build_args();
@@ -174,5 +186,24 @@ mod tests {
         assert!(args.contains(&"bookworm".to_string()));
         assert!(args.contains(&"/tmp/temp_12345".to_string()));
         assert!(args.contains(&"http://deb.debian.org/debian".to_string()));
+        assert!(!args.iter().any(|a| a.contains("no-check-gpg")));
+    }
+
+    #[test]
+    fn test_sbuild_create_chroot_snapshot() {
+        let dist = Distribution::bookworm();
+        let chroot = SbuildCreateChroot {
+            distribution: &dist,
+            cache_file: Path::new("/cache/bookworm-amd64-20250101T000000Z.tar.gz"),
+            temp_dir: Path::new("/tmp/temp_12345"),
+            repo_url: "http://snapshot.debian.org/archive/debian/20250101T000000Z/",
+            snapshot: true,
+        };
+
+        let args = chroot.build_args();
+        assert!(args.contains(
+            &"http://snapshot.debian.org/archive/debian/20250101T000000Z/".to_string()
+        ));
+        assert!(args.iter().any(|a| a.contains("no-check-gpg")));
     }
 }

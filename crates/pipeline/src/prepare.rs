@@ -348,6 +348,8 @@ mod tests {
                     piuparts: "1.1.7".to_string(),
                     autopkgtest: "5.28".to_string(),
                 },
+                snapshot_date: None,
+                snapshot_security_date: None,
             },
             config_root: dir.path().to_path_buf(),
         };

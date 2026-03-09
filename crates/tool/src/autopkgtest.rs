@@ -46,6 +46,7 @@ pub fn ensure_autopkgtest_image(
     cache_dir: &Path,
     distribution: &Distribution,
     arch: &Architecture,
+    repo_url: &str,
 ) -> Result<PathBuf, ToolError> {
     let image_name = format!("autopkgtest-{}-{}.img", distribution.as_short(), arch);
     let cache_dir_expanded = shellexpand::tilde(&cache_dir.display().to_string()).to_string();
@@ -74,7 +75,7 @@ pub fn ensure_autopkgtest_image(
         }
     }
 
-    args.push(format!("--mirror={}", distribution.repo_url()));
+    args.push(format!("--mirror={}", repo_url));
     args.push(format!("--arch={}", arch));
 
     match distribution {

@@ -75,7 +75,7 @@ impl PkgConfig {
 
         let mut config = raw.into_pkg_config(config_root)?;
 
-        validate_config(&config)?;
+        validate_config(&mut config)?;
 
         // Resolve paths after validation
         config.resolve_paths();
@@ -186,6 +186,10 @@ struct RawBuildEnv {
     sbuild_version: String,
     #[serde(default)]
     workdir: PathBuf,
+    #[serde(default)]
+    snapshot_date: Option<String>,
+    #[serde(default)]
+    snapshot_security_date: Option<String>,
 }
 
 impl RawConfig {
@@ -225,6 +229,8 @@ impl RawConfig {
                 piuparts: self.build_env.piuparts_version,
                 autopkgtest: self.build_env.autopkgtest_version,
             },
+            snapshot_date: self.build_env.snapshot_date,
+            snapshot_security_date: self.build_env.snapshot_security_date,
         };
 
         Ok(PkgConfig {

@@ -27,11 +27,14 @@ pub fn run_piuparts(ws: &Workspace) -> Result<(), PipelineError> {
         Some(LanguageEnv::Dotnet(_))
     );
 
+    let repo_url = ws.config.build_env.repo_url();
+
     tool::piuparts::Piuparts {
         distribution: &ws.config.build_env.distribution,
         deb_file: &ws.deb_path,
         deb_dir: &ws.build_artifacts_dir,
         is_dotnet,
+        repo_url: &repo_url,
     }
     .run()?;
 
@@ -43,10 +46,12 @@ pub fn run_autopkgtest(ws: &Workspace) -> Result<(), PipelineError> {
     info!("Running autopkgtest on {:?}", ws.changes_path);
 
     // Ensure QEMU image exists
+    let repo_url = ws.config.build_env.repo_url();
     let image_path = tool::autopkgtest::ensure_autopkgtest_image(
         &ws.config.build_env.sbuild_cache_dir,
         &ws.config.build_env.distribution,
         &ws.config.build_env.arch,
+        &repo_url,
     )?;
 
     // Build test setup commands from runtime
