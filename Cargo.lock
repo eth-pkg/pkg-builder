@@ -628,6 +628,7 @@ dependencies = [
  "env_logger",
  "log",
  "pkg-builder-config",
+ "pkg-builder-makefile",
  "pkg-builder-pipeline",
 ]
 
@@ -661,6 +662,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkg-builder-makefile"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "pkg-builder-config",
+ "tempfile",
+ "thiserror",
+ "toml 0.8.20",
+]
+
+[[package]]
 name = "pkg-builder-pipeline"
 version = "0.4.0"
 dependencies = [
@@ -668,7 +680,7 @@ dependencies = [
  "log",
  "pkg-builder-config",
  "pkg-builder-debcrafter",
- "pkg-builder-runtime",
+ "pkg-builder-makefile",
  "pkg-builder-tool",
  "rand",
  "sha1",
@@ -676,15 +688,6 @@ dependencies = [
  "shellexpand",
  "tempfile",
  "thiserror",
-]
-
-[[package]]
-name = "pkg-builder-runtime"
-version = "0.4.0"
-dependencies = [
- "log",
- "pkg-builder-config",
- "pkg-builder-tool",
 ]
 
 [[package]]

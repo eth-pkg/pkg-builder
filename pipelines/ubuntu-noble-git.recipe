@@ -1,0 +1,7 @@
+# Pipeline: Ubuntu Noble (git source)
+GIT_CLONE {{git_url}} {{git_tag}}
+DEBCRAFTER {{spec_file}}
+PATCH
+NOBLE_REPOS
+INCLUDE {{runtime_recipe}}
+SBUILD

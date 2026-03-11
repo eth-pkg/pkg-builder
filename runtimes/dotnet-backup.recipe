@@ -1,0 +1,18 @@
+# Runtime: .NET backup version (direct .deb install)
+APT_INSTALL wget
+APT_INSTALL libicu-dev
+
+REPEAT dep IN {{extra_deps}}
+  APT_INSTALL {{dep.name}}
+END
+
+REPEAT pkg IN {{packages}}
+  RUN cd /tmp && wget -q {{pkg.url}}
+  RUN cd /tmp && ls && dpkg -i {{pkg.name}}.deb
+  RUN cd /tmp && ls && sha1sum {{pkg.name}}.deb
+  RUN cd /tmp &&  echo {{pkg.hash}} {{pkg.name}}.deb > hash_file.txt && cat hash_file.txt
+  RUN cd /tmp && sha1sum -c hash_file.txt
+END
+
+RUN dotnet --version
+APT_REMOVE wget

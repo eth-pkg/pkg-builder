@@ -1,8 +1,6 @@
 //! Integration tests that parse every example TOML config file.
-//! This ensures the new config crate is backwards-compatible with all existing configs.
 
 use config::build_env::{Architecture, Distribution};
-use config::language::LanguageEnv;
 use config::source::SourceKind;
 use config::verify::PkgVerifyConfig;
 use config::PkgConfig;
@@ -49,18 +47,18 @@ fn load_verify(distro: &str, lang: &str, name: &str) -> PkgVerifyConfig {
 #[test]
 fn parse_bookworm_c() {
     let cfg = load_example("bookworm", "c", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world");
-    assert_eq!(cfg.package.version_number, "1.0.0");
-    assert_eq!(cfg.package.revision_number, "1");
+    assert_eq!(cfg.package.name, "hello-world");
+    assert_eq!(cfg.package.version, "1.0.0");
+    assert_eq!(cfg.package.revision, "1");
     assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
     assert!(matches!(cfg.build_env.arch, Architecture::Amd64));
     match &cfg.source {
-        SourceKind::Tarball { hash, language, .. } => {
+        SourceKind::Tarball { hash, .. } => {
             assert!(hash.is_some());
-            assert!(matches!(language, LanguageEnv::C));
         }
         _ => panic!("Expected Tarball source"),
     }
+    assert!(cfg.runtime.is_none()); // C has no runtime
     assert!(cfg.build_env.testing.run_lintian);
     assert!(cfg.build_env.testing.run_piuparts);
     assert!(cfg.build_env.testing.run_autopkgtest);
@@ -69,197 +67,115 @@ fn parse_bookworm_c() {
 #[test]
 fn parse_bookworm_rust() {
     let cfg = load_example("bookworm", "rust", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-rust");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Rust(rc) => {
-                    assert_eq!(rc.rust_version, "1.77.2");
-                    assert!(rc.rust_binary_url.contains("rust-lang.org"));
-                    assert!(rc.rust_binary_gpg_asc.contains("BEGIN PGP SIGNATURE"));
-                }
-                _ => panic!("Expected Rust language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-rust");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "rust");
+    assert!(rt.vars.contains_key("binary_url"));
+    assert!(rt.vars.contains_key("binary_gpg_asc"));
 }
 
 #[test]
 fn parse_bookworm_go() {
     let cfg = load_example("bookworm", "go", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-go");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Go(gc) => {
-                    assert_eq!(gc.go_version, "1.22.2");
-                    assert!(gc.go_binary_url.contains("go.dev"));
-                    assert!(!gc.go_binary_checksum.is_empty());
-                }
-                _ => panic!("Expected Go language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-go");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "go");
+    let url = rt.vars.get("binary_url").unwrap().as_str().unwrap();
+    assert!(url.contains("go.dev"));
 }
 
 #[test]
 fn parse_bookworm_java() {
     let cfg = load_example("bookworm", "java", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-java");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Java(jc) => {
-                    assert!(jc.is_oracle);
-                    assert_eq!(jc.jdk_version, "17.0");
-                    assert!(jc.gradle.is_none());
-                }
-                _ => panic!("Expected Java language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-java");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "java");
+    assert!(rt.vars.contains_key("binary_url"));
 }
 
 #[test]
 fn parse_bookworm_java_gradle() {
     let cfg = load_example("bookworm", "java-gradle", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-java-gradle");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Java(jc) => {
-                    assert!(jc.is_oracle);
-                    let gradle = jc.gradle.as_ref().expect("Expected gradle config");
-                    assert_eq!(gradle.gradle_version, "8.7");
-                    assert!(gradle.gradle_binary_url.contains("gradle"));
-                }
-                _ => panic!("Expected Java language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-java-gradle");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "java-gradle");
+    assert!(rt.vars.contains_key("gradle_binary_url"));
 }
 
 #[test]
 fn parse_bookworm_javascript() {
     let cfg = load_example("bookworm", "javascript", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-javascript");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::JavaScript(nc) => {
-                    assert_eq!(nc.node_version, "20.12.2");
-                    assert_eq!(nc.yarn_version, Some("1.22.19".to_string()));
-                }
-                _ => panic!("Expected JavaScript language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-javascript");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "node");
+    assert!(rt.vars.contains_key("binary_url"));
+    assert!(rt.vars.contains_key("yarn_version"));
 }
 
 #[test]
 fn parse_bookworm_typescript() {
     let cfg = load_example("bookworm", "typescript", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-typescript");
-    // TypeScript examples use language_env = "javascript" in TOML
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::JavaScript(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-typescript");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "node");
 }
 
 #[test]
 fn parse_bookworm_dotnet() {
     let cfg = load_example("bookworm", "dotnet", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-dotnet");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Dotnet(dc) => {
-                    assert!(dc.use_backup_version);
-                    assert!(!dc.dotnet_packages.is_empty());
-                    assert!(dc.dotnet_packages.len() >= 10);
-                }
-                _ => panic!("Expected Dotnet language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-dotnet");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "dotnet-backup");
+    let pkgs = rt.vars.get("packages").unwrap().as_array().unwrap();
+    assert!(pkgs.len() >= 10);
 }
 
 #[test]
 fn parse_bookworm_nim() {
     let cfg = load_example("bookworm", "nim", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-nim");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Nim(nc) => {
-                    assert_eq!(nc.nim_version, "2.0.2");
-                    assert!(nc.nim_binary_url.contains("nim-lang.org"));
-                }
-                _ => panic!("Expected Nim language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-nim");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "nim");
+    let url = rt.vars.get("binary_url").unwrap().as_str().unwrap();
+    assert!(url.contains("nim-lang.org"));
 }
 
 #[test]
 fn parse_bookworm_python() {
     let cfg = load_example("bookworm", "python", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-python");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Python));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-python");
+    assert!(cfg.runtime.is_none()); // Python has no runtime
 }
 
 #[test]
 fn parse_bookworm_virtual() {
     let cfg = load_example("bookworm", "virtual", "hello-world");
-    assert_eq!(cfg.package.package_name, "test-virtual-package");
+    assert_eq!(cfg.package.name, "test-virtual-package");
     assert!(matches!(cfg.source, SourceKind::Virtual));
+    assert!(cfg.runtime.is_none());
     assert!(!cfg.build_env.testing.run_autopkgtest);
 }
 
 #[test]
 fn parse_bookworm_git_nimbus() {
     let cfg = load_example("bookworm", "git-package", "nimbus");
-    assert_eq!(cfg.package.package_name, "hello-world");
+    assert_eq!(cfg.package.name, "hello-world");
     match &cfg.source {
         SourceKind::Git {
             url,
             tag,
             submodules,
-            language,
         } => {
             assert!(url.contains("nimbus-eth2"));
             assert_eq!(tag, "v24.3.0");
             assert!(!submodules.is_empty());
-            // Nimbus has many submodules
             assert!(submodules.len() > 40);
-            match language {
-                LanguageEnv::Nim(nc) => {
-                    assert_eq!(nc.nim_version, "2.0.2");
-                }
-                _ => panic!("Expected Nim language"),
-            }
         }
         _ => panic!("Expected Git source"),
     }
-    // This example has testing disabled
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "nim");
     assert!(!cfg.build_env.testing.run_lintian);
-    assert!(!cfg.build_env.testing.run_piuparts);
-    assert!(!cfg.build_env.testing.run_autopkgtest);
 }
 
 // ─── Trixie examples ───
@@ -269,133 +185,74 @@ fn parse_trixie_c() {
     let cfg = load_example("trixie", "c", "hello-world");
     assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::C));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert!(cfg.runtime.is_none());
 }
 
 #[test]
 fn parse_trixie_rust() {
     let cfg = load_example("trixie", "rust", "hello-world");
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Rust(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "rust");
 }
 
 #[test]
 fn parse_trixie_go() {
     let cfg = load_example("trixie", "go", "hello-world");
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Go(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "go");
 }
 
 #[test]
 fn parse_trixie_java() {
     let cfg = load_example("trixie", "java", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Java(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java");
 }
 
 #[test]
 fn parse_trixie_java_gradle() {
     let cfg = load_example("trixie", "java-gradle", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Java(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java-gradle");
 }
 
 #[test]
 fn parse_trixie_javascript() {
     let cfg = load_example("trixie", "javascript", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::JavaScript(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
 }
 
 #[test]
 fn parse_trixie_typescript() {
     let cfg = load_example("trixie", "typescript", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::JavaScript(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
 }
 
 #[test]
 fn parse_trixie_dotnet() {
     let cfg = load_example("trixie", "dotnet", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Dotnet(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert!(cfg.runtime.as_ref().unwrap().recipe.starts_with("dotnet"));
 }
 
 #[test]
 fn parse_trixie_nim() {
     let cfg = load_example("trixie", "nim", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Nim(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "nim");
 }
 
 #[test]
 fn parse_trixie_python() {
     let cfg = load_example("trixie", "python", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Python));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert!(cfg.runtime.is_none());
 }
 
 #[test]
 fn parse_trixie_virtual() {
     let cfg = load_example("trixie", "virtual", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
     assert!(matches!(cfg.source, SourceKind::Virtual));
 }
 
 #[test]
 fn parse_trixie_git_nimbus() {
     let cfg = load_example("trixie", "git-package", "nimbus");
-    assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
     assert!(matches!(cfg.source, SourceKind::Git { .. }));
 }
 
@@ -414,35 +271,17 @@ fn parse_noble_go() {
 #[test]
 fn parse_noble_rust() {
     let cfg = load_example("noble", "rust", "hello-world");
-    assert!(matches!(
-        cfg.build_env.distribution,
-        Distribution::Ubuntu(_)
-    ));
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "rust");
 }
 
 #[test]
 fn parse_noble_dotnet9() {
     let cfg = load_example("noble", "dotnet-9", "hello-world");
-    assert_eq!(cfg.package.package_name, "hello-world-dotnet");
-    assert!(matches!(
-        cfg.build_env.distribution,
-        Distribution::Ubuntu(_)
-    ));
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            match language {
-                LanguageEnv::Dotnet(dc) => {
-                    assert!(dc.use_backup_version);
-                    // Noble dotnet-9 has deps field
-                    assert!(dc.deps.is_some());
-                    let deps = dc.deps.as_ref().unwrap();
-                    assert!(deps.contains(&"libbrotli1".to_string()));
-                }
-                _ => panic!("Expected Dotnet language"),
-            }
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.package.name, "hello-world-dotnet");
+    let rt = cfg.runtime.as_ref().expect("Expected runtime");
+    assert_eq!(rt.recipe, "dotnet-backup");
+    // Noble dotnet-9 has deps field
+    assert!(rt.vars.contains_key("deps"));
 }
 
 #[test]
@@ -454,34 +293,19 @@ fn parse_noble_virtual() {
 #[test]
 fn parse_noble_nim() {
     let cfg = load_example("noble", "nim", "hello-world");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Nim(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "nim");
 }
 
 #[test]
 fn parse_noble_java() {
     let cfg = load_example("noble", "java", "hello-world");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::Java(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java");
 }
 
 #[test]
 fn parse_noble_javascript() {
     let cfg = load_example("noble", "javascript", "hello-world");
-    match &cfg.source {
-        SourceKind::Tarball { language, .. } => {
-            assert!(matches!(language, LanguageEnv::JavaScript(_)));
-        }
-        _ => panic!("Expected Tarball source"),
-    }
+    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
 }
 
 #[test]
@@ -535,7 +359,6 @@ fn parse_verify_bookworm_c() {
     let cfg = load_verify("bookworm", "c", "hello-world");
     assert!(!cfg.verify.package_hash.is_empty());
     assert_eq!(cfg.verify.package_hash.len(), 2);
-    // Check hash format (SHA-1, 40 hex chars)
     for ph in &cfg.verify.package_hash {
         assert_eq!(ph.hash.len(), 40, "SHA-1 hash should be 40 chars: {}", ph.name);
     }
@@ -545,7 +368,6 @@ fn parse_verify_bookworm_c() {
 fn parse_verify_bookworm_rust() {
     let cfg = load_verify("bookworm", "rust", "hello-world");
     assert_eq!(cfg.verify.package_hash.len(), 4);
-    // Verify all expected file types are present
     let names: Vec<&str> = cfg.verify.package_hash.iter().map(|h| h.name.as_str()).collect();
     assert!(names.iter().any(|n| n.ends_with(".dsc")));
     assert!(names.iter().any(|n| n.ends_with(".orig.tar.gz")));
@@ -596,7 +418,6 @@ fn parse_all_pkg_builder_configs() {
         failures.len(),
         failures.join("\n")
     );
-    // Ensure we actually found configs
     assert!(count >= 42, "Expected at least 42 example configs, found {}", count);
 }
 

@@ -4,7 +4,8 @@ use commands::{ActionType, PkgBuilderArgs};
 
 use clap::Parser;
 use env_logger::Env;
-use log::error;
+use log::{error, info};
+use std::path::Path;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -45,27 +46,50 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let builder = pipeline::PackageBuilder::new(config)?;
-
     match args.action {
-        ActionType::Package(_) => builder.build()?,
-        ActionType::Env(env_cmd) => match env_cmd.sub_command {
-            commands::BuildEnvSubCommand::Create(_) => builder.create_env()?,
-            commands::BuildEnvSubCommand::Clean(_) => builder.clean_env()?,
-        },
-        ActionType::Lintian(_) => builder.run_lintian()?,
-        ActionType::Piuparts(_) => builder.run_piuparts()?,
-        ActionType::Autopkgtest(_) => builder.run_autopkgtest()?,
-        ActionType::Verify(verify_cmd) => {
-            let verify_config_path = verify_cmd
-                .verify_config
-                .unwrap_or_else(|| config_path.clone());
-            let verify_config = config::verify::PkgVerifyConfig::load(&verify_config_path)?;
-            let skip_build = verify_cmd.no_package.unwrap_or(false);
-            builder.verify(verify_config, skip_build)?;
-        }
-        ActionType::Version => unreachable!(),
-    }
+        ActionType::Generate(_) => {
+            let makefile_content = makefile::generate(&config)?;
 
-    Ok(())
+            // Write Makefile next to config
+            let output_path = Path::new(&config_path);
+            let output_dir = if output_path.is_dir() {
+                output_path.to_path_buf()
+            } else {
+                output_path
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .to_path_buf()
+            };
+            let makefile_path = output_dir.join("Makefile");
+            std::fs::write(&makefile_path, &makefile_content)?;
+            info!("Generated Makefile at {:?}", makefile_path);
+            Ok(())
+        }
+        _ => {
+            let builder = pipeline::PackageBuilder::new(config)?;
+
+            match args.action {
+                ActionType::Package(_) => builder.build()?,
+                ActionType::Env(env_cmd) => match env_cmd.sub_command {
+                    commands::BuildEnvSubCommand::Create(_) => builder.create_env()?,
+                    commands::BuildEnvSubCommand::Clean(_) => builder.clean_env()?,
+                },
+                ActionType::Lintian(_) => builder.run_lintian()?,
+                ActionType::Piuparts(_) => builder.run_piuparts()?,
+                ActionType::Autopkgtest(_) => builder.run_autopkgtest()?,
+                ActionType::Verify(verify_cmd) => {
+                    let verify_config_path = verify_cmd
+                        .verify_config
+                        .unwrap_or_else(|| config_path.clone());
+                    let verify_config =
+                        config::verify::PkgVerifyConfig::load(&verify_config_path)?;
+                    let skip_build = verify_cmd.no_package.unwrap_or(false);
+                    builder.verify(verify_config, skip_build)?;
+                }
+                ActionType::Generate(_) | ActionType::Version => unreachable!(),
+            }
+
+            Ok(())
+        }
+    }
 }

@@ -1,0 +1,8 @@
+# Pipeline: Ubuntu Jammy (tarball source)
+DOWNLOAD {{source_url}} $(TARBALL_PATH)
+VERIFY {{source_hash_algo}} {{source_hash}} $(TARBALL_PATH)
+EXTRACT $(TARBALL_PATH) $(BUILD_FILES_DIR)
+DEBCRAFTER {{spec_file}}
+PATCH
+INCLUDE {{runtime_recipe}}
+SBUILD

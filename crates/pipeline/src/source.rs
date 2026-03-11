@@ -39,7 +39,7 @@ pub fn acquire_source(ws: &Workspace) -> Result<(), PipelineError> {
                 tag,
                 submodules,
                 &ws.tarball_path,
-                &ws.config.package.package_name,
+                &ws.config.package.name,
                 &ws.build_artifacts_dir,
             )?;
         }

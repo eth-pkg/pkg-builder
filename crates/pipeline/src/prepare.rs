@@ -324,12 +324,13 @@ mod tests {
         let cfg = config::PkgConfig {
             package: config::package::PackageFields {
                 spec_file: "test.sss".into(),
-                package_name: "test".to_string(),
-                version_number: "1.0.0".to_string(),
-                revision_number: "1".to_string(),
+                name: "test".to_string(),
+                version: "1.0.0".to_string(),
+                revision: "1".to_string(),
                 homepage: "https://example.com".to_string(),
             },
             source: config::source::SourceKind::Virtual,
+            runtime: None,
             build_env: config::build_env::BuildEnv {
                 distribution: config::build_env::Distribution::bookworm(),
                 arch: config::build_env::Architecture::Amd64,

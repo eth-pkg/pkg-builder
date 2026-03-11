@@ -1,0 +1,6 @@
+# Pipeline: Ubuntu Jammy (virtual package)
+CREATE_EMPTY_TAR
+EXTRACT $(TARBALL_PATH) $(BUILD_FILES_DIR)
+DEBCRAFTER {{spec_file}}
+PATCH
+SBUILD

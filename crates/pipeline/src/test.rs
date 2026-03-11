@@ -1,5 +1,3 @@
-use config::language::LanguageEnv;
-use config::source::SourceKind;
 use log::info;
 
 use crate::context::Workspace;
@@ -22,10 +20,12 @@ pub fn run_lintian(ws: &Workspace) -> Result<(), PipelineError> {
 pub fn run_piuparts(ws: &Workspace) -> Result<(), PipelineError> {
     info!("Running piuparts on {:?}", ws.deb_path);
 
-    let is_dotnet = matches!(
-        source_language(&ws.config.source),
-        Some(LanguageEnv::Dotnet(_))
-    );
+    let is_dotnet = ws
+        .config
+        .runtime
+        .as_ref()
+        .map(|r| r.recipe.starts_with("dotnet"))
+        .unwrap_or(false);
 
     let repo_url = ws.config.build_env.repo_url();
 
@@ -54,17 +54,9 @@ pub fn run_autopkgtest(ws: &Workspace) -> Result<(), PipelineError> {
         &repo_url,
     )?;
 
-    // Build test setup commands from runtime
-    let setup_commands = match source_language(&ws.config.source) {
-        Some(lang) => {
-            let rt = runtime::runtime_for(lang);
-            rt.test_deps(&ws.config.build_env.distribution)
-                .into_iter()
-                .map(|cmd| format!("--setup-commands={}", cmd))
-                .collect::<Vec<_>>()
-        }
-        None => vec![],
-    };
+    // With the new declarative approach, test setup is in the Makefile.
+    // For now, pass no extra setup commands.
+    let setup_commands: Vec<String> = vec![];
 
     tool::autopkgtest::Autopkgtest {
         changes_file: &ws.changes_path,
@@ -75,11 +67,4 @@ pub fn run_autopkgtest(ws: &Workspace) -> Result<(), PipelineError> {
     .run()?;
 
     Ok(())
-}
-
-fn source_language(source: &SourceKind) -> Option<&LanguageEnv> {
-    match source {
-        SourceKind::Tarball { language, .. } | SourceKind::Git { language, .. } => Some(language),
-        SourceKind::Virtual => None,
-    }
 }

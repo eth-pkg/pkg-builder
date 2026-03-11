@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 pkg-builder-config = { path = "../config" }
 pkg-builder-pipeline = { path = "../pipeline" }
+pkg-builder-makefile = { path = "../makefile" }
 clap = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }

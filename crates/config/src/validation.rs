@@ -3,21 +3,21 @@ use crate::{ConfigError, PkgConfig};
 
 /// Validate the entire configuration.
 pub fn validate_config(config: &mut PkgConfig) -> Result<(), ConfigError> {
-    if config.package.package_name.is_empty() {
+    if config.package.name.is_empty() {
         return Err(ConfigError::Validation(
-            "package_name cannot be empty".into(),
+            "package name cannot be empty".into(),
         ));
     }
 
-    if config.package.version_number.is_empty() {
+    if config.package.version.is_empty() {
         return Err(ConfigError::Validation(
-            "version_number cannot be empty".into(),
+            "package version cannot be empty".into(),
         ));
     }
 
-    if config.package.revision_number.is_empty() {
+    if config.package.revision.is_empty() {
         return Err(ConfigError::Validation(
-            "revision_number cannot be empty".into(),
+            "package revision cannot be empty".into(),
         ));
     }
 
@@ -79,9 +79,9 @@ mod tests {
         PkgConfig {
             package: PackageFields {
                 spec_file: "test.sss".into(),
-                package_name: "test".to_string(),
-                version_number: "1.0.0".to_string(),
-                revision_number: "1".to_string(),
+                name: "test".to_string(),
+                version: "1.0.0".to_string(),
+                revision: "1".to_string(),
                 homepage: "https://example.com".to_string(),
             },
             source: SourceKind::Virtual,
@@ -105,6 +105,7 @@ mod tests {
                 snapshot_date: snapshot_date.map(String::from),
                 snapshot_security_date: snapshot_security_date.map(String::from),
             },
+            runtime: None,
             config_root: PathBuf::from("/test"),
         }
     }

@@ -1,0 +1,22 @@
+# Runtime: Java with Gradle
+APT_INSTALL wget
+RUN mkdir -p /opt/lib/jvm/jdk-{{jdk_version}}-oracle && mkdir -p /usr/lib/jvm
+DOWNLOAD {{binary_url}} /tmp/jdk.tar.gz
+RUN cd /tmp && echo "{{binary_checksum}} jdk.tar.gz" >>hash_file.txt && cat hash_file.txt
+RUN cd /tmp && sha256sum -c hash_file.txt
+RUN cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{{jdk_version}}-oracle --strip-components=1
+SYMLINK /opt/lib/jvm/jdk-{{jdk_version}}-oracle/bin/java /usr/bin/java
+SYMLINK /opt/lib/jvm/jdk-{{jdk_version}}-oracle/bin/javac /usr/bin/javac
+RUN java -version
+APT_REMOVE wget
+
+# Gradle
+APT_INSTALL wget unzip
+RUN mkdir -p /opt/lib/gradle-{{gradle_version}}
+DOWNLOAD {{gradle_binary_url}} /tmp/gradle.tar.gz
+RUN cd /tmp && echo "{{gradle_binary_checksum}} gradle.tar.gz" > hash_file.txt && cat hash_file.txt
+RUN cd /tmp && sha256sum -c hash_file.txt
+RUN cd /tmp && unzip gradle.tar.gz && mv gradle-{{gradle_version}} /opt/lib
+SYMLINK /opt/lib/gradle-{{gradle_version}}/bin/gradle /usr/bin/gradle
+RUN gradle -version
+APT_REMOVE wget

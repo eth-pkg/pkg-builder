@@ -28,27 +28,27 @@ impl Workspace {
 
         let build_artifacts_dir = workdir.join(format!(
             "{}-{}-{}",
-            pkg.package_name, pkg.version_number, pkg.revision_number
+            pkg.name, pkg.version, pkg.revision
         ));
 
         let build_files_dir = build_artifacts_dir.join(format!(
             "{}-{}",
-            pkg.package_name, pkg.version_number
+            pkg.name, pkg.version
         ));
 
         let tarball_path = build_artifacts_dir.join(format!(
             "{}_{}.orig.tar.gz",
-            pkg.package_name, pkg.version_number
+            pkg.name, pkg.version
         ));
 
         let deb_path = build_artifacts_dir.join(format!(
             "{}_{}-{}_{}.deb",
-            pkg.package_name, pkg.version_number, pkg.revision_number, env.arch
+            pkg.name, pkg.version, pkg.revision, env.arch
         ));
 
         let changes_path = build_artifacts_dir.join(format!(
             "{}_{}-{}_{}.changes",
-            pkg.package_name, pkg.version_number, pkg.revision_number, env.arch
+            pkg.name, pkg.version, pkg.revision, env.arch
         ));
 
         let cache_dir_expanded =
@@ -78,7 +78,6 @@ impl Workspace {
 mod tests {
     use super::*;
     use config::build_env::*;
-    use config::language::LanguageEnv;
     use config::package::PackageFields;
     use config::source::SourceKind;
 
@@ -86,15 +85,14 @@ mod tests {
         PkgConfig {
             package: PackageFields {
                 spec_file: "hello.sss".into(),
-                package_name: "hello-world".to_string(),
-                version_number: "1.0.0".to_string(),
-                revision_number: "1".to_string(),
+                name: "hello-world".to_string(),
+                version: "1.0.0".to_string(),
+                revision: "1".to_string(),
                 homepage: "https://example.com".to_string(),
             },
             source: SourceKind::Tarball {
                 url: "test.tar.gz".to_string(),
                 hash: Some("abc123".to_string()),
-                language: LanguageEnv::C,
             },
             build_env: BuildEnv {
                 distribution: Distribution::bookworm(),
@@ -117,6 +115,7 @@ mod tests {
                 snapshot_date: None,
                 snapshot_security_date: None,
             },
+            runtime: None,
             config_root: PathBuf::from("/test/config"),
         }
     }

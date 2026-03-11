@@ -1,0 +1,6 @@
+# Pipeline: Debian Bookworm (git source)
+GIT_CLONE {{git_url}} {{git_tag}}
+DEBCRAFTER {{spec_file}}
+PATCH
+INCLUDE {{runtime_recipe}}
+SBUILD

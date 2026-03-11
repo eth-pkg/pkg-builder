@@ -1,0 +1,9 @@
+# Runtime: Rust
+APT_INSTALL wget gpg gpg-agent
+DOWNLOAD {{binary_url}} /tmp/package.tar.xz
+RUN cd /tmp && echo "{{rust_binary_gpg_asc}}" >> package.tar.xz.asc
+RUN wget -qO- https://keybase.io/rust/pgp_keys.asc | gpg --import
+RUN cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz
+RUN cd /tmp && tar xvJf package.tar.xz -C . --strip-components=1
+RUN cd /tmp && /bin/bash install.sh
+APT_REMOVE wget gpg gpg-agent

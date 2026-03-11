@@ -2,12 +2,12 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-/// Package metadata fields from the [package_fields] section.
+/// Package metadata fields from the [package] section.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct PackageFields {
-    pub spec_file: PathBuf,
-    pub package_name: String,
-    pub version_number: String,
-    pub revision_number: String,
+    pub name: String,
+    pub version: String,
+    pub revision: String,
     pub homepage: String,
+    pub spec_file: PathBuf,
 }
