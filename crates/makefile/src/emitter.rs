@@ -352,8 +352,22 @@ impl<'a> MakefileEmitter<'a> {
                 Command::GitClone { url, tag } => {
                     out.push_str("# === Source ===\n");
                     out.push_str("$(SRC_TARBALL): | $(OUT_DIR)\n");
-                    out.push_str(&format!("\tgit clone --branch {} {} $(SRC_DIR)\n", tag, url));
-                    out.push_str("\tcd $(SRC_DIR) && git archive --format=tar.gz --prefix=$(PKG_NAME)-$(PKG_VERSION)/ HEAD > $@\n");
+                    out.push_str(&format!("\tgit clone --depth=1 --branch {} {} $(SRC_DIR)\n", tag, url));
+                    out.push_str("\tcd $(SRC_DIR) && git submodule update --init --recursive\n");
+                    if let config::source::SourceKind::Git { submodules, .. } = &self.config.source {
+                        for submodule in submodules {
+                            let commit = submodule.commit.trim();
+                            out.push_str(&format!(
+                                "\tcd $(SRC_DIR)/{} && git fetch origin {} && git checkout {}\n",
+                                submodule.path, commit, commit
+                            ));
+                        }
+                    }
+                    out.push_str("\trm -rf $(SRC_DIR)/.git\n");
+                    out.push_str("\tfind $(SRC_DIR) -name '.git' -type f -delete\n");
+                    out.push_str("\ttar --sort=name --owner=0 --group=0 --numeric-owner \\\n");
+                    out.push_str("\t  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \\\n");
+                    out.push_str("\t  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)\n");
                     current_file = "$(SRC_TARBALL)".to_string();
                 }
                 Command::CreateEmptyTar => {

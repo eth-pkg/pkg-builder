@@ -12,10 +12,10 @@ ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 WORK_DIR := $(HOME)/.pkg-builder/packages/trixie
 CHROOT_DIR := $(HOME)/.cache/sbuild
 
-PKG_NAME := hello-world
+PKG_NAME := hello-world-c
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
-PKG_SPEC := $(ROOT)/hello-world.sss
+PKG_SPEC := $(ROOT)/hello-world-c.sss
 
 DISTRIBUTION := trixie
 ARCH := amd64
