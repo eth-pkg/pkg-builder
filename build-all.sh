@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Skip these package types
-SKIP_PACKAGES=("dotnet" "dotnet-9", "rust", "git-package")
+SKIP_PACKAGES=("dotnet" "dotnet-9" "rust" "git-package")
 
 # All available distros
 ALL_DISTROS=(bookworm noble trixie)

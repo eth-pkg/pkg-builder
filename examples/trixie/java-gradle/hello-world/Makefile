@@ -40,12 +40,12 @@ SRC_HASH := 9838986aeb5fbf1e24fc20da08772c2264b5e0ace8a09b423c39cdc8774b0c04
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
+GRADLE_BINARY_CHECKSUM := 544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
+GRADLE_VERSION := 8.7
 GRADLE_BINARY_URL := https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
 BINARY_CHECKSUM := e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1
-GRADLE_BINARY_CHECKSUM := 544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
 JDK_VERSION := 17.0.10
-GRADLE_VERSION := 8.7
+BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
