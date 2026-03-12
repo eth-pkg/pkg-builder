@@ -5,3 +5,4 @@ workspace/**/target/**
 bin_dependencies/*
 .claude/
 .codex/
+docs/book/

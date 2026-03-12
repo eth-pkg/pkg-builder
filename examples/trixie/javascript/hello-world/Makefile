@@ -40,8 +40,8 @@ SRC_HASH := a7c7eb7779e319cc9c884128a64bd0997481c16aab75824b7f6a02844f847cbc46c5
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz
 BINARY_CHECKSUM := f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d
+BINARY_URL := https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz
 YARN_VERSION := 1.22.19
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
@@ -141,7 +141,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/node.tar.gz https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz' \
 	  --chroot-setup-commands='cd /tmp && echo "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d node.tar.gz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1' \
+	  --chroot-setup-commands='cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1 && rm -f node.tar.gz hash_file.txt' \
 	  --chroot-setup-commands='ls -l /usr/share/node/bin' \
 	  --chroot-setup-commands='ln -s /usr/share/node/bin/node /usr/bin/node' \
 	  --chroot-setup-commands='ln -s /usr/share/node/bin/npm /usr/bin/npm' \

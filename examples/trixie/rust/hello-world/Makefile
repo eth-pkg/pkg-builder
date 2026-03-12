@@ -40,7 +40,6 @@ SRC_HASH := f5bab501028b666be71da81dcd675082d05ad4b8e1650350d27a89209a0e239a209a
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://static.rust-lang.org/dist/rust-1.94.0-x86_64-unknown-linux-gnu.tar.xz
 define BINARY_GPG_ASC
 -----BEGIN PGP SIGNATURE-----
 
@@ -60,6 +59,7 @@ HHPLL77IzTAsDXtWSzvt3IuL+tmI2ZG9c3FvzTlC5Eji9+HOecCOR2QfrdJaqsRp
 -----END PGP SIGNATURE-----
 
 endef
+BINARY_URL := https://static.rust-lang.org/dist/rust-1.94.0-x86_64-unknown-linux-gnu.tar.xz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz

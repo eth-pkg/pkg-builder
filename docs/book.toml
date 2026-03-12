@@ -1,0 +1,12 @@
+[book]
+title = "pkg-builder"
+authors = ["eth-pkg"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/eth-pkg/pkg-builder"
+edit-url-template = "https://github.com/eth-pkg/pkg-builder/edit/main/docs/src/{path}"

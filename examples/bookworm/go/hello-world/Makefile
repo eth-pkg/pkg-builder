@@ -97,14 +97,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -144,7 +140,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/go.tar.gz https://go.dev/dl/go1.22.2.linux-amd64.tar.gz' \
 	  --chroot-setup-commands='cd /tmp && echo "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17 go.tar.gz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz' \
+	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt' \
 	  --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go' \
 	  --chroot-setup-commands='go version' \
 	  --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg' \
@@ -154,7 +150,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

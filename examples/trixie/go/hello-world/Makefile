@@ -40,8 +40,8 @@ SRC_HASH := c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_CHECKSUM := 5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
 BINARY_URL := https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
+BINARY_CHECKSUM := 5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -140,7 +140,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/go.tar.gz https://go.dev/dl/go1.22.2.linux-amd64.tar.gz' \
 	  --chroot-setup-commands='cd /tmp && echo "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17 go.tar.gz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz' \
+	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt' \
 	  --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go' \
 	  --chroot-setup-commands='go version' \
 	  --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg' \

@@ -40,12 +40,12 @@ SRC_HASH := 9838986aeb5fbf1e24fc20da08772c2264b5e0ace8a09b423c39cdc8774b0c04
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-JDK_VERSION := 17.0.10
+BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
+GRADLE_BINARY_URL := https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
 BINARY_CHECKSUM := e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1
 GRADLE_BINARY_CHECKSUM := 544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
-GRADLE_BINARY_URL := https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip
+JDK_VERSION := 17.0.10
 GRADLE_VERSION := 8.7
-BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -145,7 +145,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/jdk.tar.gz https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz' \
 	  --chroot-setup-commands='cd /tmp && echo "e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1 jdk.tar.gz" >>hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-17.0.10-oracle --strip-components=1' \
+	  --chroot-setup-commands='cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-17.0.10-oracle --strip-components=1 && rm -f jdk.tar.gz hash_file.txt' \
 	  --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-17.0.10-oracle/bin/java /usr/bin/java' \
 	  --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-17.0.10-oracle/bin/javac /usr/bin/javac' \
 	  --chroot-setup-commands='java -version' \
@@ -155,7 +155,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/gradle.tar.gz https://github.com/gradle/gradle-distributions/releases/download/v8.7.0/gradle-8.7-bin.zip' \
 	  --chroot-setup-commands='cd /tmp && echo "544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d gradle.tar.gz" > hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && unzip gradle.tar.gz && mv gradle-8.7 /opt/lib' \
+	  --chroot-setup-commands='cd /tmp && unzip gradle.tar.gz && rm -f gradle.tar.gz hash_file.txt && mv gradle-8.7 /opt/lib' \
 	  --chroot-setup-commands='ln -s /opt/lib/gradle-8.7/bin/gradle /usr/bin/gradle' \
 	  --chroot-setup-commands='gradle -version' \
 	  --chroot-setup-commands='apt remove -y wget' \

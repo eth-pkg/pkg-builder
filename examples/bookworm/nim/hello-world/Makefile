@@ -22,8 +22,8 @@ ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
 RUN_LINTIAN := true
-RUN_PIUPARTS := false
-RUN_AUTOPKGTEST := false
+RUN_PIUPARTS := true
+RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
 ifeq ($(RUN_PIUPARTS),true)
@@ -98,14 +98,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -147,7 +143,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/nim-2.0.2-linux_x64.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
 	  --chroot-setup-commands='cd /tmp && echo "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1' \
+	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1 && rm -f nim-2.0.2-linux_x64.tar.xz hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && mv nim-2.0.2 /opt/lib/nim' \
 	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-2.0.2/bin/nim /usr/bin/nim' \
 	  --chroot-setup-commands='nim --version' \
@@ -157,7 +153,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built
