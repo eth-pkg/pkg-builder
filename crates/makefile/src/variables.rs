@@ -16,10 +16,8 @@ impl VariableResolver {
         vars.insert("version".into(), config.package.version.clone());
         vars.insert("revision".into(), config.package.revision.clone());
         vars.insert("homepage".into(), config.package.homepage.clone());
-        vars.insert(
-            "spec_file".into(),
-            config.package.spec_file.display().to_string(),
-        );
+        // Use Make variable reference so recipe commands get portable paths
+        vars.insert("spec".into(), "$(PKG_SPEC)".into());
 
         // Build env
         vars.insert(
@@ -30,17 +28,17 @@ impl VariableResolver {
         vars.insert(
             "build_dir".into(),
             format!(
-                "$(BUILD_DIR)/{}-{}-{}",
+                "$(WORK_DIR)/{}-{}-{}",
                 config.package.name,
                 config.package.version,
                 config.package.revision
             ),
         );
         vars.insert(
-            "cache_dir".into(),
+            "chroot_dir".into(),
             config
                 .build_env
-                .sbuild_cache_dir
+                .chroot_dir
                 .display()
                 .to_string(),
         );
@@ -86,6 +84,10 @@ impl VariableResolver {
         vars.insert("runtime_recipe".into(), runtime_recipe);
 
         // Tool versions
+        vars.insert(
+            "debcrafter_rev".into(),
+            "$(DEBCRAFTER_REV)".into(),
+        );
         vars.insert(
             "sbuild_version".into(),
             config.build_env.tool_versions.sbuild.clone(),

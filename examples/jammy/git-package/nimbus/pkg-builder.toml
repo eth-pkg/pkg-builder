@@ -3,7 +3,7 @@ name = "hello-world"
 version = "1.0.0"
 revision = "1"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
-spec_file = "hello-world.sss"
+spec = "hello-world.sss"
 
 [source]
 type = "git"
@@ -70,6 +70,7 @@ binary_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"

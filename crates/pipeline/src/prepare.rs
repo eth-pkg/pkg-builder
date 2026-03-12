@@ -24,14 +24,6 @@ pub fn extract_source(ws: &Workspace) -> Result<(), PipelineError> {
     Ok(())
 }
 
-/// Run debcrafter to create the debian/ directory.
-pub fn setup_debian_dir(ws: &Workspace) -> Result<(), PipelineError> {
-    debcrafter_wrapper::check_dpkg_parsechangelog()?;
-    debcrafter_wrapper::generate_debian_dir(&ws.config.package.spec_file, &ws.build_artifacts_dir)?;
-
-    Ok(())
-}
-
 /// Apply patches to the extracted source.
 pub fn patch_source(ws: &Workspace) -> Result<(), PipelineError> {
     patch_quilt(&ws.build_files_dir)?;
@@ -323,7 +315,7 @@ mod tests {
         // Create a fake workspace
         let cfg = config::PkgConfig {
             package: config::package::PackageFields {
-                spec_file: "test.sss".into(),
+                spec: "test.sss".into(),
                 name: "test".to_string(),
                 version: "1.0.0".to_string(),
                 revision: "1".to_string(),
@@ -336,7 +328,7 @@ mod tests {
                 arch: config::build_env::Architecture::Amd64,
                 pkg_builder_version: "0.3.1".to_string(),
 
-                sbuild_cache_dir: dir.path().join("cache"),
+                chroot_dir: dir.path().join("cache"),
                 workdir: dir.path().to_path_buf(),
                 testing: config::build_env::TestingConfig {
                     run_lintian: false,

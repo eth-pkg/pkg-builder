@@ -52,7 +52,7 @@ impl Workspace {
         ));
 
         let cache_dir_expanded =
-            shellexpand::tilde(&env.sbuild_cache_dir.display().to_string()).to_string();
+            shellexpand::tilde(&env.chroot_dir.display().to_string()).to_string();
         let cache_file_name = match &env.snapshot_date {
             Some(date) => format!("{}-{}-{}.tar.gz", env.distribution.as_short(), env.arch, date),
             None => format!("{}-{}.tar.gz", env.distribution.as_short(), env.arch),
@@ -84,7 +84,7 @@ mod tests {
     fn test_config(workdir: &str) -> PkgConfig {
         PkgConfig {
             package: PackageFields {
-                spec_file: "hello.sss".into(),
+                spec: "hello.sss".into(),
                 name: "hello-world".to_string(),
                 version: "1.0.0".to_string(),
                 revision: "1".to_string(),
@@ -99,7 +99,7 @@ mod tests {
                 arch: Architecture::Amd64,
                 pkg_builder_version: "0.3.1".to_string(),
 
-                sbuild_cache_dir: PathBuf::from("/tmp/cache/sbuild"),
+                chroot_dir: PathBuf::from("/tmp/cache/sbuild"),
                 workdir: PathBuf::from(workdir),
                 testing: TestingConfig {
                     run_lintian: true,

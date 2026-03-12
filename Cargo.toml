@@ -5,7 +5,6 @@ members = [
     "crates/tool",
     "crates/pipeline",
     "crates/cli",
-    "crates/debcrafter",
     "crates/makefile",
 ]
 resolver = "2"
@@ -34,5 +33,4 @@ url = "2.4.1"
 pkg-builder-config = { path = "crates/config" }
 pkg-builder-tool = { path = "crates/tool" }
 pkg-builder-pipeline = { path = "crates/pipeline" }
-pkg-builder-debcrafter = { path = "crates/debcrafter" }
 pkg-builder-makefile = { path = "crates/makefile" }

@@ -219,7 +219,7 @@ pub struct BuildEnv {
     pub distribution: Distribution,
     pub arch: Architecture,
     pub pkg_builder_version: String,
-    pub sbuild_cache_dir: PathBuf,
+    pub chroot_dir: PathBuf,
     pub workdir: PathBuf,
     pub testing: TestingConfig,
     pub tool_versions: ToolVersions,
@@ -261,6 +261,7 @@ pub struct TestingConfig {
 
 #[derive(Debug, Clone)]
 pub struct ToolVersions {
+    pub debcrafter: String,
     pub sbuild: String,
     pub lintian: String,
     pub piuparts: String,
@@ -432,7 +433,7 @@ mod tests {
             distribution: Distribution::bookworm(),
             arch: Architecture::Amd64,
             pkg_builder_version: "0.3.1".to_string(),
-            sbuild_cache_dir: PathBuf::from("/tmp/cache"),
+            chroot_dir: PathBuf::from("/tmp/cache"),
             workdir: PathBuf::from("/tmp/work"),
             testing: TestingConfig {
                 run_lintian: false,
@@ -440,6 +441,7 @@ mod tests {
                 run_autopkgtest: false,
             },
             tool_versions: ToolVersions {
+                debcrafter: "8189263".to_string(),
                 sbuild: "0.85.6".to_string(),
                 lintian: "2.116.3".to_string(),
                 piuparts: "1.1.7".to_string(),

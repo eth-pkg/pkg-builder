@@ -1,4 +1,6 @@
 # Pipeline: Debian Trixie (tarball source)
+INSTALL debcrafter cargo install --git https://github.com/Kixunil/debcrafter --rev {{debcrafter_rev}}
+REQUIRE wget tar debcrafter dpkg-parsechangelog sbuild
 DOWNLOAD {{source_url}} $(TARBALL_PATH)
 VERIFY {{source_hash_algo}} {{source_hash}} $(TARBALL_PATH)
 EXTRACT $(TARBALL_PATH) $(BUILD_FILES_DIR)

@@ -9,5 +9,5 @@ pub struct PackageFields {
     pub version: String,
     pub revision: String,
     pub homepage: String,
-    pub spec_file: PathBuf,
+    pub spec: PathBuf,
 }

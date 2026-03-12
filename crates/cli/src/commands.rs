@@ -11,8 +11,8 @@ impl PkgBuilderArgs {
     pub fn config_path(&self) -> Option<String> {
         match &self.action {
             ActionType::Version => None,
-            ActionType::Package(cmd) => cmd.config.clone(),
             ActionType::Generate(cmd) => cmd.config.clone(),
+            ActionType::Package(cmd) => cmd.config.clone(),
             ActionType::Env(cmd) => match &cmd.sub_command {
                 BuildEnvSubCommand::Create(c) => c.config.clone(),
                 BuildEnvSubCommand::Clean(c) => c.config.clone(),
@@ -27,10 +27,10 @@ impl PkgBuilderArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum ActionType {
+    /// Generate Makefile without building
+    Generate(DefaultCommand),
     /// Create package
     Package(PackageCommand),
-    /// Generate Makefile from config
-    Generate(DefaultCommand),
     /// Clean, delete, create build environment
     Env(EnvCommand),
     /// Run piuparts tests

@@ -48,7 +48,7 @@ pub fn run_autopkgtest(ws: &Workspace) -> Result<(), PipelineError> {
     // Ensure QEMU image exists
     let repo_url = ws.config.build_env.repo_url();
     let image_path = tool::autopkgtest::ensure_autopkgtest_image(
-        &ws.config.build_env.sbuild_cache_dir,
+        &ws.config.build_env.chroot_dir,
         &ws.config.build_env.distribution,
         &ws.config.build_env.arch,
         &repo_url,

@@ -19,8 +19,6 @@ pub enum PipelineError {
     Config(#[from] config::ConfigError),
     #[error(transparent)]
     Tool(#[from] ToolError),
-    #[error(transparent)]
-    Debcrafter(#[from] debcrafter_wrapper::DebcrafterError),
     #[error("{phase}: {message}")]
     Phase {
         phase: &'static str,

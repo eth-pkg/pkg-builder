@@ -3,7 +3,7 @@ name = "hello-world-typescript"
 version = "1.0.0"
 revision = "1"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
-spec_file = "hello-world-typescript.sss"
+spec = "hello-world-typescript.sss"
 
 [source]
 type = "tarball"
@@ -28,6 +28,7 @@ autopkgtest = true
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"

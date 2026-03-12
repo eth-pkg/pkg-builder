@@ -31,6 +31,10 @@ pub enum Command {
     GitClone { url: String, tag: String },
     /// Create empty tarball for virtual packages
     CreateEmptyTar,
+    /// Declare a required host tool (checked in preflight)
+    Require { tools: Vec<String> },
+    /// Install a tool if not already present
+    Install { tool: String, cmd: String },
 }
 
 pub struct RecipeParser;
@@ -262,6 +266,20 @@ impl RecipeParser {
                 })
             }
             "CREATE_EMPTY_TAR" => Ok(Command::CreateEmptyTar),
+            "REQUIRE" => {
+                let tools: Vec<String> = args.split_whitespace().map(String::from).collect();
+                if tools.is_empty() {
+                    return Err(parse_err(file_name, line_num, "REQUIRE <tool1> [tool2] ..."));
+                }
+                Ok(Command::Require { tools })
+            }
+            "INSTALL" => {
+                let (tool, cmd) = split_two(args, file_name, line_num, "INSTALL <tool> <install command>")?;
+                Ok(Command::Install {
+                    tool: tool.into(),
+                    cmd: cmd.into(),
+                })
+            }
             _ => Err(GeneratorError::RecipeParse {
                 file: file_name.into(),
                 line: line_num,

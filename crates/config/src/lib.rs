@@ -94,9 +94,9 @@ impl PkgConfig {
         }
         self.build_env.workdir = expand_path(&self.build_env.workdir, None);
 
-        // Resolve spec_file relative to config root
-        if self.package.spec_file.is_relative() {
-            self.package.spec_file = self.config_root.join(&self.package.spec_file);
+        // Resolve spec relative to config root
+        if self.package.spec.is_relative() {
+            self.package.spec = self.config_root.join(&self.package.spec);
         }
 
         // Resolve tarball URL if it's a local path
@@ -107,8 +107,8 @@ impl PkgConfig {
             }
         }
 
-        // Resolve sbuild_cache_dir
-        self.build_env.sbuild_cache_dir = expand_path(&self.build_env.sbuild_cache_dir, None);
+        // Resolve chroot_dir
+        self.build_env.chroot_dir = expand_path(&self.build_env.chroot_dir, None);
     }
 }
 
@@ -168,7 +168,7 @@ struct RawBuild {
     #[serde(default)]
     workdir: PathBuf,
     #[serde(default)]
-    sbuild_cache_dir: Option<PathBuf>,
+    chroot_dir: Option<PathBuf>,
     #[serde(default)]
     snapshot_date: Option<String>,
     #[serde(default)]
@@ -188,6 +188,7 @@ struct RawTesting {
 #[derive(Debug, serde::Deserialize)]
 struct RawTools {
     pkg_builder: String,
+    debcrafter: String,
     sbuild: String,
     lintian: String,
     piuparts: String,
@@ -220,9 +221,9 @@ impl RawConfig {
             distribution: self.build.distribution,
             arch: self.build.arch,
             pkg_builder_version: self.tools.pkg_builder,
-            sbuild_cache_dir: self
+            chroot_dir: self
                 .build
-                .sbuild_cache_dir
+                .chroot_dir
                 .unwrap_or_else(|| PathBuf::from("~/.cache/sbuild")),
             workdir: self.build.workdir,
             testing: build_env::TestingConfig {
@@ -231,6 +232,7 @@ impl RawConfig {
                 run_autopkgtest: testing.autopkgtest,
             },
             tool_versions: build_env::ToolVersions {
+                debcrafter: self.tools.debcrafter,
                 sbuild: self.tools.sbuild,
                 lintian: self.tools.lintian,
                 piuparts: self.tools.piuparts,
@@ -267,7 +269,7 @@ name = "hello"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "hello.sss"
+spec = "hello.sss"
 
 [source]
 type = "tarball"
@@ -313,7 +315,7 @@ name = "test-virtual"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "virtual"
@@ -347,7 +349,7 @@ name = "test-git"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "git"
@@ -418,7 +420,7 @@ name = "test"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "virtual"
@@ -438,7 +440,7 @@ autopkgtest = "5.28"
         );
 
         let config = PkgConfig::load(dir.path()).unwrap();
-        let cache_str = config.build_env.sbuild_cache_dir.display().to_string();
+        let cache_str = config.build_env.chroot_dir.display().to_string();
         assert!(
             cache_str.contains(".cache/sbuild"),
             "Expected default cache dir, got: {}",
@@ -457,7 +459,7 @@ name = "test"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "virtual"
@@ -466,7 +468,7 @@ type = "virtual"
 distribution = "bookworm"
 arch = "amd64"
 workdir = "/tmp/test"
-sbuild_cache_dir = "/custom/cache"
+chroot_dir = "/custom/cache"
 
 [tools]
 pkg_builder = "0.3.1"
@@ -479,7 +481,7 @@ autopkgtest = "5.28"
 
         let config = PkgConfig::load(dir.path()).unwrap();
         assert_eq!(
-            config.build_env.sbuild_cache_dir,
+            config.build_env.chroot_dir,
             PathBuf::from("/custom/cache")
         );
     }
@@ -509,7 +511,7 @@ name = "test"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "tarball"
@@ -558,7 +560,7 @@ name = "test"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "virtual"
@@ -584,19 +586,19 @@ autopkgtest = "5.28"
     }
 
     #[test]
-    fn test_spec_file_resolved_relative_to_config_root() {
+    fn test_spec_resolved_relative_to_config_root() {
         let dir = tempdir().unwrap();
         write_config(dir.path(), base_default_config());
 
         let config = PkgConfig::load(dir.path()).unwrap();
         assert!(
-            config.package.spec_file.is_absolute(),
-            "spec_file should be absolute: {:?}",
-            config.package.spec_file
+            config.package.spec.is_absolute(),
+            "spec should be absolute: {:?}",
+            config.package.spec
         );
         assert!(config
             .package
-            .spec_file
+            .spec
             .display()
             .to_string()
             .ends_with("hello.sss"));
@@ -641,7 +643,7 @@ name = "test-go"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "tarball"
@@ -687,7 +689,7 @@ name = "test-dotnet"
 version = "1.0.0"
 revision = "1"
 homepage = "https://example.com"
-spec_file = "test.sss"
+spec = "test.sss"
 
 [source]
 type = "tarball"

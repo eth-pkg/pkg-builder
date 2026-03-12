@@ -1,4 +1,6 @@
 # Pipeline: Debian Trixie (virtual package)
+INSTALL debcrafter cargo install --git https://github.com/Kixunil/debcrafter --rev {{debcrafter_rev}}
+REQUIRE tar debcrafter dpkg-parsechangelog sbuild
 CREATE_EMPTY_TAR
 EXTRACT $(TARBALL_PATH) $(BUILD_FILES_DIR)
 DEBCRAFTER {{spec_file}}

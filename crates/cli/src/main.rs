@@ -6,7 +6,7 @@ use clap::Parser;
 use env_logger::Env;
 use log::{error, info};
 use std::path::Path;
-use std::process::ExitCode;
+use std::process::{Command, ExitCode};
 
 fn main() -> ExitCode {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -46,50 +46,62 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    match args.action {
-        ActionType::Generate(_) => {
-            let makefile_content = makefile::generate(&config)?;
+    // Generate Makefile
+    let makefile_content = makefile::generate(&config)?;
 
-            // Write Makefile next to config
-            let output_path = Path::new(&config_path);
-            let output_dir = if output_path.is_dir() {
-                output_path.to_path_buf()
-            } else {
-                output_path
-                    .parent()
-                    .unwrap_or(Path::new("."))
-                    .to_path_buf()
-            };
-            let makefile_path = output_dir.join("Makefile");
-            std::fs::write(&makefile_path, &makefile_content)?;
-            info!("Generated Makefile at {:?}", makefile_path);
-            Ok(())
-        }
-        _ => {
+    let output_path = Path::new(&config_path);
+    let output_dir = if output_path.is_dir() {
+        output_path.to_path_buf()
+    } else {
+        output_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_path_buf()
+    };
+    let makefile_path = output_dir.join("Makefile");
+    std::fs::write(&makefile_path, &makefile_content)?;
+    info!("Generated Makefile at {:?}", makefile_path);
+
+    // Determine which make target to run
+    let target = match args.action {
+        ActionType::Generate(_) => return Ok(()),
+        ActionType::Package(_) => "all",
+        ActionType::Env(ref env_cmd) => match env_cmd.sub_command {
+            commands::BuildEnvSubCommand::Create(_) => "env",
+            commands::BuildEnvSubCommand::Clean(_) => "clean",
+        },
+        ActionType::Lintian(_) => "test-lintian",
+        ActionType::Piuparts(_) => "test-piuparts",
+        ActionType::Autopkgtest(_) => "test-autopkgtest",
+        ActionType::Verify(_) => {
+            // Verify still uses the old pipeline for now
             let builder = pipeline::PackageBuilder::new(config)?;
-
-            match args.action {
-                ActionType::Package(_) => builder.build()?,
-                ActionType::Env(env_cmd) => match env_cmd.sub_command {
-                    commands::BuildEnvSubCommand::Create(_) => builder.create_env()?,
-                    commands::BuildEnvSubCommand::Clean(_) => builder.clean_env()?,
-                },
-                ActionType::Lintian(_) => builder.run_lintian()?,
-                ActionType::Piuparts(_) => builder.run_piuparts()?,
-                ActionType::Autopkgtest(_) => builder.run_autopkgtest()?,
-                ActionType::Verify(verify_cmd) => {
-                    let verify_config_path = verify_cmd
-                        .verify_config
-                        .unwrap_or_else(|| config_path.clone());
-                    let verify_config =
-                        config::verify::PkgVerifyConfig::load(&verify_config_path)?;
-                    let skip_build = verify_cmd.no_package.unwrap_or(false);
-                    builder.verify(verify_config, skip_build)?;
-                }
-                ActionType::Generate(_) | ActionType::Version => unreachable!(),
-            }
-
-            Ok(())
+            let verify_cmd = match args.action {
+                ActionType::Verify(v) => v,
+                _ => unreachable!(),
+            };
+            let verify_config_path = verify_cmd
+                .verify_config
+                .unwrap_or_else(|| config_path.clone());
+            let verify_config = config::verify::PkgVerifyConfig::load(&verify_config_path)?;
+            let skip_build = verify_cmd.no_package.unwrap_or(false);
+            builder.verify(verify_config, skip_build)?;
+            return Ok(());
         }
+        ActionType::Version => unreachable!(),
+    };
+
+    // Run make
+    info!("Running: make {}", target);
+    let status = Command::new("make")
+        .arg(target)
+        .current_dir(&output_dir)
+        .status()?;
+
+    if !status.success() {
+        let code = status.code().unwrap_or(1);
+        return Err(format!("make {} failed with exit code {}", target, code).into());
     }
+
+    Ok(())
 }
