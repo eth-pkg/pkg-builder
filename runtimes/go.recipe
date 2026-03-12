@@ -3,7 +3,7 @@ APT_INSTALL wget
 DOWNLOAD {{binary_url}} /tmp/go.tar.gz
 RUN cd /tmp && echo "{{binary_checksum}} go.tar.gz" >> hash_file.txt && cat hash_file.txt
 RUN cd /tmp && sha256sum -c hash_file.txt
-RUN cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz
+RUN cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt
 SYMLINK /usr/local/go/bin/go /usr/bin/go
 RUN go version
 RUN chmod -R a+rwx /usr/local/go/pkg

@@ -33,3 +33,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.20"
+
+[verify]
+package_hash = [
+    { name = "hello-world-typescript_1.0.0-1.dsc", hash = "ced12239e910aea43b76b7d5c474ac96184649eb" },
+    { name = "hello-world-typescript_1.0.0-1_amd64.deb", hash = "c942bd832414d95bfaca4204155d22e3479ecf69" },
+]

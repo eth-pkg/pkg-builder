@@ -40,23 +40,23 @@ SRC_HASH := f5bab501028b666be71da81dcd675082d05ad4b8e1650350d27a89209a0e239a209a
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz
+BINARY_URL := https://static.rust-lang.org/dist/rust-1.94.0-x86_64-unknown-linux-gnu.tar.xz
 define BINARY_GPG_ASC
 -----BEGIN PGP SIGNATURE-----
 
-wsFcBAABCgAQBQJmFa+iCRCFq5bm+hvl/gAAc4oP/12rJYjE54yHsCgcpf6Lg+jz
-h8HPP4uCET7gt7LZPBPaQPEllssvBE+OZPNXs2J/Bf9Dk+3Za2uEfSaEwRkuf2TV
-EjLRkbxxjAx6e5FczAV0Qdd9u8O2LimndsRPOpjvIJtU4+wXnlHpPQ0lydr0rJso
-/K9wdxvA3NgmNBa0SAKtGBwuziMk5tR+7gFFebJikXqnBsGgdifszL41tKSl5VkK
-FUyb6xn0tA+wGmCVNiCV8JeTacr7+upJhAcMEqYWH/AuhA2vgF21W5jDPeA3VfoJ
-RgPYUkbTKSdmUd68sUS5pzixxnYa6LXMBewshTim/kbxlMHxrZ+YSoOjBSuMUA/9
-ZcvqR/fdVNLXI/2oFIT4VPNM1cYmR15xBI1G5AbfOzYWoPGU9OTu4hs11Y3DCTCz
-E5obQCVAm4/H8gO3hTvDiJE0Rb2M0h1uV12LkCMymzuIBrhLkVhQeekDZadJmWq0
-XlT/N86YFd8P393xYE3fpKaGqZ0fBJfX4nLdZHdZeFrov6ADjf7NLsfY0S9AnRnK
-SAytDb5EQMcBZXlNKnF+mLG9l0Y4JtijEsaiMaJgzVInTIUTtkW/GlgpAgzIBQ8m
-KGFMBQELjcFWLGcBVE45DRuVR8E3XYunjSdgLFXjfZfeGF3uiS6fNHGCH41ryqfj
-2jwoU0cewz4tgDucAWWC
-=sCT4
+wsFcBAABCgAQBQJpqcrwCRCFq5bm+hvl/gAA9D0QANn8ev2hsore88LH1pYjT/em
+fcer+TMQHazVsX5Ay4fLN79yyTXWXw/fO0E6JVKbZGuU2PpjrauXHahnrs8qTHkz
+5nHMa6GcjbD5Ai1lzAeIo9Fl6qmszxf35uu6Fze71rqcW7slgOpRcGxUQaZFrHQo
++cEwAJ5XI9xiYjJDPRiZQu3hItcs2F3k+BUpl9E4N699818Iz/Nkxpd+B3OsU41x
+TessON17oSSB8wNMq38SZW4bou1MWyWQASxS3ijzKipii2ABAY+71IUFxtDzWs/s
++kpvXD2UWVb/UMXQoXsWZ5mQj47Nj/AupWp/KX8v5Jamjivh6F+SG6Skq9cLgk3X
+p1KhpJQefTDPx1rtz/MUWKMVeYEgd4oxy3yXQx5fcY+OD+31fntPkZKRBawrVwqd
+Fx8AJ162fcp/3EIalVnBe+nnYb0/Tvk/CVvJRUqnJ3nc2t4qOOY9L0WC1LpBkEeD
+tMm+q2TPYoMLA0LQSXcCFYj4BEThTHZI/ZvBKRGdopud7JTpSG7BczzjtC1z6nhQ
+Pbads6M8GUHuIkfmSkVJron1EKqFISO8yTEd0HQlxSc8Pl2jioVkWnv9oM4os1zm
+HHPLL77IzTAsDXtWSzvt3IuL+tmI2ZG9c3FvzTlC5Eji9+HOecCOR2QfrdJaqsRp
+4yBHeEEQXm/cW4SVspKo
+=Bvj8
 -----END PGP SIGNATURE-----
 
 endef
@@ -115,14 +115,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -159,35 +155,20 @@ SBUILD_FLAGS += \
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	sbuild $(SBUILD_FLAGS) \
 	  --chroot-setup-commands='apt install -y wget gpg gpg-agent' \
-	  --chroot-setup-commands='wget -q -O /tmp/package.tar.xz https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz' \
-	  --chroot-setup-commands='cd /tmp && echo "-----BEGIN PGP SIGNATURE-----
-
-wsFcBAABCgAQBQJmFa+iCRCFq5bm+hvl/gAAc4oP/12rJYjE54yHsCgcpf6Lg+jz
-h8HPP4uCET7gt7LZPBPaQPEllssvBE+OZPNXs2J/Bf9Dk+3Za2uEfSaEwRkuf2TV
-EjLRkbxxjAx6e5FczAV0Qdd9u8O2LimndsRPOpjvIJtU4+wXnlHpPQ0lydr0rJso
-/K9wdxvA3NgmNBa0SAKtGBwuziMk5tR+7gFFebJikXqnBsGgdifszL41tKSl5VkK
-FUyb6xn0tA+wGmCVNiCV8JeTacr7+upJhAcMEqYWH/AuhA2vgF21W5jDPeA3VfoJ
-RgPYUkbTKSdmUd68sUS5pzixxnYa6LXMBewshTim/kbxlMHxrZ+YSoOjBSuMUA/9
-ZcvqR/fdVNLXI/2oFIT4VPNM1cYmR15xBI1G5AbfOzYWoPGU9OTu4hs11Y3DCTCz
-E5obQCVAm4/H8gO3hTvDiJE0Rb2M0h1uV12LkCMymzuIBrhLkVhQeekDZadJmWq0
-XlT/N86YFd8P393xYE3fpKaGqZ0fBJfX4nLdZHdZeFrov6ADjf7NLsfY0S9AnRnK
-SAytDb5EQMcBZXlNKnF+mLG9l0Y4JtijEsaiMaJgzVInTIUTtkW/GlgpAgzIBQ8m
-KGFMBQELjcFWLGcBVE45DRuVR8E3XYunjSdgLFXjfZfeGF3uiS6fNHGCH41ryqfj
-2jwoU0cewz4tgDucAWWC
-=sCT4
------END PGP SIGNATURE-----
-" >> package.tar.xz.asc' \
+	  --chroot-setup-commands='wget -q -O /tmp/package.tar.xz https://static.rust-lang.org/dist/rust-1.94.0-x86_64-unknown-linux-gnu.tar.xz' \
+	  --chroot-setup-commands=$$'cd /tmp && echo "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCgAQBQJpqcrwCRCFq5bm+hvl/gAA9D0QANn8ev2hsore88LH1pYjT/em\nfcer+TMQHazVsX5Ay4fLN79yyTXWXw/fO0E6JVKbZGuU2PpjrauXHahnrs8qTHkz\n5nHMa6GcjbD5Ai1lzAeIo9Fl6qmszxf35uu6Fze71rqcW7slgOpRcGxUQaZFrHQo\n+cEwAJ5XI9xiYjJDPRiZQu3hItcs2F3k+BUpl9E4N699818Iz/Nkxpd+B3OsU41x\nTessON17oSSB8wNMq38SZW4bou1MWyWQASxS3ijzKipii2ABAY+71IUFxtDzWs/s\n+kpvXD2UWVb/UMXQoXsWZ5mQj47Nj/AupWp/KX8v5Jamjivh6F+SG6Skq9cLgk3X\np1KhpJQefTDPx1rtz/MUWKMVeYEgd4oxy3yXQx5fcY+OD+31fntPkZKRBawrVwqd\nFx8AJ162fcp/3EIalVnBe+nnYb0/Tvk/CVvJRUqnJ3nc2t4qOOY9L0WC1LpBkEeD\ntMm+q2TPYoMLA0LQSXcCFYj4BEThTHZI/ZvBKRGdopud7JTpSG7BczzjtC1z6nhQ\nPbads6M8GUHuIkfmSkVJron1EKqFISO8yTEd0HQlxSc8Pl2jioVkWnv9oM4os1zm\nHHPLL77IzTAsDXtWSzvt3IuL+tmI2ZG9c3FvzTlC5Eji9+HOecCOR2QfrdJaqsRp\n4yBHeEEQXm/cW4SVspKo\n=Bvj8\n-----END PGP SIGNATURE-----\n" >> package.tar.xz.asc' \
 	  --chroot-setup-commands='wget -qO- https://keybase.io/rust/pgp_keys.asc | gpg --import' \
 	  --chroot-setup-commands='cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz' \
-	  --chroot-setup-commands='cd /tmp && tar xvJf package.tar.xz -C . --strip-components=1' \
-	  --chroot-setup-commands='cd /tmp && /bin/bash install.sh' \
+	  --chroot-setup-commands='cd /tmp && tar xJf package.tar.xz -C . --strip-components=1 && rm -f package.tar.xz package.tar.xz.asc' \
+	  --chroot-setup-commands='cd /tmp && /bin/bash install.sh --components=rustc,cargo,rust-std-x86_64-unknown-linux-gnu' \
+	  --chroot-setup-commands='rm -rf /tmp/rustc /tmp/cargo /tmp/rust-std-x86_64-unknown-linux-gnu /tmp/install.sh' \
 	  --chroot-setup-commands='apt remove -y wget gpg gpg-agent' \
 	  $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

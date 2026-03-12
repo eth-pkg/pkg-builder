@@ -307,7 +307,7 @@ impl<'a> MakefileEmitter<'a> {
 
         // Tracks the file target that each phase produces, used as prereq for the next
         let mut current_file = "preflight".to_string();
-        let mut has_extract = false;
+        let mut extract_commands: Vec<String> = Vec::new();
 
         // OUT_DIR order-only target so mkdir only runs when needed
         out.push_str("# === Directories ===\n");
@@ -337,17 +337,13 @@ impl<'a> MakefileEmitter<'a> {
                         .replace("$(build_dir)", "$(OUT_DIR)")
                         .replace("{{build_dir}}", "$(OUT_DIR)")
                         .replace("$(BUILD_FILES_DIR)", "$(SRC_DIR)");
-                    out.push_str(&format!("\n# === Extract ===\n$(SRC_DIR)/.extracted: {}\n", current_file));
-                    out.push_str(&format!("\tmkdir -p {}\n", dest));
+                    extract_commands.push(format!("\tmkdir -p {}\n", dest));
                     match strip {
-                        Some(n) => out.push_str(&format!(
-                            "\ttar -C {} -xf $< --strip-components={}\n", dest, n
+                        Some(n) => extract_commands.push(format!(
+                            "\ttar -C {} -xf $(SRC_TARBALL) --strip-components={}\n", dest, n
                         )),
-                        None => out.push_str(&format!("\ttar -C {} -xf $<\n", dest)),
+                        None => extract_commands.push(format!("\ttar -C {} -xf $(SRC_TARBALL)\n", dest)),
                     }
-                    out.push_str("\ttouch $@\n");
-                    has_extract = true;
-                    current_file = "$(SRC_DIR)/.extracted".to_string();
                 }
                 Command::GitClone { url, tag } => {
                     out.push_str("# === Source ===\n");
@@ -379,6 +375,9 @@ impl<'a> MakefileEmitter<'a> {
                 }
                 Command::Debcrafter { .. } => {
                     out.push_str(&format!("\n# === Debian packaging ===\n$(SRC_DIR)/debian/rules: {}\n", current_file));
+                    for extract_cmd in &extract_commands {
+                        out.push_str(extract_cmd);
+                    }
                     out.push_str("\t$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)\n");
                     current_file = "$(SRC_DIR)/debian/rules".to_string();
                 }
@@ -430,12 +429,7 @@ impl<'a> MakefileEmitter<'a> {
         // Phony aliases for user-facing target names
         out.push_str("\n# === Phony aliases ===\n");
         out.push_str("source: $(SRC_TARBALL)\n");
-        if has_extract {
-            out.push_str("extract: $(SRC_DIR)/.extracted\n");
-        } else {
-            // git: SRC_DIR created during source, no separate extract step
-            out.push_str("extract: source\n");
-        }
+        out.push_str("extract: source\n");
         out.push_str("debian: $(SRC_DIR)/debian/rules\n");
         out.push_str("patch: $(SRC_DIR)/debian/source/format\n");
         out.push_str("sbuild build: $(OUT_DIR)/.built\n");

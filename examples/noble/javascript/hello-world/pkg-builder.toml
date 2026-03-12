@@ -33,3 +33,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.20"
+
+[verify]
+package_hash = [
+    { name = "hello-world-javascript_1.0.0-1.dsc", hash = "91fde91875d2b9636788b279896146a65c326934" },
+    { name = "hello-world-javascript_1.0.0-1_amd64.deb", hash = "7d12da1ec3fbdc92f73a057f95663da3c39ad2a3" },
+]

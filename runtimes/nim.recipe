@@ -5,7 +5,7 @@ RUN mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim
 DOWNLOAD {{binary_url}} /tmp/nim-{{nim_version}}-linux_x64.tar.xz
 RUN cd /tmp && echo "{{binary_checksum}}" >> hash_file.txt && cat hash_file.txt
 RUN cd /tmp && sha256sum -c hash_file.txt
-RUN cd /tmp && tar xJf nim-{{nim_version}}-linux_x64.tar.xz -C nim-{{nim_version}} --strip-components=1
+RUN cd /tmp && tar xJf nim-{{nim_version}}-linux_x64.tar.xz -C nim-{{nim_version}} --strip-components=1 && rm -f nim-{{nim_version}}-linux_x64.tar.xz hash_file.txt
 RUN cd /tmp && mv nim-{{nim_version}} /opt/lib/nim
 SYMLINK /opt/lib/nim/nim-{{nim_version}}/bin/nim /usr/bin/nim
 RUN nim --version

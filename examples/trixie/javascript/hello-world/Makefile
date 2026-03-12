@@ -22,8 +22,8 @@ ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
 RUN_LINTIAN := true
-RUN_PIUPARTS := false
-RUN_AUTOPKGTEST := false
+RUN_PIUPARTS := true
+RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
 ifeq ($(RUN_PIUPARTS),true)
@@ -40,9 +40,9 @@ SRC_HASH := a7c7eb7779e319cc9c884128a64bd0997481c16aab75824b7f6a02844f847cbc46c5
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-YARN_VERSION := 1.22.19
-BINARY_CHECKSUM := f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d
 BINARY_URL := https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz
+BINARY_CHECKSUM := f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d
+YARN_VERSION := 1.22.19
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -98,14 +98,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -159,7 +155,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

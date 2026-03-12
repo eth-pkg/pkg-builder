@@ -36,3 +36,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.20"
+
+[verify]
+package_hash = [
+    { name = "hello-world-java-gradle_1.0.0-1.dsc", hash = "427f1ebed41bc56f34230449c635823c61c13a16" },
+    { name = "hello-world-java-gradle_1.0.0-1_amd64.deb", hash = "d9ea85f4520f21d1e93ff0500dafd83e9a6da089" },
+]

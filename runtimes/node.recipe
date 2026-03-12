@@ -3,7 +3,7 @@ APT_INSTALL wget
 DOWNLOAD {{binary_url}} /tmp/node.tar.gz
 RUN cd /tmp && echo "{{binary_checksum}} node.tar.gz" >> hash_file.txt && cat hash_file.txt
 RUN cd /tmp && sha256sum -c hash_file.txt
-RUN cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1
+RUN cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1 && rm -f node.tar.gz hash_file.txt
 RUN ls -l /usr/share/node/bin
 SYMLINK /usr/share/node/bin/node /usr/bin/node
 SYMLINK /usr/share/node/bin/npm /usr/bin/npm

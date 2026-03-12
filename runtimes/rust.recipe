@@ -4,8 +4,7 @@ DOWNLOAD {{binary_url}} /tmp/package.tar.xz
 RUN cd /tmp && echo "{{binary_gpg_asc}}" >> package.tar.xz.asc
 RUN wget -qO- https://keybase.io/rust/pgp_keys.asc | gpg --import
 RUN cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz
-RUN cd /tmp && tar xJf package.tar.xz -C . --strip-components=1
-RUN rm -f /tmp/package.tar.xz /tmp/package.tar.xz.asc
+RUN cd /tmp && tar xJf package.tar.xz -C . --strip-components=1 && rm -f package.tar.xz package.tar.xz.asc
 RUN cd /tmp && /bin/bash install.sh --components=rustc,cargo,rust-std-x86_64-unknown-linux-gnu
 RUN rm -rf /tmp/rustc /tmp/cargo /tmp/rust-std-x86_64-unknown-linux-gnu /tmp/install.sh
 APT_REMOVE wget gpg gpg-agent

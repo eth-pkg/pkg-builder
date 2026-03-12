@@ -33,3 +33,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "hello-world-nim_1.0.0-1.dsc", hash = "07bb3ce87133c8e56fadee791f3e098bebc17a91" },
+    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "af1520a6424848b57120fc629bff53755b053d88" },
+]

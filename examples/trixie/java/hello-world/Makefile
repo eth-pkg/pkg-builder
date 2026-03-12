@@ -22,8 +22,8 @@ ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
 RUN_LINTIAN := true
-RUN_PIUPARTS := false
-RUN_AUTOPKGTEST := false
+RUN_PIUPARTS := true
+RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
 ifeq ($(RUN_PIUPARTS),true)
@@ -40,8 +40,8 @@ SRC_HASH := c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_CHECKSUM := e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1
 BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
+BINARY_CHECKSUM := e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -97,14 +97,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -155,7 +151,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

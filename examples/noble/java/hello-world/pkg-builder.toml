@@ -32,3 +32,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.20"
+
+[verify]
+package_hash = [
+    { name = "hello-world-java_1.0.0-1.dsc", hash = "3094c4605ba2a2bfbd9327bffc790c8f55468ee4" },
+    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "b7903e7a61c3555c89ba2f09f8d132cec5b7809d" },
+]

@@ -39,22 +39,27 @@ jobs:
       distro: bookworm
       languages: |
         - c
-        - dotnet
         - go
         - java
         - java-gradle
         - javascript
         - nim
-        - rust
         - typescript
         - virtual
 
-  # trixie:
-  #   uses: ./.github/workflows/packaging.yml
-  #   with:
-  #     distro: trixie
-  #     languages: |
-  #       - c
+  trixie:
+    uses: ./.github/workflows/packaging.yml
+    with:
+      distro: trixie
+      languages: |
+        - c
+        - go
+        - java
+        - java-gradle
+        - javascript
+        - nim
+        - typescript
+        - virtual
 
   noble:
     uses: ./.github/workflows/packaging.yml
@@ -62,20 +67,12 @@ jobs:
       distro: noble
       languages: |
         - c
+        - go
+        - java
+        - java-gradle
+        - javascript
+        - nim
+        - typescript
+        - virtual
       include_genisoimage: true
 
-  # jammy:
-  #   uses: ./.github/workflows/packaging.yml
-  #   with:
-  #     distro: jammy
-  #     languages: |
-  #       - c
-  #       - dotnet
-  #       - go
-  #       - java
-  #       - java-gradle
-  #       - javascript
-  #       - nim
-  #       - rust
-  #       - typescript
-  #       - virtual

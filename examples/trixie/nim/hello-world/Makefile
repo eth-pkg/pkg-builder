@@ -22,8 +22,8 @@ ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
 RUN_LINTIAN := true
-RUN_PIUPARTS := false
-RUN_AUTOPKGTEST := false
+RUN_PIUPARTS := true
+RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
 ifeq ($(RUN_PIUPARTS),true)
@@ -40,8 +40,9 @@ SRC_HASH := b24e4ff701d8cbccab0cc78f2de55518babcd05a861af8d5d140863637b0ec74ba3e
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
+NIM_VERSION := 2.0.2
 BINARY_CHECKSUM := 047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz
+BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -97,14 +98,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -141,14 +138,14 @@ SBUILD_FLAGS += \
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	sbuild $(SBUILD_FLAGS) \
 	  --chroot-setup-commands='apt install -y wget' \
-	  --chroot-setup-commands='rm -rf /tmp/nim-{{nim_version}} && rm -rf /usr/lib/nim/nim-{{nim_version}} && rm -rf /opt/lib/nim/nim-{{nim_version}} && mkdir /tmp/nim-{{nim_version}}' \
+	  --chroot-setup-commands='rm -rf /tmp/nim-2.0.2 && rm -rf /usr/lib/nim/nim-2.0.2 && rm -rf /opt/lib/nim/nim-2.0.2 && mkdir /tmp/nim-2.0.2' \
 	  --chroot-setup-commands='mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim' \
-	  --chroot-setup-commands='wget -q -O /tmp/nim-archive.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
+	  --chroot-setup-commands='wget -q -O /tmp/nim-2.0.2-linux_x64.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
 	  --chroot-setup-commands='cd /tmp && echo "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar xJf nim-{{nim_version}}-linux_x64.tar.xz -C nim-{{nim_version}} --strip-components=1' \
-	  --chroot-setup-commands='cd /tmp && mv nim-{{nim_version}} /opt/lib/nim' \
-	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-{{nim_version}}/bin/nim /usr/bin/nim' \
+	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1' \
+	  --chroot-setup-commands='cd /tmp && mv nim-2.0.2 /opt/lib/nim' \
+	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-2.0.2/bin/nim /usr/bin/nim' \
 	  --chroot-setup-commands='nim --version' \
 	  --chroot-setup-commands='apt remove -y wget' \
 	  $(SRC_DIR)
@@ -156,7 +153,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

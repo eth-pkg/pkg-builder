@@ -12,18 +12,18 @@ ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 WORK_DIR := $(HOME)/.pkg-builder/packages/noble
 CHROOT_DIR := $(HOME)/.cache/sbuild
 
-PKG_NAME := hello-world
+PKG_NAME := hello-world-c
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
-PKG_SPEC := $(ROOT)/hello-world.sss
+PKG_SPEC := $(ROOT)/hello-world-c.sss
 
 DISTRIBUTION := noble
 ARCH := amd64
 REPO_URL := http://archive.ubuntu.com/ubuntu
 
 RUN_LINTIAN := true
-RUN_PIUPARTS := false
-RUN_AUTOPKGTEST := false
+RUN_PIUPARTS := true
+RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
 ifeq ($(RUN_PIUPARTS),true)
@@ -95,14 +95,10 @@ $(SRC_TARBALL): $(SRC_URL) | $(OUT_DIR)
 	cp $< $@
 	echo "$(SRC_HASH)  $@" | $(SRC_HASH_ALGO)sum -c
 
-# === Extract ===
-$(SRC_DIR)/.extracted: $(SRC_TARBALL)
-	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $<
-	touch $@
-
 # === Debian packaging ===
-$(SRC_DIR)/debian/rules: $(SRC_DIR)/.extracted
+$(SRC_DIR)/debian/rules: $(SRC_TARBALL)
+	mkdir -p $(SRC_DIR)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -148,7 +144,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 
 # === Phony aliases ===
 source: $(SRC_TARBALL)
-extract: $(SRC_DIR)/.extracted
+extract: source
 debian: $(SRC_DIR)/debian/rules
 patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built

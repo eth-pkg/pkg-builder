@@ -32,3 +32,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "hello-world-go_1.0.0-1.dsc", hash = "6ff71ad252f0e9775dd92a6f210fe7b7fb00cc36" },
+    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "bda9738bb92e4b5879376872c51e076607b2ab36" },
+]
