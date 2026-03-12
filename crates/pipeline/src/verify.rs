@@ -1,7 +1,7 @@
 use log::info;
 use sha1::{Digest, Sha1};
 
-use config::verify::PkgVerifyConfig;
+use config::verify::VerifyConfig;
 
 use crate::context::Workspace;
 use crate::PipelineError;
@@ -9,13 +9,8 @@ use crate::PipelineError;
 /// Verify package hashes against a verify config. Optionally rebuild first.
 pub fn verify_package(
     ws: &Workspace,
-    verify_config: PkgVerifyConfig,
-    skip_build: bool,
+    verify_config: VerifyConfig,
 ) -> Result<(), PipelineError> {
-    if !skip_build {
-        crate::build::build_package(ws)?;
-    }
-
     let output_dir = ws
         .build_files_dir
         .parent()
@@ -26,7 +21,7 @@ pub fn verify_package(
 
     let mut errors = Vec::new();
 
-    for pkg_hash in &verify_config.verify.package_hash {
+    for pkg_hash in &verify_config.package_hash {
         let file_path = output_dir.join(&pkg_hash.name);
 
         if !file_path.exists() {

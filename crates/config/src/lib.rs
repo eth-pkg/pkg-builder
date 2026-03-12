@@ -13,6 +13,7 @@ use runtime::RuntimeConfig;
 use source::SourceKind;
 use thiserror::Error;
 use validation::validate_config;
+use verify::VerifyConfig;
 
 /// The main configuration struct, parsed from pkg-builder.toml.
 /// Parsed once, validated once, immutable after construction.
@@ -22,6 +23,7 @@ pub struct PkgConfig {
     pub source: SourceKind,
     pub build_env: BuildEnv,
     pub runtime: Option<RuntimeConfig>,
+    pub verify: Option<VerifyConfig>,
     /// Root directory of the config file (for resolving relative paths)
     pub config_root: PathBuf,
 }
@@ -46,7 +48,6 @@ pub enum ConfigError {
 
 /// Name of the default configuration file
 pub const CONFIG_FILE_NAME: &str = "pkg-builder.toml";
-pub const VERIFY_CONFIG_FILE_NAME: &str = "pkg-builder-verify.toml";
 pub const WORKDIR_ROOT: &str = "~/.pkg-builder/packages";
 
 impl PkgConfig {
@@ -142,6 +143,8 @@ struct RawConfig {
     #[serde(default)]
     testing: Option<RawTesting>,
     tools: RawTools,
+    #[serde(default)]
+    verify: Option<VerifyConfig>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -247,6 +250,7 @@ impl RawConfig {
             source,
             build_env,
             runtime: self.runtime,
+            verify: self.verify,
             config_root,
         })
     }

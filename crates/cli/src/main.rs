@@ -70,22 +70,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::BuildEnvSubCommand::Create(_) => "env",
             commands::BuildEnvSubCommand::Clean(_) => "clean",
         },
+        ActionType::Clean(_) => "clean",
         ActionType::Lintian(_) => "test-lintian",
         ActionType::Piuparts(_) => "test-piuparts",
         ActionType::Autopkgtest(_) => "test-autopkgtest",
         ActionType::Verify(_) => {
-            // Verify still uses the old pipeline for now
+            let verify_config = config.verify.clone().ok_or("No [verify] section in pkg-builder.toml")?;
             let builder = pipeline::PackageBuilder::new(config)?;
-            let verify_cmd = match args.action {
-                ActionType::Verify(v) => v,
-                _ => unreachable!(),
-            };
-            let verify_config_path = verify_cmd
-                .verify_config
-                .unwrap_or_else(|| config_path.clone());
-            let verify_config = config::verify::PkgVerifyConfig::load(&verify_config_path)?;
-            let skip_build = verify_cmd.no_package.unwrap_or(false);
-            builder.verify(verify_config, skip_build)?;
+            builder.verify(verify_config)?;
             return Ok(());
         }
         ActionType::Version => unreachable!(),

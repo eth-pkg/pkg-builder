@@ -27,3 +27,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "hello-world_1.0.0-1.dsc", hash = "ecdb1c7366c9655f0cac0a9da38c09891a404be7" },
+    { name = "hello-world_1.0.0-1_amd64.deb", hash = "1e556ad659a4d1b87065ae0c7c0be81a4ede4704" },
+]

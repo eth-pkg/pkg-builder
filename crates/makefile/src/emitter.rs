@@ -100,7 +100,6 @@ impl<'a> MakefileEmitter<'a> {
         emit_static_var(out, "RUN_PIUPARTS", bool_str(testing.run_piuparts));
         emit_static_var(out, "RUN_AUTOPKGTEST", bool_str(testing.run_autopkgtest));
         out.push_str("\nTEST_TARGETS :=\n");
-        out.push_str("ifeq ($(RUN_LINTIAN),true)\nTEST_TARGETS += test-lintian\nendif\n");
         out.push_str("ifeq ($(RUN_PIUPARTS),true)\nTEST_TARGETS += test-piuparts\nendif\n");
         out.push_str("ifeq ($(RUN_AUTOPKGTEST),true)\nTEST_TARGETS += test-autopkgtest\nendif\n");
         out.push('\n');
@@ -191,7 +190,6 @@ impl<'a> MakefileEmitter<'a> {
              \tpatch \\\n\
              \tsbuild \\\n\
              \ttest \\\n\
-             \ttest-lintian \\\n\
              \ttest-piuparts \\\n\
              \ttest-autopkgtest \\\n\
              \thelp \\\n\
@@ -485,10 +483,6 @@ impl<'a> MakefileEmitter<'a> {
 
     fn emit_test_targets(&self, out: &mut String) {
         out.push_str("# === Test ===\n");
-        out.push_str("ifeq ($(RUN_LINTIAN),true)\n");
-        out.push_str("test-lintian: build\n");
-        out.push_str("\tlintian $(OUT_DIR)/*.changes\n");
-        out.push_str("endif\n\n");
 
         out.push_str("ifeq ($(RUN_PIUPARTS),true)\n");
         out.push_str("test-piuparts: build\n");

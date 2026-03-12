@@ -71,9 +71,8 @@ impl PackageBuilder {
 
     pub fn verify(
         &self,
-        verify_config: config::verify::PkgVerifyConfig,
-        skip_build: bool,
+        verify_config: config::verify::VerifyConfig,
     ) -> Result<(), PipelineError> {
-        verify::verify_package(&self.ws, verify_config, skip_build)
+        verify::verify_package(&self.ws, verify_config)
     }
 }

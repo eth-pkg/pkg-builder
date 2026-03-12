@@ -21,6 +21,7 @@ impl PkgBuilderArgs {
             ActionType::Piuparts(cmd) => cmd.config.clone(),
             ActionType::Autopkgtest(cmd) => cmd.config.clone(),
             ActionType::Verify(cmd) => cmd.config.clone(),
+            ActionType::Clean(cmd) => cmd.config.clone(),
         }
     }
 }
@@ -41,6 +42,8 @@ pub enum ActionType {
     Lintian(DefaultCommand),
     /// Verify package hashes
     Verify(VerifyCommand),
+    /// Clean build artifacts
+    Clean(DefaultCommand),
     /// Print version
     Version,
 }
@@ -83,12 +86,5 @@ pub enum BuildEnvSubCommand {
 #[derive(Debug, Args)]
 pub struct VerifyCommand {
     /// Path to pkg-builder.toml config
-    #[clap(long)]
     pub config: Option<String>,
-    /// Path to pkg-builder-verify.toml config
-    #[clap(long)]
-    pub verify_config: Option<String>,
-    /// Skip rebuilding the package
-    #[clap(long)]
-    pub no_package: Option<bool>,
 }

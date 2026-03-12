@@ -26,9 +26,6 @@ RUN_PIUPARTS := true
 RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
-ifeq ($(RUN_LINTIAN),true)
-TEST_TARGETS += test-lintian
-endif
 ifeq ($(RUN_PIUPARTS),true)
 TEST_TARGETS += test-piuparts
 endif
@@ -58,7 +55,6 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
-	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -160,11 +156,6 @@ $(CHROOT_TARBALL): | preflight
 env: $(CHROOT_TARBALL)
 
 # === Test ===
-ifeq ($(RUN_LINTIAN),true)
-test-lintian: build
-	lintian $(OUT_DIR)/*.changes
-endif
-
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb

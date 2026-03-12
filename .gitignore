@@ -3,3 +3,5 @@
 workspace/pkg_builder/bin_dependencies
 workspace/**/target/** 
 bin_dependencies/*
+.claude/
+.codex/
