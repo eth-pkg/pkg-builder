@@ -1,3 +1,0 @@
-hello-world-nim: initial-upload-closes-no-bugs
-hello-world-nim: maintainer-script-ignores-errors [postrm]
-hello-world-nim: no-manual-page usr/bin/hello-world

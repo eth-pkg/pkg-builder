@@ -1,6 +1,0 @@
-hello-world-typescript: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/lib/hello-world-typescript/node_modules/typescript/bin/tsc]
-hello-world-typescript: missing-dep-for-interpreter node (does not satisfy nodejs:any) [usr/lib/hello-world-typescript/node_modules/typescript/bin/tsserver]
-hello-world-typescript: initial-upload-closes-no-bugs
-hello-world-typescript: maintainer-script-ignores-errors [postrm]
-hello-world-typescript: no-manual-page usr/bin/hello-world
-hello-world-typescript: script-not-executable [usr/lib/hello-world-typescript/src/hello.sh]
