@@ -1,9 +1,9 @@
 [package]
-name = "hello-world"
+name = "hello-world-git-nim"
 version = "1.0.0"
 revision = "1"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
-spec = "hello-world.sss"
+spec = "hello-world-git-nim.sss"
 
 [source]
 type = "git"
@@ -67,6 +67,7 @@ workdir = "~/.pkg-builder/packages/noble"
 recipe = "nim"
 binary_url = "https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz"
 binary_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz"
+nim_version = "2.0.2"
 
 [tools]
 pkg_builder = "0.3.1"

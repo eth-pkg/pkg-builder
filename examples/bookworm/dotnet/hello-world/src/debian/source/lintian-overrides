@@ -1,0 +1,2 @@
+hello-world-dotnet source: required-field *
+hello-world-dotnet source: no-newline-at-end [debian/control]

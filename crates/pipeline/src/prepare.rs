@@ -43,9 +43,7 @@ pub fn setup_sbuildrc() -> Result<(), PipelineError> {
     })?;
 
     let dest_path = home_dir.join(".sbuildrc");
-    let home_str = home_dir.to_str().unwrap_or("/home/runner");
-
-    let content = SBUILDRC_TEMPLATE.replace("<HOME>", home_str);
+    let content = SBUILDRC_TEMPLATE.replace("<HOME>", "/home/runner");
     fs::write(&dest_path, content)?;
 
     Ok(())

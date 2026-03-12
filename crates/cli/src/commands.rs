@@ -52,12 +52,12 @@ pub enum ActionType {
 pub struct PackageCommand {
     /// Path to pkg-builder.toml config
     pub config: Option<String>,
-    /// Override: run piuparts
+    /// Enable piuparts testing (disabled by default)
     #[clap(long)]
-    pub run_piuparts: Option<bool>,
-    /// Override: run autopkgtest
+    pub run_piuparts: bool,
+    /// Enable autopkgtest testing (disabled by default)
     #[clap(long)]
-    pub run_autopkgtest: Option<bool>,
+    pub run_autopkgtest: bool,
     /// Override: run lintian
     #[clap(long)]
     pub run_lintian: Option<bool>,

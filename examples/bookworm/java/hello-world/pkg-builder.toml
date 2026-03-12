@@ -13,7 +13,7 @@ hash = "c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7"
 [build]
 distribution = "bookworm"
 arch = "amd64"
-workdir = "~/.pkg-builder/packages"
+workdir = "~/.pkg-builder/packages/bookworm"
 
 [runtime]
 recipe = "java"
@@ -32,3 +32,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "hello-world-java_1.0.0-1.dsc", hash = "c97b39b0995bb0ce5180d3721e3bf18fb4517713" },
+    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "c59e177bef24b72fc5da95e4eb8db0ce3aafd592" },
+]

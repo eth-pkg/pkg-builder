@@ -1,9 +1,9 @@
 [package]
-name = "hello-world"
+name = "hello-world-c"
 version = "1.0.0"
 revision = "1"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
-spec = "hello-world.sss"
+spec = "hello-world-c.sss"
 
 [source]
 type = "tarball"

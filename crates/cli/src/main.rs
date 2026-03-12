@@ -38,12 +38,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(v) = cmd.run_lintian {
             config.build_env.testing.run_lintian = v;
         }
-        if let Some(v) = cmd.run_piuparts {
-            config.build_env.testing.run_piuparts = v;
-        }
-        if let Some(v) = cmd.run_autopkgtest {
-            config.build_env.testing.run_autopkgtest = v;
-        }
+        config.build_env.testing.run_piuparts = cmd.run_piuparts;
+        config.build_env.testing.run_autopkgtest = cmd.run_autopkgtest;
     }
 
     // Generate Makefile

@@ -1,9 +1,9 @@
 [package]
-name = "hello-world"
+name = "hello-world-c"
 version = "1.0.0"
 revision = "1"
 homepage = "https://github.com/eth-pkg/pkg-builder#examples"
-spec = "hello-world.sss"
+spec = "hello-world-c.sss"
 
 [source]
 type = "tarball"
@@ -30,6 +30,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world_1.0.0-1.dsc", hash = "ecdb1c7366c9655f0cac0a9da38c09891a404be7" },
-    { name = "hello-world_1.0.0-1_amd64.deb", hash = "1e556ad659a4d1b87065ae0c7c0be81a4ede4704" },
+    { name = "hello-world-c_1.0.0-1.dsc", hash = "0843091f9e3cff991450c9687935e67644f6b032" },
+    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "acd656c4554f41eb2a0ad570ef99ff19db51273d" },
 ]

@@ -42,3 +42,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "hello-world-dotnet_1.0.0-1.dsc", hash = "2400ea45de1582526a6746a7e364bddf68aff508" },
+    { name = "hello-world-dotnet_1.0.0-1_amd64.deb", hash = "3e291bd51327485e7b55190c0fccb0f48ce929e6" },
+]

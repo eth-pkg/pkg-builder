@@ -15,11 +15,25 @@ on:
         default: false
 
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.parse.outputs.matrix }}
+    steps:
+      - id: parse
+        run: |
+          matrix=$(printf '%s' '${{ inputs.languages }}' | \
+            grep -v '^[[:space:]]*$' | \
+            sed 's/^[[:space:]]*-[[:space:]]*//' | \
+            jq -R . | jq -sc .)
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   package:
+    needs: prepare
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        language: ${{ fromJSON(inputs.languages) }}
+        language: ${{ fromJSON(needs.prepare.outputs.matrix) }}
       max-parallel: 3
       fail-fast: false
     steps:

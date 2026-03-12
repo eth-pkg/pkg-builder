@@ -474,8 +474,18 @@ impl<'a> MakefileEmitter<'a> {
         out.push_str(&format!("$(OUT_DIR)/.built: {} $(CHROOT_TARBALL)\n", prereq));
         out.push_str("\tsbuild $(SBUILD_FLAGS) \\\n");
         for cmd in chroot_commands {
-            let escaped = cmd.replace('\'', "'\\''");
-            out.push_str(&format!("\t  --chroot-setup-commands='{}' \\\n", escaped));
+            if cmd.contains('\n') {
+                // Use $'...' quoting so newlines can be represented as \n without
+                // breaking Makefile recipe parsing (bare blank lines terminate a recipe).
+                let escaped = cmd
+                    .replace('\\', "\\\\")
+                    .replace('\'', "\\'")
+                    .replace('\n', "\\n");
+                out.push_str(&format!("\t  --chroot-setup-commands=$$'{}' \\\n", escaped));
+            } else {
+                let escaped = cmd.replace('\'', "'\\''");
+                out.push_str(&format!("\t  --chroot-setup-commands='{}' \\\n", escaped));
+            }
         }
         out.push_str("\t  $(SRC_DIR)\n");
         out.push_str("\ttouch $@\n");
@@ -534,7 +544,11 @@ fn bool_str(b: bool) -> &'static str {
 }
 
 fn emit_static_var(out: &mut String, name: &str, value: &str) {
-    out.push_str(&format!("{} := {}\n", name, value));
+    if value.contains('\n') {
+        out.push_str(&format!("define {}\n{}\nendef\n", name, value));
+    } else {
+        out.push_str(&format!("{} := {}\n", name, value));
+    }
 }
 
 /// Convert an absolute path to a portable Makefile-friendly path.

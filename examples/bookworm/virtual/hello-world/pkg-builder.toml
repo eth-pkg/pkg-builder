@@ -24,3 +24,9 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.28"
+
+[verify]
+package_hash = [
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "cc0d0c5310abc2db0b1dd1ec94eb131ed11f1291" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "25dacd7c80febe8702140712d756b48d1e10c1fe" },
+]

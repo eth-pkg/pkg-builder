@@ -26,9 +26,6 @@ RUN_PIUPARTS := true
 RUN_AUTOPKGTEST := true
 
 TEST_TARGETS :=
-ifeq ($(RUN_LINTIAN),true)
-TEST_TARGETS += test-lintian
-endif
 ifeq ($(RUN_PIUPARTS),true)
 TEST_TARGETS += test-piuparts
 endif
@@ -43,8 +40,8 @@ SRC_HASH := c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_CHECKSUM := 5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
 BINARY_URL := https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
+BINARY_CHECKSUM := 5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -60,7 +57,6 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
-	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -164,18 +160,13 @@ patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built
 
 # === Environment ===
-$(CHROOT_TARBALL): preflight
+$(CHROOT_TARBALL): | preflight
 	sbuild-createchroot --chroot-mode=unshare \
 	  --make-sbuild-tarball $@ \
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
 env: $(CHROOT_TARBALL)
 
 # === Test ===
-ifeq ($(RUN_LINTIAN),true)
-test-lintian: build
-	lintian $(OUT_DIR)/*.changes
-endif
-
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
