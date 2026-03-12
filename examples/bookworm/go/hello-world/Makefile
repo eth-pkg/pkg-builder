@@ -12,10 +12,10 @@ ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 WORK_DIR := $(HOME)/.pkg-builder/packages/bookworm
 CHROOT_DIR := $(HOME)/.cache/sbuild
 
-PKG_NAME := hello-world
+PKG_NAME := hello-world-go
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
-PKG_SPEC := $(ROOT)/hello-world.sss
+PKG_SPEC := $(ROOT)/hello-world-go.sss
 
 DISTRIBUTION := bookworm
 ARCH := amd64
@@ -36,13 +36,15 @@ ifeq ($(RUN_AUTOPKGTEST),true)
 TEST_TARGETS += test-autopkgtest
 endif
 
-SRC_URL := $(ROOT)/hello-world-1.0.0.tar.gz
+SRC_URL := $(ROOT)/hello-world-go-1.0.0.tar.gz
 SRC_HASH_ALGO := sha512
-SRC_HASH := c93bdd829eca65af1e303d4a0b31cde0c3d3c2003fa1ca985393c412264b42c3b30c7893eb1d49ea654ca4f68269c30b3cca3db66d6b112f2be14f54c3d0edff
+SRC_HASH := c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d15ffb763f2f3ea6022116e3ce44df25384522fbdd40dd79a3a84252640cb
 
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
+BINARY_CHECKSUM := 5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17
+BINARY_URL := https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -142,6 +144,15 @@ SBUILD_FLAGS += \
 
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	sbuild $(SBUILD_FLAGS) \
+	  --chroot-setup-commands='apt install -y wget' \
+	  --chroot-setup-commands='wget -q -O /tmp/go.tar.gz https://go.dev/dl/go1.22.2.linux-amd64.tar.gz' \
+	  --chroot-setup-commands='cd /tmp && echo "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17 go.tar.gz" >> hash_file.txt && cat hash_file.txt' \
+	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
+	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz' \
+	  --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go' \
+	  --chroot-setup-commands='go version' \
+	  --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg' \
+	  --chroot-setup-commands='apt remove -y wget' \
 	  $(SRC_DIR)
 	touch $@
 
@@ -153,7 +164,7 @@ patch: $(SRC_DIR)/debian/source/format
 sbuild build: $(OUT_DIR)/.built
 
 # === Environment ===
-$(CHROOT_TARBALL): | preflight
+$(CHROOT_TARBALL): preflight
 	sbuild-createchroot --chroot-mode=unshare \
 	  --make-sbuild-tarball $@ \
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
