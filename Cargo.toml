@@ -2,8 +2,6 @@
 [workspace]
 members = [
     "crates/config",
-    "crates/tool",
-    "crates/pipeline",
     "crates/cli",
     "crates/makefile",
 ]
@@ -22,16 +20,10 @@ log = "0.4"
 thiserror = "1.0"
 shellexpand = "3.1.0"
 tempfile = "3.1"
-dirs = "5.0.1"
-rand = "0.9.0-alpha.1"
-sha2 = "0.11.0-pre.3"
 sha1 = "0.11.0-pre.3"
-filetime = "0.2.23"
 semver = "1.0.20"
 url = "2.4.1"
 
 # Local crates
 pkg-builder-config = { path = "crates/config" }
-pkg-builder-tool = { path = "crates/tool" }
-pkg-builder-pipeline = { path = "crates/pipeline" }
 pkg-builder-makefile = { path = "crates/makefile" }

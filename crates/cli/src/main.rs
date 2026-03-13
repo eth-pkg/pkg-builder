@@ -5,6 +5,7 @@ use commands::{ActionType, EnvSubCommand, PkgBuilderArgs, TestSubCommand};
 use clap::Parser;
 use env_logger::Env;
 use log::{error, info};
+use sha1::{Digest, Sha1};
 use std::path::Path;
 use std::process::{Command, ExitCode};
 
@@ -74,8 +75,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .verify
                 .clone()
                 .ok_or("No [verify] section in pkg-builder.toml")?;
-            let builder = pipeline::PackageBuilder::new(config)?;
-            builder.verify(verify_config)?;
+            verify_hashes(&config, &verify_config)?;
             return Ok(());
         }
     };
@@ -96,4 +96,45 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+fn verify_hashes(
+    config: &config::PkgConfig,
+    verify_config: &config::verify::VerifyConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let pkg = &config.package;
+    let artifacts_dir = config.build_env.workdir.join(format!(
+        "{}-{}-{}",
+        pkg.name, pkg.version, pkg.revision
+    ));
+
+    let mut errors = Vec::new();
+
+    for pkg_hash in &verify_config.package_hash {
+        let file_path = artifacts_dir.join(&pkg_hash.name);
+
+        if !file_path.exists() {
+            errors.push(format!("Verification file missing: {}", pkg_hash.name));
+            continue;
+        }
+
+        let buffer = std::fs::read(&file_path)?;
+        let mut hasher = Sha1::new();
+        hasher.update(&buffer);
+        let actual: String = hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect();
+
+        if actual != pkg_hash.hash {
+            errors.push(format!(
+                "SHA1 mismatch for {}: expected {}, got {}",
+                pkg_hash.name, pkg_hash.hash, actual
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        info!("Verification successful!");
+        Ok(())
+    } else {
+        Err(errors.join("; ").into())
+    }
 }
