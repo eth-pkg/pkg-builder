@@ -369,7 +369,7 @@ impl<'a> MakefileEmitter<'a> {
                         }
                     }
                     out.push_str("\trm -rf $(SRC_DIR)/.git\n");
-                    out.push_str("\tfind $(SRC_DIR) -name '.git' -type f -delete\n");
+                    out.push_str("\tfind $(SRC_DIR) -name '.git' -exec rm -rf {} +\n");
                     out.push_str("\ttar --sort=name --owner=0 --group=0 --numeric-owner \\\n");
                     out.push_str("\t  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \\\n");
                     out.push_str("\t  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)\n");

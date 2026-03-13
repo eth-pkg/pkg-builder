@@ -6,16 +6,18 @@ SHELL       := /bin/bash
 .DELETE_ON_ERROR:
 .NOTPARALLEL:
 export PATH := $(HOME)/.cargo/bin:$(PATH)
+INSTALL_DEPS ?= 0
 
 # === Variables ===
 ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 WORK_DIR := $(HOME)/.pkg-builder/packages/noble
 CHROOT_DIR := $(HOME)/.cache/sbuild
 
-PKG_NAME := hello-world
+PKG_NAME := hello-world-git-nim
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
-PKG_SPEC := $(ROOT)/hello-world.sss
+PKG_HOMEPAGE := https://github.com/eth-pkg/pkg-builder#examples
+PKG_SPEC := $(ROOT)/hello-world-git-nim.sss
 
 DISTRIBUTION := bookworm
 ARCH := amd64
@@ -39,8 +41,9 @@ GIT_TAG := v24.3.0
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
 BINARY_CHECKSUM := 047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz
+BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
+NIM_VERSION := 2.0.2
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -49,6 +52,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 .PHONY: all \
 	preflight \
 	env \
+	env-clean \
 	build \
 	source \
 	extract \
@@ -56,6 +60,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
+	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -74,9 +79,14 @@ help:
 # === Preflight check ===
 preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
-	  echo 'Missing $(DEBCRAFTER). Install with:'; \
-	  echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
-	  exit 1; \
+	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
+	    echo 'Installing $(DEBCRAFTER)...'; \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	  else \
+	    echo 'Missing $(DEBCRAFTER). Install with:'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    exit 1; \
+	  fi; \
 	}
 	@missing=''; \
 	command -v git >/dev/null 2>&1 || missing="$$missing git"; \
@@ -93,8 +103,59 @@ $(OUT_DIR):
 
 # === Source ===
 $(SRC_TARBALL): | $(OUT_DIR)
-	git clone --branch v24.3.0 https://github.com/status-im/nimbus-eth2.git $(SRC_DIR)
-	cd $(SRC_DIR) && git archive --format=tar.gz --prefix=$(PKG_NAME)-$(PKG_VERSION)/ HEAD > $@
+	git clone --depth=1 --branch v24.3.0 https://github.com/status-im/nimbus-eth2.git $(SRC_DIR)
+	cd $(SRC_DIR) && git submodule update --init --recursive
+	cd $(SRC_DIR)/vendor/EIPs && git fetch origin 72523ee3f865e09f8a6117c1b5e74cbb2df4f60e && git checkout 72523ee3f865e09f8a6117c1b5e74cbb2df4f60e
+	cd $(SRC_DIR)/vendor/NimYAML && git fetch origin ab3ff9fad45fa7e20d749d0a03a7567225f5dd4a && git checkout ab3ff9fad45fa7e20d749d0a03a7567225f5dd4a
+	cd $(SRC_DIR)/vendor/eth2-networks && git fetch origin ab581251bcda11e3cc120cc9e9ad1ad679340949 && git checkout ab581251bcda11e3cc120cc9e9ad1ad679340949
+	cd $(SRC_DIR)/vendor/gnosis-chain-configs && git fetch origin 14d8439235fa757dd39b9fb1c10a06a99a720989 && git checkout 14d8439235fa757dd39b9fb1c10a06a99a720989
+	cd $(SRC_DIR)/vendor/goerli && git fetch origin e3c0766b1cf5ddc22fe017e1389c6f60f0f9a468 && git checkout e3c0766b1cf5ddc22fe017e1389c6f60f0f9a468
+	cd $(SRC_DIR)/vendor/holesky && git fetch origin 60997dd7e876a67775a7f2d53b852e75bbb2a630 && git checkout 60997dd7e876a67775a7f2d53b852e75bbb2a630
+	cd $(SRC_DIR)/vendor/nim-bearssl && git fetch origin 86f212c6a5d76b52e20fad2e318cc5436d04fc26 && git checkout 86f212c6a5d76b52e20fad2e318cc5436d04fc26
+	cd $(SRC_DIR)/vendor/nim-blscurve && git fetch origin d091a579a2e7c4668140e675a6fb2c78b8c6dc57 && git checkout d091a579a2e7c4668140e675a6fb2c78b8c6dc57
+	cd $(SRC_DIR)/vendor/nim-chronicles && git fetch origin ab3ab545be0b550cca1c2529f7e97fbebf5eba81 && git checkout ab3ab545be0b550cca1c2529f7e97fbebf5eba81
+	cd $(SRC_DIR)/vendor/nim-chronos && git fetch origin 47cc17719f4293bf80a22ebe28e3bfc54b2a59a1 && git checkout 47cc17719f4293bf80a22ebe28e3bfc54b2a59a1
+	cd $(SRC_DIR)/vendor/nim-confutils && git fetch origin 0adf3b7db70736061bf12fa23c2fc51f395b289e && git checkout 0adf3b7db70736061bf12fa23c2fc51f395b289e
+	cd $(SRC_DIR)/vendor/nim-eth && git fetch origin d66a29db7ca4372dba116928f979e92cb7f7661f && git checkout d66a29db7ca4372dba116928f979e92cb7f7661f
+	cd $(SRC_DIR)/vendor/nim-eth2-scenarios && git fetch origin 4bbc43ab55337788143a06ea7c055462b17b950a && git checkout 4bbc43ab55337788143a06ea7c055462b17b950a
+	cd $(SRC_DIR)/vendor/nim-faststreams && git fetch origin f26a9909cebf29cc5e61dd795427eda60c6e431e && git checkout f26a9909cebf29cc5e61dd795427eda60c6e431e
+	cd $(SRC_DIR)/vendor/nim-http-utils && git fetch origin be57dbc902d36f37540897e98c69aa80f868cb45 && git checkout be57dbc902d36f37540897e98c69aa80f868cb45
+	cd $(SRC_DIR)/vendor/nim-json-rpc && git fetch origin ad8721e0f3c6925597b5a93b6c53e040f26b5fb3 && git checkout ad8721e0f3c6925597b5a93b6c53e040f26b5fb3
+	cd $(SRC_DIR)/vendor/nim-json-serialization && git fetch origin 7516a92eb8339f8fc1de7dd16cfa3d77bce87cd2 && git checkout 7516a92eb8339f8fc1de7dd16cfa3d77bce87cd2
+	cd $(SRC_DIR)/vendor/nim-kzg4844 && git fetch origin 057f7c653e1abe91cca9aac2f94832f39228ea98 && git checkout 057f7c653e1abe91cca9aac2f94832f39228ea98
+	cd $(SRC_DIR)/vendor/nim-libbacktrace && git fetch origin 027570111c161d8378bca9e84b5f75500a8c38a3 && git checkout 027570111c161d8378bca9e84b5f75500a8c38a3
+	cd $(SRC_DIR)/vendor/nim-libp2p && git fetch origin 28609597d104a9be880ed5e1648e1ce18ca9dc38 && git checkout 28609597d104a9be880ed5e1648e1ce18ca9dc38
+	cd $(SRC_DIR)/vendor/nim-metrics && git fetch origin 0e768ca7fb7df4798649145a403e7db65cae1f8b && git checkout 0e768ca7fb7df4798649145a403e7db65cae1f8b
+	cd $(SRC_DIR)/vendor/nim-nat-traversal && git fetch origin d423ff9e436b8a8219926f4e3350b09108e42847 && git checkout d423ff9e436b8a8219926f4e3350b09108e42847
+	cd $(SRC_DIR)/vendor/nim-normalize && git fetch origin 06f715f0dbea5e238c91f3a298d26d89a2f7c31b && git checkout 06f715f0dbea5e238c91f3a298d26d89a2f7c31b
+	cd $(SRC_DIR)/vendor/nim-presto && git fetch origin a9687dda1c3e20d5b066d42b33c2a63f018af93f && git checkout a9687dda1c3e20d5b066d42b33c2a63f018af93f
+	cd $(SRC_DIR)/vendor/nim-results && git fetch origin e2adf66b8bc2f41606e8469a5f0a850d1e545b55 && git checkout e2adf66b8bc2f41606e8469a5f0a850d1e545b55
+	cd $(SRC_DIR)/vendor/nim-secp256k1 && git fetch origin 2bc945cc9ebfae1b688f72ea59f78fd23873d1d4 && git checkout 2bc945cc9ebfae1b688f72ea59f78fd23873d1d4
+	cd $(SRC_DIR)/vendor/nim-serialization && git fetch origin afae13adac25b6fa98bacf4b9f38458dc64317b0 && git checkout afae13adac25b6fa98bacf4b9f38458dc64317b0
+	cd $(SRC_DIR)/vendor/nim-snappy && git fetch origin 984bdad602e977ea6c461c28201422fdeeccfb7c && git checkout 984bdad602e977ea6c461c28201422fdeeccfb7c
+	cd $(SRC_DIR)/vendor/nim-sqlite3-abi && git fetch origin 1453b19b1a3cac24002dead15e02bd978cb52355 && git checkout 1453b19b1a3cac24002dead15e02bd978cb52355
+	cd $(SRC_DIR)/vendor/nim-ssz-serialization && git fetch origin 248f2bdca2d65ff920920c72b764d0622d522596 && git checkout 248f2bdca2d65ff920920c72b764d0622d522596
+	cd $(SRC_DIR)/vendor/nim-stew && git fetch origin a0c085a51fe4f2d82aa96173ac49b3bfe6043858 && git checkout a0c085a51fe4f2d82aa96173ac49b3bfe6043858
+	cd $(SRC_DIR)/vendor/nim-stint && git fetch origin 3c238df6cd4b9c1f37a9f103383e7d2bbd420c13 && git checkout 3c238df6cd4b9c1f37a9f103383e7d2bbd420c13
+	cd $(SRC_DIR)/vendor/nim-taskpools && git fetch origin d4c43137c0590cb47f893a66ca8cb027fa6c217e && git checkout d4c43137c0590cb47f893a66ca8cb027fa6c217e
+	cd $(SRC_DIR)/vendor/nim-testutils && git fetch origin ae476c67314ac4b294d21040315e0f716189a70e && git checkout ae476c67314ac4b294d21040315e0f716189a70e
+	cd $(SRC_DIR)/vendor/nim-toml-serialization && git fetch origin 24bbfcb8e4e256883fc959dc6f5c15fe7a84fca5 && git checkout 24bbfcb8e4e256883fc959dc6f5c15fe7a84fca5
+	cd $(SRC_DIR)/vendor/nim-unicodedb && git fetch origin 04a154eee0b8a2ad313e24ba46a4e5b4e0b9036f && git checkout 04a154eee0b8a2ad313e24ba46a4e5b4e0b9036f
+	cd $(SRC_DIR)/vendor/nim-unittest2 && git fetch origin e96f3215030cbfa13abc2f5827069b6f8ba87e38 && git checkout e96f3215030cbfa13abc2f5827069b6f8ba87e38
+	cd $(SRC_DIR)/vendor/nim-web3 && git fetch origin 285d97c2b05bbe2a13dab4b52ea878157fb1a1a1 && git checkout 285d97c2b05bbe2a13dab4b52ea878157fb1a1a1
+	cd $(SRC_DIR)/vendor/nim-websock && git fetch origin 6db6088792bde0998c2b84c2d8e231f1d0507e49 && git checkout 6db6088792bde0998c2b84c2d8e231f1d0507e49
+	cd $(SRC_DIR)/vendor/nim-zlib && git fetch origin 45b06fca15ce0f09586067d950da30c10227865a && git checkout 45b06fca15ce0f09586067d950da30c10227865a
+	cd $(SRC_DIR)/vendor/nim-zxcvbn && git fetch origin d0fb557f74a28912ff129ce0ba24008b00b1019b && git checkout d0fb557f74a28912ff129ce0ba24008b00b1019b
+	cd $(SRC_DIR)/vendor/nimbus-benchmarking && git fetch origin dff3634b5d843f9b63425086f1b13245e26b6177 && git checkout dff3634b5d843f9b63425086f1b13245e26b6177
+	cd $(SRC_DIR)/vendor/nimbus-build-system && git fetch origin 3866a8ab98fc6e0e6d406b88800aed72163d5fd4 && git checkout 3866a8ab98fc6e0e6d406b88800aed72163d5fd4
+	cd $(SRC_DIR)/vendor/nimbus-security-resources && git fetch origin ce9945b1b159d4c9b628f8c4cd2d262964692810 && git checkout ce9945b1b159d4c9b628f8c4cd2d262964692810
+	cd $(SRC_DIR)/vendor/nimcrypto && git fetch origin 0c6ddab03a99805239b7875f71d2ca95fbed6f85 && git checkout 0c6ddab03a99805239b7875f71d2ca95fbed6f85
+	cd $(SRC_DIR)/vendor/sepolia && git fetch origin ff09a161f61959285c64b355d452cd25eae094bd && git checkout ff09a161f61959285c64b355d452cd25eae094bd
+	rm -rf $(SRC_DIR)/.git
+	find $(SRC_DIR) -name '.git' -exec rm -rf {} +
+	tar --sort=name --owner=0 --group=0 --numeric-owner \
+	  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \
+	  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)
 
 # === Debian packaging ===
 $(SRC_DIR)/debian/rules: $(SRC_TARBALL)
@@ -106,6 +167,16 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	mkdir -p $(SRC_DIR)/.pc && echo 2 > $(SRC_DIR)/.pc/version
 	if [ -d $(ROOT)/src ]; then cp -r $(ROOT)/src/. $(SRC_DIR)/; fi
 	chmod +x $(SRC_DIR)/debian/rules
+	@cd $(SRC_DIR) && \
+	  if ! grep -q '^Standards-Version:' debian/control; then \
+	    awk -v hp='$(PKG_HOMEPAGE)' '\
+	      /^Priority:/ && !done { print; print "Standards-Version: 4.5.1"; print "Homepage: " hp; done=1; next } \
+	      { print }' debian/control > debian/control.tmp && \
+	    mv debian/control.tmp debian/control; \
+	  fi
+	@cd $(SRC_DIR) && \
+	  awk 'BEGIN{blank=0} /^$$/{blank++; if(blank==1) print; next} {blank=0; print}' debian/control > debian/control.tmp && \
+	  mv debian/control.tmp debian/control
 
 # === Build ===
 SBUILD_FLAGS := \
@@ -134,14 +205,14 @@ SBUILD_FLAGS += \
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	sbuild $(SBUILD_FLAGS) \
 	  --chroot-setup-commands='apt install -y wget' \
-	  --chroot-setup-commands='rm -rf /tmp/nim-{{nim_version}} && rm -rf /usr/lib/nim/nim-{{nim_version}} && rm -rf /opt/lib/nim/nim-{{nim_version}} && mkdir /tmp/nim-{{nim_version}}' \
+	  --chroot-setup-commands='rm -rf /tmp/nim-2.0.2 && rm -rf /usr/lib/nim/nim-2.0.2 && rm -rf /opt/lib/nim/nim-2.0.2 && mkdir /tmp/nim-2.0.2' \
 	  --chroot-setup-commands='mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim' \
-	  --chroot-setup-commands='wget -q -O /tmp/nim-archive.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
+	  --chroot-setup-commands='wget -q -O /tmp/nim-2.0.2-linux_x64.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
 	  --chroot-setup-commands='cd /tmp && echo "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar xJf nim-{{nim_version}}-linux_x64.tar.xz -C nim-{{nim_version}} --strip-components=1' \
-	  --chroot-setup-commands='cd /tmp && mv nim-{{nim_version}} /opt/lib/nim' \
-	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-{{nim_version}}/bin/nim /usr/bin/nim' \
+	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1 && rm -f nim-2.0.2-linux_x64.tar.xz hash_file.txt' \
+	  --chroot-setup-commands='cd /tmp && mv nim-2.0.2 /opt/lib/nim' \
+	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-2.0.2/bin/nim /usr/bin/nim' \
 	  --chroot-setup-commands='nim --version' \
 	  --chroot-setup-commands='apt remove -y wget' \
 	  $(SRC_DIR)
@@ -161,7 +232,17 @@ $(CHROOT_TARBALL): | preflight
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
 env: $(CHROOT_TARBALL)
 
+env-clean:
+	rm -f $(CHROOT_TARBALL)
+
 # === Test ===
+test-lintian: build
+	lintian -i -I --tag-display-limit=0 \
+	  --suppress-tags bad-distribution-in-changes-file \
+	  --suppress-tags debug-file-with-no-debug-symbols \
+	  --fail-on=error --fail-on=warning \
+	  $(OUT_DIR)/*.changes
+
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb

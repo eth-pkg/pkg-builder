@@ -51,6 +51,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-rust_1.0.0-1.dsc", hash = "" },
-    { name = "hello-world-rust_1.0.0-1_amd64.deb", hash = "" },
+    { name = "hello-world-rust_1.0.0-1.dsc", hash = "5903e76e888dfb5bfe2142257b903c7f448f8dfb" },
+    { name = "hello-world-rust_1.0.0-1_amd64.deb", hash = "c5b15a6e2b4c7eb5b27d6047f8ae63cb93e4ec4c" },
 ]

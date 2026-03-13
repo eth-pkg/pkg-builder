@@ -6,6 +6,7 @@ SHELL       := /bin/bash
 .DELETE_ON_ERROR:
 .NOTPARALLEL:
 export PATH := $(HOME)/.cargo/bin:$(PATH)
+INSTALL_DEPS ?= 0
 
 # === Variables ===
 ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -15,6 +16,7 @@ CHROOT_DIR := $(HOME)/.cache/sbuild
 PKG_NAME := hello-world-git-nim
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
+PKG_HOMEPAGE := https://github.com/eth-pkg/pkg-builder#examples
 PKG_SPEC := $(ROOT)/hello-world-git-nim.sss
 
 DISTRIBUTION := bookworm
@@ -39,8 +41,8 @@ GIT_TAG := v24.3.0
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
 BINARY_CHECKSUM := 047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz
+BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
 NIM_VERSION := 2.0.2
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
@@ -50,6 +52,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 .PHONY: all \
 	preflight \
 	env \
+	env-clean \
 	build \
 	source \
 	extract \
@@ -57,6 +60,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
+	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -75,9 +79,14 @@ help:
 # === Preflight check ===
 preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
-	  echo 'Missing $(DEBCRAFTER). Install with:'; \
-	  echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
-	  exit 1; \
+	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
+	    echo 'Installing $(DEBCRAFTER)...'; \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	  else \
+	    echo 'Missing $(DEBCRAFTER). Install with:'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    exit 1; \
+	  fi; \
 	}
 	@missing=''; \
 	command -v git >/dev/null 2>&1 || missing="$$missing git"; \
@@ -143,7 +152,7 @@ $(SRC_TARBALL): | $(OUT_DIR)
 	cd $(SRC_DIR)/vendor/nimcrypto && git fetch origin 0c6ddab03a99805239b7875f71d2ca95fbed6f85 && git checkout 0c6ddab03a99805239b7875f71d2ca95fbed6f85
 	cd $(SRC_DIR)/vendor/sepolia && git fetch origin ff09a161f61959285c64b355d452cd25eae094bd && git checkout ff09a161f61959285c64b355d452cd25eae094bd
 	rm -rf $(SRC_DIR)/.git
-	find $(SRC_DIR) -name '.git' -type f -delete
+	find $(SRC_DIR) -name '.git' -exec rm -rf {} +
 	tar --sort=name --owner=0 --group=0 --numeric-owner \
 	  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \
 	  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)
@@ -158,6 +167,16 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	mkdir -p $(SRC_DIR)/.pc && echo 2 > $(SRC_DIR)/.pc/version
 	if [ -d $(ROOT)/src ]; then cp -r $(ROOT)/src/. $(SRC_DIR)/; fi
 	chmod +x $(SRC_DIR)/debian/rules
+	@cd $(SRC_DIR) && \
+	  if ! grep -q '^Standards-Version:' debian/control; then \
+	    awk -v hp='$(PKG_HOMEPAGE)' '\
+	      /^Priority:/ && !done { print; print "Standards-Version: 4.5.1"; print "Homepage: " hp; done=1; next } \
+	      { print }' debian/control > debian/control.tmp && \
+	    mv debian/control.tmp debian/control; \
+	  fi
+	@cd $(SRC_DIR) && \
+	  awk 'BEGIN{blank=0} /^$$/{blank++; if(blank==1) print; next} {blank=0; print}' debian/control > debian/control.tmp && \
+	  mv debian/control.tmp debian/control
 
 # === Build ===
 SBUILD_FLAGS := \
@@ -191,7 +210,7 @@ $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
 	  --chroot-setup-commands='wget -q -O /tmp/nim-2.0.2-linux_x64.tar.xz https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz' \
 	  --chroot-setup-commands='cd /tmp && echo "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz" >> hash_file.txt && cat hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1' \
+	  --chroot-setup-commands='cd /tmp && tar xJf nim-2.0.2-linux_x64.tar.xz -C nim-2.0.2 --strip-components=1 && rm -f nim-2.0.2-linux_x64.tar.xz hash_file.txt' \
 	  --chroot-setup-commands='cd /tmp && mv nim-2.0.2 /opt/lib/nim' \
 	  --chroot-setup-commands='ln -s /opt/lib/nim/nim-2.0.2/bin/nim /usr/bin/nim' \
 	  --chroot-setup-commands='nim --version' \
@@ -213,7 +232,17 @@ $(CHROOT_TARBALL): | preflight
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
 env: $(CHROOT_TARBALL)
 
+env-clean:
+	rm -f $(CHROOT_TARBALL)
+
 # === Test ===
+test-lintian: build
+	lintian -i -I --tag-display-limit=0 \
+	  --suppress-tags bad-distribution-in-changes-file \
+	  --suppress-tags debug-file-with-no-debug-symbols \
+	  --fail-on=error --fail-on=warning \
+	  $(OUT_DIR)/*.changes
+
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb

@@ -143,7 +143,7 @@ $(SRC_TARBALL): | $(OUT_DIR)
 	cd $(SRC_DIR)/vendor/nimcrypto && git fetch origin 0c6ddab03a99805239b7875f71d2ca95fbed6f85 && git checkout 0c6ddab03a99805239b7875f71d2ca95fbed6f85
 	cd $(SRC_DIR)/vendor/sepolia && git fetch origin ff09a161f61959285c64b355d452cd25eae094bd && git checkout ff09a161f61959285c64b355d452cd25eae094bd
 	rm -rf $(SRC_DIR)/.git
-	find $(SRC_DIR) -name '.git' -type f -delete
+	find $(SRC_DIR) -name '.git' -exec rm -rf {} +
 	tar --sort=name --owner=0 --group=0 --numeric-owner \
 	  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \
 	  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)

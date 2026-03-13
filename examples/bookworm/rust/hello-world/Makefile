@@ -6,6 +6,7 @@ SHELL       := /bin/bash
 .DELETE_ON_ERROR:
 .NOTPARALLEL:
 export PATH := $(HOME)/.cargo/bin:$(PATH)
+INSTALL_DEPS ?= 0
 
 # === Variables ===
 ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -15,6 +16,7 @@ CHROOT_DIR := $(HOME)/.cache/sbuild
 PKG_NAME := hello-world-rust
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
+PKG_HOMEPAGE := https://github.com/eth-pkg/pkg-builder#examples
 PKG_SPEC := $(ROOT)/hello-world-rust.sss
 
 DISTRIBUTION := bookworm
@@ -40,7 +42,6 @@ SRC_HASH := f5bab501028b666be71da81dcd675082d05ad4b8e1650350d27a89209a0e239a209a
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz
 define BINARY_GPG_ASC
 -----BEGIN PGP SIGNATURE-----
 
@@ -60,6 +61,7 @@ KGFMBQELjcFWLGcBVE45DRuVR8E3XYunjSdgLFXjfZfeGF3uiS6fNHGCH41ryqfj
 -----END PGP SIGNATURE-----
 
 endef
+BINARY_URL := https://static.rust-lang.org/dist/rust-1.77.2-x86_64-unknown-linux-gnu.tar.xz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz
@@ -68,6 +70,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 .PHONY: all \
 	preflight \
 	env \
+	env-clean \
 	build \
 	source \
 	extract \
@@ -75,6 +78,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
+	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -93,9 +97,14 @@ help:
 # === Preflight check ===
 preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
-	  echo 'Missing $(DEBCRAFTER). Install with:'; \
-	  echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
-	  exit 1; \
+	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
+	    echo 'Installing $(DEBCRAFTER)...'; \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	  else \
+	    echo 'Missing $(DEBCRAFTER). Install with:'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    exit 1; \
+	  fi; \
 	}
 	@missing=''; \
 	command -v wget >/dev/null 2>&1 || missing="$$missing wget"; \
@@ -127,6 +136,16 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	mkdir -p $(SRC_DIR)/.pc && echo 2 > $(SRC_DIR)/.pc/version
 	if [ -d $(ROOT)/src ]; then cp -r $(ROOT)/src/. $(SRC_DIR)/; fi
 	chmod +x $(SRC_DIR)/debian/rules
+	@cd $(SRC_DIR) && \
+	  if ! grep -q '^Standards-Version:' debian/control; then \
+	    awk -v hp='$(PKG_HOMEPAGE)' '\
+	      /^Priority:/ && !done { print; print "Standards-Version: 4.5.1"; print "Homepage: " hp; done=1; next } \
+	      { print }' debian/control > debian/control.tmp && \
+	    mv debian/control.tmp debian/control; \
+	  fi
+	@cd $(SRC_DIR) && \
+	  awk 'BEGIN{blank=0} /^$$/{blank++; if(blank==1) print; next} {blank=0; print}' debian/control > debian/control.tmp && \
+	  mv debian/control.tmp debian/control
 
 # === Build ===
 SBUILD_FLAGS := \
@@ -180,7 +199,17 @@ $(CHROOT_TARBALL): | preflight
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
 env: $(CHROOT_TARBALL)
 
+env-clean:
+	rm -f $(CHROOT_TARBALL)
+
 # === Test ===
+test-lintian: build
+	lintian -i -I --tag-display-limit=0 \
+	  --suppress-tags bad-distribution-in-changes-file \
+	  --suppress-tags debug-file-with-no-debug-symbols \
+	  --fail-on=error --fail-on=warning \
+	  $(OUT_DIR)/*.changes
+
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
