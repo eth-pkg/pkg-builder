@@ -54,7 +54,7 @@ jobs:
       - name: Create chroot env
         run: |
           cd examples/${{ inputs.distro }}/${{ matrix.language }}/hello-world
-          pkg-builder env create
+          pkg-builder --install-deps env create
           echo "${HOME}/.cache/sbuild/${{ inputs.distro }}-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: Run packaging tests

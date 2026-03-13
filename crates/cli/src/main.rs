@@ -80,7 +80,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Run make
-    let install_deps = matches!(&args.action, ActionType::Package(cmd) if cmd.install_deps);
+    let install_deps = args.install_deps;
     let mut make_cmd = Command::new("make");
     make_cmd.arg(target).current_dir(&output_dir);
     if install_deps {

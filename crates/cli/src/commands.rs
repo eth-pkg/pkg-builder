@@ -3,6 +3,10 @@ use clap::{Args, Parser, Subcommand};
 #[derive(Debug, Parser)]
 #[clap(author, version, about)]
 pub struct PkgBuilderArgs {
+    /// Install missing dependencies instead of erroring
+    #[clap(long, global = true)]
+    pub install_deps: bool,
+
     #[clap(subcommand)]
     pub action: ActionType,
 }
@@ -61,9 +65,6 @@ pub struct PackageCommand {
     /// Override: run lintian
     #[clap(long)]
     pub run_lintian: Option<bool>,
-    /// Install missing dependencies instead of erroring
-    #[clap(long)]
-    pub install_deps: bool,
 }
 
 #[derive(Debug, Args)]
