@@ -82,12 +82,28 @@ pub fn generate(config: &PkgConfig) -> Result<String, GeneratorError> {
     Ok(renderer::render_makefile(&plan))
 }
 
+/// Validate that a recipe name contains only safe characters (alphanumeric, hyphens, underscores).
+fn validate_recipe_name(name: &str) -> Result<(), GeneratorError> {
+    if name.is_empty()
+        || !name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(GeneratorError::RecipeNotFound(format!(
+            "Invalid recipe name: '{}' (must be alphanumeric, hyphens, or underscores)",
+            name
+        )));
+    }
+    Ok(())
+}
+
 /// Load a recipe file. Checks local directory first, then built-in.
 fn load_recipe(
     kind: &str,
     name: &str,
     config_root: &Path,
 ) -> Result<String, GeneratorError> {
+    validate_recipe_name(name)?;
     let local_path = config_root.join(kind).join(format!("{}.recipe", name));
     if local_path.exists() {
         return std::fs::read_to_string(&local_path).map_err(GeneratorError::Io);

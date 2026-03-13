@@ -8,8 +8,6 @@ use crate::variables::VariableResolver;
 
 pub struct PlanBuilder<'a> {
     config: &'a PkgConfig,
-    #[allow(dead_code)]
-    vars: &'a VariableResolver,
     pipeline: ParsedPipeline,
     runtime: Option<ParsedRuntime>,
 }
@@ -17,13 +15,12 @@ pub struct PlanBuilder<'a> {
 impl<'a> PlanBuilder<'a> {
     pub fn new(
         config: &'a PkgConfig,
-        vars: &'a VariableResolver,
+        _vars: &'a VariableResolver,
         pipeline: ParsedPipeline,
         runtime: Option<ParsedRuntime>,
     ) -> Self {
         Self {
             config,
-            vars,
             pipeline,
             runtime,
         }
@@ -282,12 +279,9 @@ impl<'a> PlanBuilder<'a> {
             // Add git submodule operations if applicable
             if let config::source::SourceKind::Git { submodules, .. } = &self.config.source {
                 for submodule in submodules {
-                    let commit = submodule.commit.trim();
-                    operations.push(Operation::Run {
-                        cmd: format!(
-                            "__submodule_checkout:{}:{}",
-                            submodule.path, commit
-                        ),
+                    operations.push(Operation::SubmoduleCheckout {
+                        path: submodule.path.clone(),
+                        commit: submodule.commit.trim().to_string(),
                     });
                 }
             }

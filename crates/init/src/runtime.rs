@@ -1,6 +1,8 @@
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+use crate::http_client;
+
 /// Supported runtime recipes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Runtime {
@@ -269,7 +271,7 @@ pub enum RuntimeSetup {
 // ---- Internal resolution functions ----
 
 fn resolve_go_latest() -> Result<(String, String, String), Box<dyn std::error::Error>> {
-    let resp = reqwest::blocking::get("https://go.dev/dl/?mode=json")?;
+    let resp = http_client().get("https://go.dev/dl/?mode=json").send()?;
     let releases: serde_json::Value = resp.json()?;
     let arr = releases.as_array().ok_or("Expected array")?;
     let release = arr.first().ok_or("No Go releases found")?;
@@ -294,7 +296,7 @@ fn resolve_go_latest() -> Result<(String, String, String), Box<dyn std::error::E
 }
 
 fn fetch_go_checksum(version: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let resp = reqwest::blocking::get("https://go.dev/dl/?mode=json")?;
+    let resp = http_client().get("https://go.dev/dl/?mode=json").send()?;
     let releases: serde_json::Value = resp.json()?;
     let target = format!("go{}", version);
     let arr = releases.as_array().ok_or("Expected array")?;
@@ -320,7 +322,7 @@ pub fn go_download_url(version: &str) -> String {
 
 fn fetch_rust_gpg_asc(url: &str) -> Result<String, Box<dyn std::error::Error>> {
     let asc_url = format!("{}.asc", url);
-    let resp = reqwest::blocking::get(&asc_url)?;
+    let resp = http_client().get(&asc_url).send()?;
     if !resp.status().is_success() {
         return Err(format!("HTTP {}", resp.status()).into());
     }
@@ -335,7 +337,7 @@ pub fn rust_download_url(version: &str) -> String {
 }
 
 fn resolve_node_latest() -> Result<(String, String, String), Box<dyn std::error::Error>> {
-    let resp = reqwest::blocking::get("https://nodejs.org/dist/index.json")?;
+    let resp = http_client().get("https://nodejs.org/dist/index.json").send()?;
     let releases: serde_json::Value = resp.json()?;
     let arr = releases.as_array().ok_or("Expected array")?;
     let release = arr
@@ -358,7 +360,7 @@ fn fetch_node_checksum(version: &str) -> Result<String, Box<dyn std::error::Erro
         "https://nodejs.org/download/release/v{}/SHASUMS256.txt",
         version
     );
-    let resp = reqwest::blocking::get(&sums_url)?;
+    let resp = http_client().get(&sums_url).send()?;
     let text = resp.text()?;
     let target = format!("node-v{}-linux-x64.tar.gz", version);
     for line in text.lines() {
@@ -385,7 +387,7 @@ pub fn nim_download_url(version: &str) -> String {
 
 fn fetch_nim_checksum(version: &str) -> Result<String, Box<dyn std::error::Error>> {
     let url = nim_download_url(version);
-    let resp = reqwest::blocking::get(&url)?;
+    let resp = http_client().get(&url).send()?;
     if !resp.status().is_success() {
         return Err(format!("HTTP {}", resp.status()).into());
     }

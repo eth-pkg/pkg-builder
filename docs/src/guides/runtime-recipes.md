@@ -54,7 +54,6 @@ Downloads the official Go release, verifies the SHA-256 checksum, and installs t
 recipe = "node"
 binary_url = "https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz"
 binary_checksum = "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d"
-yarn_version = "1.22.19"
 ```
 
 Downloads Node.js, verifies the checksum, and installs node, npm, npx, and corepack. Use the same recipe for both JavaScript and TypeScript projects.
@@ -63,7 +62,6 @@ Downloads Node.js, verifies the checksum, and installs node, npm, npx, and corep
 |-------|-------------|
 | `binary_url` | URL to the Node.js release tarball |
 | `binary_checksum` | SHA-256 checksum of the tarball |
-| `yarn_version` | *(optional)* Yarn version to enable via corepack |
 
 ### Java
 

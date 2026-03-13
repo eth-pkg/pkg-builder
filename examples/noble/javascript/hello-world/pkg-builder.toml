@@ -36,6 +36,6 @@ autopkgtest = "5.20"
 
 [verify]
 package_hash = [
-    { name = "hello-world-javascript_1.0.0-1.dsc", hash = "3194388ef7a17d95d409b6261cc5968d942542f8" },
-    { name = "hello-world-javascript_1.0.0-1_amd64.deb", hash = "67335ef6f0c139950949176c8e6ca65ffc532e64" },
+    { name = "hello-world-javascript_1.0.0-1.dsc", hash = "51ae785de708df892554383ea4bb6fcbaae1027b5fa7a066b2e5a14deb7ab6ec" },
+    { name = "hello-world-javascript_1.0.0-1_amd64.deb", hash = "93163c09269a42079455f886809d5da0eef1d04d8b8c2b73c3519f4896faa549" },
 ]

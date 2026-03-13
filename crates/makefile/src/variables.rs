@@ -130,19 +130,12 @@ impl VariableResolver {
         self.vars.get(key)
     }
 
-    #[allow(dead_code)]
-    pub fn get_or(&self, key: &str, default: &str) -> String {
-        self.vars
-            .get(key)
-            .cloned()
-            .unwrap_or_else(|| default.to_string())
-    }
-
     /// Substitute all {{var}} placeholders in a string.
+    /// Limits to 10 iterations to prevent infinite loops from circular references.
     pub fn substitute(&self, input: &str) -> String {
         let mut result = input.to_string();
-        // Keep substituting until no more changes (handles nested refs)
-        loop {
+        let max_iterations = 10;
+        for _ in 0..max_iterations {
             let prev = result.clone();
             for (key, value) in &self.vars {
                 result = result.replace(&format!("{{{{{}}}}}", key), value);

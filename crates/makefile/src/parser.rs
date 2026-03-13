@@ -136,6 +136,8 @@ pub fn parse_pipeline(
 
 /// Parse old-style flat pipeline (no PHASE blocks) into structured phases.
 /// This maintains backwards compatibility with the existing recipe format.
+/// Note: preamble keyword handling (REQUIRE, INSTALL, SNAPSHOT_*, NOBLE_REPOS)
+/// is duplicated from parse_pipeline — consider extracting if more keywords are added.
 fn parse_flat_pipeline(
     source: &str,
     file_name: &str,

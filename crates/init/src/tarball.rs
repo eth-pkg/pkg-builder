@@ -4,6 +4,8 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
+use crate::http_client;
+
 /// Result of downloading and hashing a tarball.
 pub struct TarballResult {
     /// The computed sha256 hash.
@@ -33,7 +35,7 @@ pub fn download_and_hash_tarball(
         return Err(format!("Local file not found: {}", url).into());
     }
 
-    let response = reqwest::blocking::get(url)?;
+    let response = http_client().get(url).send()?;
     if !response.status().is_success() {
         return Err(format!("Failed to download tarball (HTTP {})", response.status()).into());
     }
@@ -89,7 +91,7 @@ pub fn sha256_file(path: &str) -> Result<String, Box<dyn std::error::Error>> {
 pub fn try_verify_upstream_hash(url: &str, computed_hash: &str) {
     for suffix in &[".sha256", ".sha256sum"] {
         let hash_url = format!("{}{}", url, suffix);
-        if let Ok(resp) = reqwest::blocking::get(&hash_url) {
+        if let Ok(resp) = http_client().get(&hash_url).send() {
             if resp.status().is_success() {
                 if let Ok(text) = resp.text() {
                     let upstream = text.trim().split_whitespace().next().unwrap_or("");
@@ -111,7 +113,7 @@ pub fn try_verify_upstream_hash(url: &str, computed_hash: &str) {
         .rsplit_once('/')
         .map(|(base, _)| format!("{}/SHA256SUMS", base))
     {
-        if let Ok(resp) = reqwest::blocking::get(&dir_url) {
+        if let Ok(resp) = http_client().get(&dir_url).send() {
             if resp.status().is_success() {
                 if let Ok(text) = resp.text() {
                     let filename = url.rsplit('/').next().unwrap_or("");

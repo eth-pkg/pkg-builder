@@ -31,9 +31,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let config_path = args.config.unwrap_or_else(|| ".".to_string());
     let config = config::PkgConfig::load(&config_path)?;
 
-    // Generate Makefile
-    let makefile_content = makefile::generate(&config)?;
-
     let output_path = Path::new(&config_path);
     let output_dir = if output_path.is_dir() {
         output_path.to_path_buf()
@@ -43,6 +40,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap_or(Path::new("."))
             .to_path_buf()
     };
+
+    // Handle verify early — no Makefile generation needed
+    if let ActionType::Verify = args.action {
+        config::verify::verify_hashes(&config)?;
+        info!("Verification successful!");
+        return Ok(());
+    }
+
+    // Generate Makefile
+    let makefile_content = makefile::generate(&config)?;
     let makefile_path = output_dir.join("Makefile");
     std::fs::write(&makefile_path, &makefile_content)?;
     info!("Generated Makefile at {:?}", makefile_path);
@@ -50,6 +57,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Determine which make target to run
     let target = match args.action {
         ActionType::Init(_) => unreachable!(),
+        ActionType::Verify => unreachable!(),
         ActionType::Generate => return Ok(()),
         ActionType::Build(ref cmd) => {
             if cmd.with_tests {
@@ -69,11 +77,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             Some(TestSubCommand::Piuparts) => "test-piuparts",
             Some(TestSubCommand::Autopkgtest) => "test-autopkgtest",
         },
-        ActionType::Verify => {
-            config::verify::verify_hashes(&config)?;
-            info!("Verification successful!");
-            return Ok(());
-        }
     };
 
     // Run make

@@ -1,4 +1,5 @@
 # Runtime: Nim
+# Note: binary_checksum must include the filename, e.g. "sha256hash  nim-2.0.2-linux_x64.tar.xz"
 APT_INSTALL wget
 RUN rm -rf /tmp/nim-{{nim_version}} && rm -rf /usr/lib/nim/nim-{{nim_version}} && rm -rf /opt/lib/nim/nim-{{nim_version}} && mkdir /tmp/nim-{{nim_version}}
 RUN mkdir -p /opt/lib/nim && mkdir -p /usr/lib/nim

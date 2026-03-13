@@ -27,6 +27,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "test-virtual-package_1.0.0-1.dsc", hash = "96f32a9911b3ad8c47622c30a9ad98cf9b547b00" },
-    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "b132e0553131db4644ea38b2762f59c393d3cd31" },
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "cacd068a105fe454dcc2ee719873ee0c725ec5e2c72d6e267d0a887776fdda5e" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "58ac50ba8606a928e311499c1ea50991ff2775b77c87c09d22a46c9a3c3acdd8" },
 ]

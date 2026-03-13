@@ -12,7 +12,7 @@ use package::PackageFields;
 use runtime::RuntimeConfig;
 use source::SourceKind;
 use thiserror::Error;
-use validation::validate_config;
+use validation::validate_and_normalize;
 use verify::VerifyConfig;
 
 /// The main configuration struct, parsed from pkg-builder.toml.
@@ -42,8 +42,6 @@ pub enum ConfigError {
     },
     #[error("Validation error: {0}")]
     Validation(String),
-    #[error("pkg-builder version mismatch: config requires {required}, running {actual}")]
-    VersionMismatch { required: String, actual: String },
 }
 
 /// Name of the default configuration file
@@ -78,7 +76,7 @@ impl PkgConfig {
 
         let mut config = raw.into_pkg_config(config_root)?;
 
-        validate_config(&mut config)?;
+        validate_and_normalize(&mut config)?;
 
         // Resolve paths after validation
         config.resolve_paths();

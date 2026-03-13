@@ -2,7 +2,7 @@ use crate::build_env::normalize_snapshot_date;
 use crate::{ConfigError, PkgConfig};
 
 /// Validate the entire configuration.
-pub fn validate_config(config: &mut PkgConfig) -> Result<(), ConfigError> {
+pub fn validate_and_normalize(config: &mut PkgConfig) -> Result<(), ConfigError> {
     if config.package.name.is_empty() {
         return Err(ConfigError::Validation(
             "package name cannot be empty".into(),
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_no_snapshot_passes() {
         let mut cfg = test_config_with_snapshot(Distribution::bookworm(), None, None);
-        assert!(validate_config(&mut cfg).is_ok());
+        assert!(validate_and_normalize(&mut cfg).is_ok());
     }
 
     #[test]
@@ -125,14 +125,14 @@ mod tests {
             Some("20250101T000000Z"),
             None,
         );
-        assert!(validate_config(&mut cfg).is_ok());
+        assert!(validate_and_normalize(&mut cfg).is_ok());
     }
 
     #[test]
     fn test_debian_snapshot_short_date_normalized() {
         let mut cfg =
             test_config_with_snapshot(Distribution::bookworm(), Some("20250101"), None);
-        assert!(validate_config(&mut cfg).is_ok());
+        assert!(validate_and_normalize(&mut cfg).is_ok());
         assert_eq!(
             cfg.build_env.snapshot_date.as_deref(),
             Some("20250101T000000Z")
@@ -146,7 +146,7 @@ mod tests {
             Some("20250101T000000Z"),
             None,
         );
-        let err = validate_config(&mut cfg).unwrap_err();
+        let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("Ubuntu"));
     }
 
@@ -157,7 +157,7 @@ mod tests {
             None,
             Some("20250101T000000Z"),
         );
-        let err = validate_config(&mut cfg).unwrap_err();
+        let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("snapshot_security_date requires"));
     }
 
@@ -168,7 +168,7 @@ mod tests {
             Some("2025-01-01"),
             None,
         );
-        let err = validate_config(&mut cfg).unwrap_err();
+        let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("Invalid snapshot date"));
     }
 
@@ -179,6 +179,6 @@ mod tests {
             Some("20250101T000000Z"),
             Some("20250115T000000Z"),
         );
-        assert!(validate_config(&mut cfg).is_ok());
+        assert!(validate_and_normalize(&mut cfg).is_ok());
     }
 }

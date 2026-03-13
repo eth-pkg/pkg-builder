@@ -35,6 +35,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-go_1.0.0-1.dsc", hash = "e3ee12b19253f43356f80d73118afc5e40b0c940" },
-    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "6dba679a8ba0de769fef0dbfdbb3138275ca681b" },
+    { name = "hello-world-go_1.0.0-1.dsc", hash = "c57bd5bed4fe4a0dbfab4818a155d88eeb1acf46f3676f12481ac2a2bda47cb3" },
+    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "c06f0817503d211016e4f057232780ef717802d8a594257e9eb3abccf11a5397" },
 ]

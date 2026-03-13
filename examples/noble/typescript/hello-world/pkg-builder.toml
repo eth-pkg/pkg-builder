@@ -36,6 +36,6 @@ autopkgtest = "5.20"
 
 [verify]
 package_hash = [
-    { name = "hello-world-typescript_1.0.0-1.dsc", hash = "d3549c4a4d5ae0550e231d8204c91992d8a4ab1e" },
-    { name = "hello-world-typescript_1.0.0-1_amd64.deb", hash = "9daa12c0fddb4fb312807d035c3b133cd29d05f5" },
+    { name = "hello-world-typescript_1.0.0-1.dsc", hash = "decaefd386d41eb06235369acc5e3908ba7115255d6ab4362e6d5c6b79e9a0ec" },
+    { name = "hello-world-typescript_1.0.0-1_amd64.deb", hash = "30a489f1cac7a821f66945241a41c66e43fd907ea1abeddcd499dad636c29f06" },
 ]

@@ -38,15 +38,22 @@ impl DebianCodename {
 }
 
 impl UbuntuCodename {
+    /// The canonical short codename (e.g. "noble"), used for serialization,
+    /// directory names, and all internal references.
     pub fn as_str(&self) -> &'static str {
         match self {
-            UbuntuCodename::Noble => "noble numbat",
+            UbuntuCodename::Noble => "noble",
         }
     }
 
     pub fn as_short(&self) -> &'static str {
+        self.as_str()
+    }
+
+    /// The full Ubuntu release name (e.g. "noble numbat"), for display only.
+    pub fn as_full(&self) -> &'static str {
         match self {
-            UbuntuCodename::Noble => "noble",
+            UbuntuCodename::Noble => "noble numbat",
         }
     }
 }

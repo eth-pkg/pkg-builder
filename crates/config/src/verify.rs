@@ -1,5 +1,7 @@
 use serde::Deserialize;
-use sha1::{Digest, Sha1};
+use sha2::{Digest, Sha256};
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 use crate::PkgConfig;
@@ -17,7 +19,7 @@ pub struct VerifyConfig {
     pub package_hash: Vec<PackageHash>,
 }
 
-/// Verify that built package artifacts match the expected SHA1 hashes.
+/// Verify that built package artifacts match the expected SHA-256 hashes.
 ///
 /// Returns `Ok(())` if all hashes match, or an error listing all mismatches.
 pub fn verify_hashes(config: &PkgConfig) -> Result<(), Box<dyn std::error::Error>> {
@@ -35,6 +37,22 @@ pub fn verify_hashes(config: &PkgConfig) -> Result<(), Box<dyn std::error::Error
     verify_hashes_in_dir(verify_config, &artifacts_dir)
 }
 
+/// Compute SHA-256 hash of a file using streaming reads.
+fn sha256_file(path: &Path) -> Result<String, std::io::Error> {
+    let file = File::open(path)?;
+    let mut reader = BufReader::with_capacity(8192, file);
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect())
+}
+
 /// Verify package hashes against files in a specific directory.
 pub fn verify_hashes_in_dir(
     verify_config: &VerifyConfig,
@@ -50,18 +68,11 @@ pub fn verify_hashes_in_dir(
             continue;
         }
 
-        let buffer = std::fs::read(&file_path)?;
-        let mut hasher = Sha1::new();
-        hasher.update(&buffer);
-        let actual: String = hasher
-            .finalize()
-            .iter()
-            .map(|b| format!("{:02x}", b))
-            .collect();
+        let actual = sha256_file(&file_path)?;
 
         if actual != pkg_hash.hash {
             errors.push(format!(
-                "SHA1 mismatch for {}: expected {}, got {}",
+                "SHA-256 mismatch for {}: expected {}, got {}",
                 pkg_hash.name, pkg_hash.hash, actual
             ));
         }

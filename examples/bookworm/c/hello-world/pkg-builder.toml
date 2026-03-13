@@ -30,6 +30,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-c_1.0.0-1.dsc", hash = "12ec4055974230a68312833d8862914fbf9faa05" },
-    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "c8bc4fc4d43d64187bacb7194833173d5fdfe536" },
+    { name = "hello-world-c_1.0.0-1.dsc", hash = "572e1bd7be3464664a20a087ae803a61f52e98e2a7479a61e061cc74e52fa118" },
+    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "bc251d3d936816c5d5b971c124347751f0cd8bdf683e392d676e1872fd5924de" },
 ]

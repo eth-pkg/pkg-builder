@@ -104,6 +104,15 @@ fn select_or_flag(
     default: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error>> {
     if let Some(v) = flag {
+        if !options.contains(&v.as_str()) {
+            return Err(format!(
+                "Unknown {}: '{}'. Valid options: {}",
+                label,
+                v,
+                options.join(", ")
+            )
+            .into());
+        }
         return Ok(v.clone());
     }
     let default_idx = default
@@ -199,12 +208,13 @@ fn resolve_runtime(
                 let version: String = Input::new()
                     .with_prompt(format!("{} version", runtime))
                     .interact_text()?;
-                runtime
-                    .resolve_version(&version)
-                    .unwrap_or_else(|e| {
-                        warn!("Failed to resolve {} {}: {}", runtime, version, e);
-                        prompt_fields(fields).unwrap_or_default()
-                    })
+                match runtime.resolve_version(&version) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        warn!("Could not auto-resolve {} {}: {}. Please enter values manually.", runtime, version, e);
+                        prompt_fields(fields)?
+                    }
+                }
             };
 
             for field in optional_fields {

@@ -28,11 +28,13 @@ jobs:
         uses: ./.github/actions/setup-sbuild
 
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --locked --verbose
 
       - name: Run unit tests
         run: cargo test --lib --verbose -- --ignored
 
+  # Note: dotnet is excluded — requires snapshot pinning (coming in a future branch).
+  # git-package is excluded — currently broken.
   bookworm:
     uses: ./.github/workflows/packaging.yml
     with:

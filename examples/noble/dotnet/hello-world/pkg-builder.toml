@@ -47,9 +47,4 @@ sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
 autopkgtest = "5.20"
-
-[verify]
-package_hash = [
-    { name = "hello-world-dotnet_1.0.0-1.dsc", hash = "" },
-    { name = "hello-world-dotnet_1.0.0-1_amd64.deb", hash = "" },
-]
+# [verify] hashes not yet populated — run build + verify to generate

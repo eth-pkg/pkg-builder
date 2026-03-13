@@ -216,18 +216,13 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
         format!(" | {}", phase.order_only_deps.join(" "))
     };
 
-    // Collect submodule checkouts (encoded as Run with __submodule_checkout prefix)
+    // Collect submodule checkouts
     let submodule_ops: Vec<_> = phase
         .operations
         .iter()
         .filter_map(|op| {
-            if let Operation::Run { cmd } = op {
-                cmd.strip_prefix("__submodule_checkout:").map(|rest| {
-                    let mut parts = rest.splitn(2, ':');
-                    let path = parts.next().unwrap_or("");
-                    let commit = parts.next().unwrap_or("");
-                    (path.to_string(), commit.to_string())
-                })
+            if let Operation::SubmoduleCheckout { path, commit } = op {
+                Some((path.clone(), commit.clone()))
             } else {
                 None
             }
@@ -284,7 +279,7 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
                 out.push_str("\tmkdir -p $(SRC_DIR)\n");
                 out.push_str("\ttar czvf $@ --files-from /dev/null\n");
             }
-            Operation::Run { cmd } if cmd.starts_with("__submodule_checkout:") => {
+            Operation::SubmoduleCheckout { .. } => {
                 // Already handled inside GitClone rendering
             }
             _ => {}
@@ -438,6 +433,9 @@ fn render_env_phase(out: &mut String, phase: &Phase) {
 
     out.push_str(&format!("$(CHROOT_TARBALL):{}\n", order_only));
     if uses_snapshot {
+        // Snapshot archives have expired Release signatures, so GPG verification
+        // must be disabled for debootstrap. This is a known security trade-off:
+        // we trust snapshot.debian.org over HTTPS instead of GPG signatures.
         out.push_str("\tsbuild-createchroot --chroot-mode=unshare \\\n");
         out.push_str("\t  --make-sbuild-tarball $@ \\\n");
         out.push_str("\t  --debootstrapopts=--no-check-gpg \\\n");

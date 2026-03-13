@@ -21,8 +21,10 @@ jobs:
       matrix: ${{ steps.parse.outputs.matrix }}
     steps:
       - id: parse
+        env:
+          LANGUAGES: ${{ inputs.languages }}
         run: |
-          matrix=$(printf '%s' '${{ inputs.languages }}' | \
+          matrix=$(printf '%s' "$LANGUAGES" | \
             grep -v '^[[:space:]]*$' | \
             sed 's/^[[:space:]]*-[[:space:]]*//' | \
             jq -R . | jq -sc .)
@@ -52,10 +54,12 @@ jobs:
           sudo sysctl -w kernel.unprivileged_userns_clone=1
 
       - name: Create chroot env
+        env:
+          DISTRO: ${{ inputs.distro }}
+          LANGUAGE: ${{ matrix.language }}
         run: |
-          cd examples/${{ inputs.distro }}/${{ matrix.language }}/hello-world
+          cd "examples/${DISTRO}/${LANGUAGE}/hello-world"
           pkg-builder --install-deps env create
-          echo "${HOME}/.cache/sbuild/${{ inputs.distro }}-amd64.tar.gz" >> $GITHUB_PATH
 
       - name: Run packaging tests
         uses: ./.github/actions/run-packaging-tests

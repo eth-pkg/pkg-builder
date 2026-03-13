@@ -9,7 +9,7 @@ Quick-reference table of all runtime recipes and the `[runtime]` fields they req
 | `c` | C | — | *(none — no `[runtime]` needed)* |
 | `rust` | Rust | GPG signature | `binary_url`, `binary_gpg_asc` |
 | `go` | Go | SHA-256 | `binary_url`, `binary_checksum` |
-| `node` | JavaScript, TypeScript | SHA-256 | `binary_url`, `binary_checksum`, `yarn_version`? |
+| `node` | JavaScript, TypeScript | SHA-256 | `binary_url`, `binary_checksum` |
 | `java` | Java | SHA-256 | `binary_url`, `binary_checksum`, `jdk_version` |
 | `java-gradle` | Java + Gradle | SHA-256 | `binary_url`, `binary_checksum`, `jdk_version`, `gradle_version`, `gradle_binary_url`, `gradle_binary_checksum` |
 | `nim` | Nim | SHA-256 | `binary_url`, `binary_checksum`, `nim_version` |
@@ -44,12 +44,6 @@ Fields marked with `?` are optional.
 | Field | Type | Description |
 |-------|------|-------------|
 | `nim_version` | string | Nim version, used for install directory naming |
-
-### Node.js fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `yarn_version` | string | *(optional)* Yarn version to enable via corepack |
 
 ### .NET package fields
 

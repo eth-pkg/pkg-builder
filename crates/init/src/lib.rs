@@ -10,6 +10,15 @@ use log::warn;
 use std::fmt;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
+
+/// Create an HTTP client with a 30-second timeout.
+pub(crate) fn http_client() -> reqwest::blocking::Client {
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .expect("Failed to build HTTP client")
+}
 
 // ---- Source type ----
 

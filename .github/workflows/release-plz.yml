@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -31,9 +31,10 @@ jobs:
         if: steps.release-plz.outputs.prs_created == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PLZ_PR: ${{ steps.release-plz.outputs.pr }}
         run: |
           # Parse the PR branch from the output
-          PR_JSON='${{ steps.release-plz.outputs.pr }}'
+          PR_JSON="${RELEASE_PLZ_PR}"
           PR_BRANCH=$(echo "$PR_JSON" | jq -r '.head_branch')
 
           if [ -z "$PR_BRANCH" ] || [ "$PR_BRANCH" = "null" ]; then

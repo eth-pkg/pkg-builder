@@ -160,9 +160,9 @@ for toml in "${TOMLS[@]}"; do
         fi
     fi
 
-    # Step 2: Remove tmp folder contents
-    echo -e "${YELLOW}Removing tmp folder contents...${NC}"
-    sudo rm -rf /tmp/* 2>/dev/null || true
+    # Step 2: Remove sbuild tmp folder contents
+    echo -e "${YELLOW}Removing sbuild tmp folder contents...${NC}"
+    sudo rm -rf /tmp/sbuild-createchroot 2>/dev/null || true
 
 
     # Step 3: Build
@@ -179,18 +179,18 @@ for toml in "${TOMLS[@]}"; do
         verify_output=$(cargo run --bin pkg-builder -- --config "$toml" verify 2>&1) || true
         echo "$verify_output"
 
-        if echo "$verify_output" | grep -q "SHA1 mismatch"; then
+        if echo "$verify_output" | grep -q "SHA-256 mismatch"; then
             if [[ "$REPLACE" == true ]]; then
                 echo -e "${YELLOW}Hash mismatch detected, updating hashes in ${toml}...${NC}"
 
                 # Split errors (may be joined by "; " on one line) and process each
                 while IFS= read -r match; do
-                    file_name=$(echo "$match" | sed 's/SHA1 mismatch for \(.*\): expected.*/\1/')
+                    file_name=$(echo "$match" | sed 's/SHA-256 mismatch for \(.*\): expected.*/\1/')
                     new_hash=$(echo "$match" | sed 's/.*, got //')
                     echo -e "  Updating hash for ${file_name} -> ${new_hash}"
                     # Replace by matching the file name in the toml
                     sed -i "/${file_name}/s/hash = \"[a-f0-9]*\"/hash = \"${new_hash}\"/" "$toml"
-                done < <(echo "$verify_output" | grep -o 'SHA1 mismatch for [^;]*')
+                done < <(echo "$verify_output" | grep -o 'SHA-256 mismatch for [^;]*')
 
                 # Re-verify
                 echo -e "${YELLOW}Re-verifying...${NC}"

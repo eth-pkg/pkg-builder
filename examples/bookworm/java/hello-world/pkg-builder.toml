@@ -35,6 +35,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-java_1.0.0-1.dsc", hash = "58186642646367974665626a1002bc03f80e0a56" },
-    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "240018f12c7447991068fc8b529c64183b82c38f" },
+    { name = "hello-world-java_1.0.0-1.dsc", hash = "f913555dcc7ab630c17399472332ed282cefffe83537ad0bae6c18205ba9f9e0" },
+    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "7d43c83914c83f69168cc388352e4dff2e4354b2f4a70c633e58a1eb56ed5155" },
 ]

@@ -76,6 +76,7 @@ pub enum Operation {
     VerifyGpg { file: String, sig: String },
     Extract { file: String, dest: String, strip: Option<u32> },
     GitClone { url: String, tag: String },
+    SubmoduleCheckout { path: String, commit: String },
     CreateEmptyTar,
 
     // Package management

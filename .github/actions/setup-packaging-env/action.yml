@@ -24,8 +24,7 @@ runs:
     - name: Build pkg-builder
       shell: bash
       run: |
-        cargo build --verbose
-        cargo build --release
+        cargo build --release --locked
         
     - name: Install pkg-builder
       shell: bash
