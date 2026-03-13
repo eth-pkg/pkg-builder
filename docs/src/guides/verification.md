@@ -19,7 +19,7 @@ Each entry specifies the expected filename and its SHA-1 hash.
 ## Running verification
 
 ```bash
-pkg-builder verify path/to/pkg-builder.toml
+pkg-builder verify
 ```
 
 This computes the SHA-1 hash of each file listed in `package_hash` (looking in the workdir) and compares it against the expected value. If any hash doesn't match, the command reports which files differ.

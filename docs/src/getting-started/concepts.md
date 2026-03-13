@@ -40,7 +40,7 @@ Key files:
 
 A Debian tool that builds packages inside an isolated chroot environment. This ensures builds are clean and reproducible — only explicitly declared dependencies are available. pkg-builder uses a [patched fork](https://github.com/eth-pkg/sbuild) of sbuild.
 
-The chroot is created once per distribution with `pkg-builder env create` and reused for all subsequent builds.
+The chroot is created once per distribution with `pkg-builder env create` (or `pkg-builder --config <path> env create`) and reused for all subsequent builds.
 
 ## Runtime recipes
 

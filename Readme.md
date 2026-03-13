@@ -36,37 +36,41 @@ See [installation docs](docs/install.md) for sbuild setup.
 cargo install --path .
 
 # Create environment and build package
-pkg-builder env create path/to/pkg-builder.toml
-pkg-builder package path/to/pkg-builder.toml
+pkg-builder --config path/to/pkg-builder.toml env create
+pkg-builder --config path/to/pkg-builder.toml build
 ```
 
-If no config file path is provided, `pkg-builder.toml` in the current directory is used.
+If `--config` is omitted, pkg-builder looks for `pkg-builder.toml` in the current directory.
 
 ## Commands
 
 ```bash
-pkg-builder package path/to/pkg-builder.toml  # Build package
-pkg-builder env create path/to/pkg-builder.toml  # Create build environment
-pkg-builder env clean path/to/pkg-builder.toml  # Clean build environment
-pkg-builder piuparts path/to/pkg-builder.toml  # Run piuparts tests
-pkg-builder autopkgtests path/to/pkg-builder.toml  # Run autopkgtests
-pkg-builder lintian path/to/pkg-builder.toml  # Run lintian checks
-pkg-builder verify path/to/pkg-builder.toml  # Verify package hashes
-pkg-builder version  # Show version
+pkg-builder build                              # Build package
+pkg-builder build --with-tests                 # Build and run enabled tests
+pkg-builder env create                         # Create build environment
+pkg-builder env clean                          # Remove build environment
+pkg-builder test                               # Run all enabled tests
+pkg-builder test lintian                       # Run lintian checks on host
+pkg-builder test piuparts                      # Run piuparts tests
+pkg-builder test autopkgtest                   # Run autopkgtest tests
+pkg-builder verify                             # Verify package hashes
+pkg-builder clean                              # Clean build artifacts
+pkg-builder --version                          # Show version
 ```
 
-If no config file path is provided, `pkg-builder.toml` in the current directory is used.
+Use `--config path/to/pkg-builder.toml` to specify a config file. If omitted, the current directory is used.
 
 ## Testing
 
 ```bash
-pkg-builder piuparts path/to/pkg-builder.toml  # Run piuparts tests
-pkg-builder autopkgtests path/to/pkg-builder.toml  # Run autopkgtests
-pkg-builder lintian path/to/pkg-builder.toml  # Run lintian checks
-pkg-builder verify path/to/pkg-builder.toml  # Verify package hashes
+pkg-builder test                               # Run all enabled tests
+pkg-builder test lintian                       # Run lintian checks on host
+pkg-builder test piuparts                      # Run piuparts tests
+pkg-builder test autopkgtest                   # Run autopkgtest tests
+pkg-builder verify                             # Verify package hashes
 ```
 
-If no config file path is provided, `pkg-builder.toml` in the current directory is used.
+Use `--config path/to/pkg-builder.toml` to specify a config file. If omitted, the current directory is used.
 
 ## Examples
 

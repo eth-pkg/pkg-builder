@@ -155,7 +155,7 @@ for toml in "${TOMLS[@]}"; do
     # Step 1: Clean
     if [[ "$NO_CLEAN" != true ]]; then
         echo -e "${YELLOW}Cleaning...${NC}"
-        if ! cargo run --bin pkg-builder -- clean "$toml" 2>&1; then
+        if ! cargo run --bin pkg-builder -- --config "$toml" clean 2>&1; then
             echo -e "${YELLOW}Clean failed (continuing anyway)${NC}"
         fi
     fi
@@ -167,7 +167,7 @@ for toml in "${TOMLS[@]}"; do
 
     # Step 3: Build
     echo -e "${YELLOW}Building...${NC}"
-    if ! cargo run --bin pkg-builder -- package "$toml" 2>&1; then
+    if ! cargo run --bin pkg-builder -- --config "$toml" build 2>&1; then
         echo -e "${RED}BUILD FAILED: ${toml}${NC}"
         FAILED+=("$toml")
         continue
@@ -176,7 +176,7 @@ for toml in "${TOMLS[@]}"; do
     # Step 4: Verify (and optionally update hashes with --replace)
     if [[ "$NO_VERIFY" != true ]]; then
         echo -e "${YELLOW}Verifying...${NC}"
-        verify_output=$(cargo run --bin pkg-builder -- verify "$toml" 2>&1) || true
+        verify_output=$(cargo run --bin pkg-builder -- --config "$toml" verify 2>&1) || true
         echo "$verify_output"
 
         if echo "$verify_output" | grep -q "SHA1 mismatch"; then
@@ -194,7 +194,7 @@ for toml in "${TOMLS[@]}"; do
 
                 # Re-verify
                 echo -e "${YELLOW}Re-verifying...${NC}"
-                if cargo run --bin pkg-builder -- verify "$toml" 2>&1; then
+                if cargo run --bin pkg-builder -- --config "$toml" verify 2>&1; then
                     echo -e "${GREEN}Verification passed after hash update!${NC}"
                 else
                     echo -e "${RED}Verification still failing after hash update!${NC}"

@@ -53,6 +53,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 .PHONY: all \
 	preflight \
 	env \
+	env-clean \
 	build \
 	source \
 	extract \
@@ -60,6 +61,7 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	patch \
 	sbuild \
 	test \
+	test-lintian \
 	test-piuparts \
 	test-autopkgtest \
 	help \
@@ -182,7 +184,17 @@ $(CHROOT_TARBALL): | preflight
 	  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)
 env: $(CHROOT_TARBALL)
 
+env-clean:
+	rm -f $(CHROOT_TARBALL)
+
 # === Test ===
+test-lintian: build
+	lintian -i -I --tag-display-limit=0 \
+	  --suppress-tags bad-distribution-in-changes-file \
+	  --suppress-tags debug-file-with-no-debug-symbols \
+	  --fail-on=error --fail-on=warning \
+	  $(OUT_DIR)/*.changes
+
 ifeq ($(RUN_PIUPARTS),true)
 test-piuparts: build
 	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb

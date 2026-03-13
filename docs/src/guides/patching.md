@@ -7,7 +7,7 @@ Sometimes the upstream source needs modifications to build correctly as a Debian
 First, build the package to get the unpacked source tree:
 
 ```bash
-pkg-builder package path/to/pkg-builder.toml
+pkg-builder --config path/to/pkg-builder.toml build
 ```
 
 Then navigate to the unpacked source in the working directory:

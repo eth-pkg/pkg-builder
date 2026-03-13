@@ -62,5 +62,3 @@ jobs:
         with:
           distro: ${{ inputs.distro }}
           language: ${{ matrix.language }}
-          run_piuparts: false
-          run_autopkgtest: true

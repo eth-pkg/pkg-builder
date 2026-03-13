@@ -27,10 +27,10 @@ sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest \
 cargo install --path .
 
 # Create the build environment
-pkg-builder env create pkg-builder.toml
+pkg-builder --config pkg-builder.toml env create
 
 # Build the package
-pkg-builder package pkg-builder.toml
+pkg-builder --config pkg-builder.toml build
 ```
 
 See [Installation](getting-started/installation.md) for full setup instructions and [Your First Package](getting-started/first-package.md) for a step-by-step tutorial.

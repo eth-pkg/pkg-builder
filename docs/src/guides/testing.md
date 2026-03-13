@@ -15,19 +15,23 @@ autopkgtest = true
 
 All three default to `false` if the `[testing]` section is omitted.
 
-Tests run automatically after a successful build when using `pkg-builder package`. You can also run them individually.
+Tests enabled in the config run automatically after a successful build when using `pkg-builder build --with-tests`. You can also run them individually.
 
 ## Lintian
 
 [Lintian](https://lintian.debian.org/) is a static analysis tool that checks `.deb` and `.dsc` files against Debian policy. It catches common packaging errors like missing fields, incorrect permissions, and policy violations.
 
-```bash
-# Run after building
-pkg-builder lintian path/to/pkg-builder.toml
+There are two ways to run lintian:
 
-# Or as part of the build
-pkg-builder package path/to/pkg-builder.toml --run-lintian true
+```bash
+# Run lintian on the host against built .changes files
+pkg-builder test lintian
+
+# Or run lintian inside sbuild as part of the build (when lintian is enabled in config)
+pkg-builder build --with-tests
 ```
+
+Note: `test lintian` runs lintian on the host, which is separate from lintian running inside sbuild during `build --with-tests`.
 
 ### Suppressing warnings
 
@@ -38,7 +42,7 @@ Some lintian warnings may not apply to your package. Add overrides in `src/debia
 [Piuparts](https://piuparts.debian.org/) tests the package install/upgrade/removal cycle. It installs the `.deb` in a clean chroot, then removes it, checking for errors at each step.
 
 ```bash
-pkg-builder piuparts path/to/pkg-builder.toml
+pkg-builder test piuparts
 ```
 
 Piuparts catches issues like:
@@ -52,7 +56,7 @@ Piuparts catches issues like:
 [Autopkgtest](https://autopkgtest.ubuntu.com/) runs functional tests defined in `debian/tests/`. These are tests that exercise the installed package rather than the build process.
 
 ```bash
-pkg-builder autopkgtest path/to/pkg-builder.toml
+pkg-builder test autopkgtest
 ```
 
 ### Defining tests
@@ -77,10 +81,10 @@ The test script should exit 0 on success and non-zero on failure.
 
 ## Running all tests during build
 
-You can enable tests via CLI flags without modifying the config file:
+Use `--with-tests` to run all tests enabled in your config after a successful build:
 
 ```bash
-pkg-builder package path/to/pkg-builder.toml --run-lintian true --run-piuparts --run-autopkgtest
+pkg-builder build --with-tests
 ```
 
 ## Tool versions

@@ -49,10 +49,10 @@ For warnings that don't apply to your package, add overrides:
 
 ### Chroot not found
 
-If `pkg-builder package` fails because the chroot doesn't exist, create it first:
+If `pkg-builder build` fails because the chroot doesn't exist, create it first:
 
 ```bash
-pkg-builder env create path/to/pkg-builder.toml
+pkg-builder --config path/to/pkg-builder.toml env create
 ```
 
 ### Stale chroot
@@ -60,8 +60,8 @@ pkg-builder env create path/to/pkg-builder.toml
 If builds fail due to stale packages in the chroot, clean and recreate it:
 
 ```bash
-pkg-builder env clean path/to/pkg-builder.toml
-pkg-builder env create path/to/pkg-builder.toml
+pkg-builder --config path/to/pkg-builder.toml env clean
+pkg-builder --config path/to/pkg-builder.toml env create
 ```
 
 ## Hash verification failures
@@ -71,6 +71,6 @@ If `pkg-builder verify` reports mismatched hashes:
 1. **Check snapshot pinning** — without pinned snapshots, dependency versions may change between builds
 2. **Check tool versions** — ensure the `[tools]` section matches the versions actually installed
 3. **Check architecture** — hashes are architecture-specific
-4. **Rebuild from clean** — run `pkg-builder clean` then rebuild
+4. **Rebuild from clean** — run `pkg-builder clean` then rebuild with `pkg-builder build`
 
 See [Verification](guides/verification.md) for more on setting up reproducible builds.

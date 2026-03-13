@@ -76,7 +76,7 @@ Let's break this down:
 The build environment is an sbuild chroot — an isolated Debian installation where the package gets built:
 
 ```bash
-pkg-builder env create examples/bookworm/c/hello-world/pkg-builder.toml
+pkg-builder --config examples/bookworm/c/hello-world/pkg-builder.toml env create
 ```
 
 This creates a bookworm amd64 chroot under `/srv/chroot/`. You only need to do this once per distribution.
@@ -84,7 +84,7 @@ This creates a bookworm amd64 chroot under `/srv/chroot/`. You only need to do t
 ## Step 2: Build the package
 
 ```bash
-pkg-builder package examples/bookworm/c/hello-world/pkg-builder.toml
+pkg-builder --config examples/bookworm/c/hello-world/pkg-builder.toml build
 ```
 
 pkg-builder will:
@@ -100,7 +100,7 @@ The output `.deb` and `.dsc` files are placed in the workdir (`~/.pkg-builder/pa
 ## Step 3: Verify the build
 
 ```bash
-pkg-builder verify examples/bookworm/c/hello-world/pkg-builder.toml
+pkg-builder --config examples/bookworm/c/hello-world/pkg-builder.toml verify
 ```
 
 This compares the SHA-1 hashes of the built files against the expected values in `[verify].package_hash`. If they match, the build is reproducible.

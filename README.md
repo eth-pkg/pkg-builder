@@ -25,13 +25,13 @@ cargo install --path .
 **2. Create the build environment:**
 
 ```bash
-pkg-builder env create pkg-builder.toml
+pkg-builder --config pkg-builder.toml env create
 ```
 
 **3. Build the package:**
 
 ```bash
-pkg-builder package pkg-builder.toml
+pkg-builder --config pkg-builder.toml build
 ```
 
 That's it — your `.deb` is in the workdir. See the [tutorial](docs/src/getting-started/first-package.md) for a complete walkthrough.

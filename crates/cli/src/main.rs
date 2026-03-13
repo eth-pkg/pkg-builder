@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{ActionType, PkgBuilderArgs};
+use commands::{ActionType, EnvSubCommand, PkgBuilderArgs, TestSubCommand};
 
 use clap::Parser;
 use env_logger::Env;
@@ -23,24 +23,13 @@ fn main() -> ExitCode {
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = PkgBuilderArgs::parse();
 
-    if let ActionType::Version = &args.action {
-        println!("{}", env!("CARGO_PKG_VERSION"));
+    if let ActionType::Init = &args.action {
+        println!("pkg-builder init wizard coming soon!");
         return Ok(());
     }
 
-    let config_path = args.config_path();
-    let config_path = config_path.unwrap_or_else(|| ".".to_string());
-
-    let mut config = config::PkgConfig::load(&config_path)?;
-
-    // Apply CLI overrides
-    if let ActionType::Package(ref cmd) = args.action {
-        if let Some(v) = cmd.run_lintian {
-            config.build_env.testing.run_lintian = v;
-        }
-        config.build_env.testing.run_piuparts = cmd.run_piuparts;
-        config.build_env.testing.run_autopkgtest = cmd.run_autopkgtest;
-    }
+    let config_path = args.config.unwrap_or_else(|| ".".to_string());
+    let config = config::PkgConfig::load(&config_path)?;
 
     // Generate Makefile
     let makefile_content = makefile::generate(&config)?;
@@ -60,23 +49,35 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     // Determine which make target to run
     let target = match args.action {
-        ActionType::Generate(_) => return Ok(()),
-        ActionType::Package(_) => "all",
+        ActionType::Init => unreachable!(),
+        ActionType::Generate => return Ok(()),
+        ActionType::Build(ref cmd) => {
+            if cmd.with_tests {
+                "all"
+            } else {
+                "build"
+            }
+        }
         ActionType::Env(ref env_cmd) => match env_cmd.sub_command {
-            commands::BuildEnvSubCommand::Create(_) => "env",
-            commands::BuildEnvSubCommand::Clean(_) => "clean",
+            EnvSubCommand::Create => "env",
+            EnvSubCommand::Clean => "env-clean",
         },
-        ActionType::Clean(_) => "clean",
-        ActionType::Lintian(_) => "test-lintian",
-        ActionType::Piuparts(_) => "test-piuparts",
-        ActionType::Autopkgtest(_) => "test-autopkgtest",
-        ActionType::Verify(_) => {
-            let verify_config = config.verify.clone().ok_or("No [verify] section in pkg-builder.toml")?;
+        ActionType::Clean => "clean",
+        ActionType::Test(ref test_cmd) => match test_cmd.sub_command {
+            None => "test",
+            Some(TestSubCommand::Lintian) => "test-lintian",
+            Some(TestSubCommand::Piuparts) => "test-piuparts",
+            Some(TestSubCommand::Autopkgtest) => "test-autopkgtest",
+        },
+        ActionType::Verify => {
+            let verify_config = config
+                .verify
+                .clone()
+                .ok_or("No [verify] section in pkg-builder.toml")?;
             let builder = pipeline::PackageBuilder::new(config)?;
             builder.verify(verify_config)?;
             return Ok(());
         }
-        ActionType::Version => unreachable!(),
     };
 
     // Run make

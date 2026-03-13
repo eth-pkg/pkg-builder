@@ -8,45 +8,18 @@ inputs:
   language:
     description: 'Language to test'
     required: true
-  run_piuparts:
-    description: 'Whether to run piuparts'
-    required: false
-    default: 'false'
-  run_autopkgtest:
-    description: 'Whether to run autopkgtest'
-    required: false
-    default: 'false'
 
 runs:
   using: "composite"
   steps:
-    - name: Package
+    - name: Build
       shell: bash
       run: |
         cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        pkg-builder --install-deps package --run-piuparts ${{ inputs.run_piuparts }} --run-autopkgtest ${{ inputs.run_autopkgtest }}
-
-    - name: piuparts
-      if: ${{ inputs.run_piuparts == 'true' }}
-      shell: bash
-      run: |
-        # installing debian-archive-keyring fails on ubuntu LTS, not sure why, but it says it is already installed
-        # sudo apt-get install -y debian-archive-keyring
-        cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        ${HOME}/.local/bin/pkg-builder piuparts
-
-    # TODO version parsing fails, as it doesn't use semver
-    - name: autopkgtest
-      if: ${{ inputs.run_autopkgtest == 'true' }}
-      shell: bash
-      run: |
-        sudo cp -R ${HOME}/.pkg-builder /root
-        apt list --installed autopkgtest
-        cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        sudo ${HOME}/.local/bin/pkg-builder autopkgtest
+        pkg-builder --install-deps build --with-tests
 
     - name: Verify
       shell: bash
       run: |
         cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        ${HOME}/.local/bin/pkg-builder verify --no-package true
+        pkg-builder verify

@@ -185,6 +185,7 @@ impl<'a> MakefileEmitter<'a> {
             ".PHONY: all \\\n\
              \tpreflight \\\n\
              \tenv \\\n\
+             \tenv-clean \\\n\
              \tbuild \\\n\
              \tsource \\\n\
              \textract \\\n\
@@ -192,6 +193,7 @@ impl<'a> MakefileEmitter<'a> {
              \tpatch \\\n\
              \tsbuild \\\n\
              \ttest \\\n\
+             \ttest-lintian \\\n\
              \ttest-piuparts \\\n\
              \ttest-autopkgtest \\\n\
              \thelp \\\n\
@@ -470,7 +472,9 @@ impl<'a> MakefileEmitter<'a> {
             out.push_str("\t  --make-sbuild-tarball $@ \\\n");
             out.push_str("\t  $(DISTRIBUTION) /tmp/sbuild-createchroot $(REPO_URL)\n");
         }
-        out.push_str("env: $(CHROOT_TARBALL)\n");
+        out.push_str("env: $(CHROOT_TARBALL)\n\n");
+        out.push_str("env-clean:\n");
+        out.push_str("\trm -f $(CHROOT_TARBALL)\n");
         out.push('\n');
     }
 
@@ -523,6 +527,13 @@ impl<'a> MakefileEmitter<'a> {
 
     fn emit_test_targets(&self, out: &mut String) {
         out.push_str("# === Test ===\n");
+
+        out.push_str("test-lintian: build\n");
+        out.push_str("\tlintian -i -I --tag-display-limit=0 \\\n");
+        out.push_str("\t  --suppress-tags bad-distribution-in-changes-file \\\n");
+        out.push_str("\t  --suppress-tags debug-file-with-no-debug-symbols \\\n");
+        out.push_str("\t  --fail-on=error --fail-on=warning \\\n");
+        out.push_str("\t  $(OUT_DIR)/*.changes\n\n");
 
         out.push_str("ifeq ($(RUN_PIUPARTS),true)\n");
         out.push_str("test-piuparts: build\n");
