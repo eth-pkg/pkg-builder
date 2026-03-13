@@ -1,5 +1,7 @@
-pub mod emitter;
-pub mod recipe;
+pub mod builder;
+pub mod ir;
+pub mod parser;
+pub mod renderer;
 pub mod variables;
 
 use std::path::Path;
@@ -7,8 +9,6 @@ use std::path::Path;
 use config::PkgConfig;
 use thiserror::Error;
 
-use emitter::MakefileEmitter;
-use recipe::RecipeParser;
 use variables::VariableResolver;
 
 #[derive(Debug, Error)]
@@ -33,21 +33,22 @@ pub fn generate(config: &PkgConfig) -> Result<String, GeneratorError> {
     let pipeline_name = vars.get("pipeline").cloned().unwrap_or_default();
     let runtime_name = vars.get("runtime_recipe").cloned().unwrap_or_default();
 
-    // Load pipeline recipe
+    // Parse recipes into IR
     let pipeline_source = load_recipe("pipelines", &pipeline_name, &config.config_root)?;
-    let pipeline_cmds = RecipeParser::parse(&pipeline_source, &pipeline_name, &vars)?;
+    let pipeline = parser::parse_pipeline(&pipeline_source, &pipeline_name, &vars)?;
 
-    // Load runtime recipe (may be empty for c)
-    let runtime_cmds = if !runtime_name.is_empty() {
+    let runtime = if !runtime_name.is_empty() {
         let runtime_source = load_recipe("runtimes", &runtime_name, &config.config_root)?;
-        RecipeParser::parse(&runtime_source, &runtime_name, &vars)?
+        Some(parser::parse_runtime(&runtime_source, &runtime_name, &vars)?)
     } else {
-        vec![]
+        None
     };
 
-    // Emit Makefile
-    let emitter = MakefileEmitter::new(config, &vars, &pipeline_cmds, &runtime_cmds);
-    Ok(emitter.emit())
+    // Build complete plan
+    let plan = builder::PlanBuilder::new(config, &vars, pipeline, runtime).build();
+
+    // Render to Makefile
+    Ok(renderer::render_makefile(&plan))
 }
 
 /// Load a recipe file. Checks local directory first, then built-in.
@@ -56,13 +57,11 @@ fn load_recipe(
     name: &str,
     config_root: &Path,
 ) -> Result<String, GeneratorError> {
-    // Check local override: <config_root>/<kind>/<name>.recipe
     let local_path = config_root.join(kind).join(format!("{}.recipe", name));
     if local_path.exists() {
         return std::fs::read_to_string(&local_path).map_err(GeneratorError::Io);
     }
 
-    // Check built-in recipes
     match load_builtin_recipe(kind, name) {
         Some(content) => Ok(content.to_string()),
         None => Err(GeneratorError::RecipeNotFound(format!(
