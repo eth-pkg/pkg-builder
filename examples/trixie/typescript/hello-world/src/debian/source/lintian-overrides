@@ -1,3 +1,1 @@
-hello-world-typescript source: debian-rules-ignores-make-clean-error [debian/rules:20]
-hello-world-typescript source: required-field *
-hello-world-typescript source: no-newline-at-end [debian/control]
+hello-world-typescript source: debian-rules-ignores-make-clean-error

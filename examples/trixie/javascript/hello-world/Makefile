@@ -6,6 +6,7 @@ SHELL       := /bin/bash
 .DELETE_ON_ERROR:
 .NOTPARALLEL:
 export PATH := $(HOME)/.cargo/bin:$(PATH)
+INSTALL_DEPS ?= 0
 
 # === Variables ===
 ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -15,6 +16,7 @@ CHROOT_DIR := $(HOME)/.cache/sbuild
 PKG_NAME := hello-world-javascript
 PKG_VERSION := 1.0.0
 PKG_REVISION := 1
+PKG_HOMEPAGE := https://github.com/eth-pkg/pkg-builder#examples
 PKG_SPEC := $(ROOT)/hello-world-javascript.sss
 
 DISTRIBUTION := trixie
@@ -76,9 +78,14 @@ help:
 # === Preflight check ===
 preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
-	  echo 'Missing $(DEBCRAFTER). Install with:'; \
-	  echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
-	  exit 1; \
+	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
+	    echo 'Installing $(DEBCRAFTER)...'; \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	  else \
+	    echo 'Missing $(DEBCRAFTER). Install with:'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    exit 1; \
+	  fi; \
 	}
 	@missing=''; \
 	command -v wget >/dev/null 2>&1 || missing="$$missing wget"; \
@@ -110,6 +117,16 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	mkdir -p $(SRC_DIR)/.pc && echo 2 > $(SRC_DIR)/.pc/version
 	if [ -d $(ROOT)/src ]; then cp -r $(ROOT)/src/. $(SRC_DIR)/; fi
 	chmod +x $(SRC_DIR)/debian/rules
+	@cd $(SRC_DIR) && \
+	  if ! grep -q '^Standards-Version:' debian/control; then \
+	    awk -v hp='$(PKG_HOMEPAGE)' '\
+	      /^Priority:/ && !done { print; print "Standards-Version: 4.5.1"; print "Homepage: " hp; done=1; next } \
+	      { print }' debian/control > debian/control.tmp && \
+	    mv debian/control.tmp debian/control; \
+	  fi
+	@cd $(SRC_DIR) && \
+	  awk 'BEGIN{blank=0} /^$$/{blank++; if(blank==1) print; next} {blank=0; print}' debian/control > debian/control.tmp && \
+	  mv debian/control.tmp debian/control
 
 # === Build ===
 SBUILD_FLAGS := \

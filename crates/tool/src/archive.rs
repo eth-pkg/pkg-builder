@@ -39,7 +39,7 @@ pub fn extract_tar(tarball: &Path, dest: &Path) -> Result<(), ToolError> {
     let strip = detect_strip_components(tarball)?;
 
     let mut args = vec![
-        "zxvf".to_string(),
+        "zxf".to_string(),
         tarball.display().to_string(),
         "-C".to_string(),
         dest.display().to_string(),

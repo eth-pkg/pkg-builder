@@ -36,6 +36,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-nim_1.0.0-1.dsc", hash = "07bb3ce87133c8e56fadee791f3e098bebc17a91" },
-    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "af1520a6424848b57120fc629bff53755b053d88" },
+    { name = "hello-world-nim_1.0.0-1.dsc", hash = "5b4d90ed5467cff1ccc5a51d3a70a83b3c5cc051" },
+    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "c9f9b71fb1c462bf3f8366f13b875d063eb86cf2" },
 ]

@@ -39,6 +39,6 @@ autopkgtest = "5.28"
 
 [verify]
 package_hash = [
-    { name = "hello-world-java-gradle_1.0.0-1.dsc", hash = "609f6de89b44cca9b58bd961a1602fc16b5deefe" },
-    { name = "hello-world-java-gradle_1.0.0-1_amd64.deb", hash = "55e85bfa8e0b18885cb26ab9947624f7e12d7679" },
+    { name = "hello-world-java-gradle_1.0.0-1.dsc", hash = "9232f0f6d9d78f55a980da47d666f27a0aa8b2f8" },
+    { name = "hello-world-java-gradle_1.0.0-1_amd64.deb", hash = "54b15a2ace32d14c298b29965bb6fba8ce78adaa" },
 ]

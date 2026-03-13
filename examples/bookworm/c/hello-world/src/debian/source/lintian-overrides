@@ -1,2 +1,0 @@
-hello-world-c source: required-field *
-hello-world-c source: no-newline-at-end [debian/control]
