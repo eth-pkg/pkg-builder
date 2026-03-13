@@ -1,0 +1,60 @@
+name: Release-plz
+
+permissions:
+  pull-requests: write
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-plz:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz
+        id: release-plz
+        uses: release-plz/release-plz-action@v0.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update example versions on release PR
+        if: steps.release-plz.outputs.prs_created == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Parse the PR branch from the output
+          PR_JSON='${{ steps.release-plz.outputs.pr }}'
+          PR_BRANCH=$(echo "$PR_JSON" | jq -r '.head_branch')
+
+          if [ -z "$PR_BRANCH" ] || [ "$PR_BRANCH" = "null" ]; then
+            echo "Could not determine PR branch, skipping example version bump"
+            exit 0
+          fi
+
+          git fetch origin "$PR_BRANCH"
+          git checkout "$PR_BRANCH"
+
+          # Read the new CLI version from the bumped Cargo.toml
+          VERSION=$(grep '^version' crates/cli/Cargo.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "Bumping example versions to $VERSION"
+
+          bash scripts/bump-example-versions.sh "$VERSION"
+
+          # Commit and push if there are changes
+          if ! git diff --quiet examples/; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add examples/
+            git commit -m "chore: bump pkg_builder version to $VERSION in examples"
+            git push origin "$PR_BRANCH"
+          fi
