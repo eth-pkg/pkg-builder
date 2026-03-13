@@ -21,7 +21,87 @@ pub fn validate_and_normalize(config: &mut PkgConfig) -> Result<(), ConfigError>
         ));
     }
 
+    validate_source_fields(config)?;
     validate_snapshot_config(config)?;
+
+    Ok(())
+}
+
+/// Characters that are unsafe in shell contexts (command injection).
+const SHELL_UNSAFE: &[char] = &[
+    ';', '&', '|', '$', '`', '(', ')', '{', '}', '<', '>', '!', '#', '\'', '"', '\\', '\n', '\r',
+    '\0',
+];
+
+/// Validate that a string contains no shell metacharacters.
+fn validate_safe_shell_value(field: &str, value: &str) -> Result<(), ConfigError> {
+    if let Some(c) = value.chars().find(|c| SHELL_UNSAFE.contains(c)) {
+        return Err(ConfigError::Validation(format!(
+            "{} contains unsafe character '{}' — only alphanumeric, dots, hyphens, underscores, slashes, colons, and @ are allowed",
+            field, c
+        )));
+    }
+    Ok(())
+}
+
+/// Validate that a URL contains no shell metacharacters (allows :// and query strings).
+fn validate_safe_url(field: &str, value: &str) -> Result<(), ConfigError> {
+    // URLs may contain ? = & % + but not shell-dangerous chars like ; | ` $ ( ) { } etc.
+    const URL_UNSAFE: &[char] = &[
+        ';', '|', '`', '(', ')', '{', '}', '<', '>', '!', '\'', '"', '\\', '\n', '\r', '\0',
+    ];
+    if let Some(c) = value.chars().find(|c| URL_UNSAFE.contains(c)) {
+        return Err(ConfigError::Validation(format!(
+            "{} contains unsafe character '{}' — URLs must not contain shell metacharacters",
+            field, c
+        )));
+    }
+    Ok(())
+}
+
+/// Validate source-related fields that flow into shell commands in generated Makefiles.
+fn validate_source_fields(config: &PkgConfig) -> Result<(), ConfigError> {
+    use crate::source::SourceKind;
+
+    // Package fields
+    validate_safe_shell_value("package.name", &config.package.name)?;
+    validate_safe_shell_value("package.version", &config.package.version)?;
+    validate_safe_shell_value("package.revision", &config.package.revision)?;
+    validate_safe_url("package.homepage", &config.package.homepage)?;
+
+    match &config.source {
+        SourceKind::Tarball { url, hash } => {
+            validate_safe_url("source.url", url)?;
+            if let Some(ref h) = hash {
+                validate_safe_shell_value("source.hash", h)?;
+            }
+        }
+        SourceKind::Git {
+            url,
+            tag,
+            submodules,
+        } => {
+            validate_safe_url("source.url", url)?;
+            validate_safe_shell_value("source.tag", tag)?;
+            for (i, sub) in submodules.iter().enumerate() {
+                validate_safe_shell_value(
+                    &format!("source.submodules[{}].path", i),
+                    &sub.path,
+                )?;
+                if sub.path.contains("..") {
+                    return Err(ConfigError::Validation(format!(
+                        "source.submodules[{}].path must not contain '..'",
+                        i
+                    )));
+                }
+                validate_safe_shell_value(
+                    &format!("source.submodules[{}].commit", i),
+                    &sub.commit,
+                )?;
+            }
+        }
+        SourceKind::Virtual => {}
+    }
 
     Ok(())
 }

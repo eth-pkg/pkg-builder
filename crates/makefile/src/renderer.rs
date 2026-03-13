@@ -1,5 +1,11 @@
 use crate::ir::{BuildPlan, Condition, Operation, Phase, Preamble, VarDecl, VarValue, AssignKind};
 
+/// Escape a string for safe use inside single-quoted shell arguments.
+/// Replaces `'` with `'\''` (end quote, escaped quote, restart quote).
+fn shell_escape(s: &str) -> String {
+    s.replace('\'', "'\\''")
+}
+
 /// Render a BuildPlan as a Makefile string.
 pub fn render_makefile(plan: &BuildPlan) -> String {
     let mut out = String::new();
@@ -239,7 +245,7 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
             Operation::Download { url, .. } => {
                 if url.starts_with("http://") || url.starts_with("https://") {
                     out.push_str(&format!("{}:{}\n", output, order_only));
-                    out.push_str(&format!("\twget -q -O $@ {}\n", url));
+                    out.push_str(&format!("\twget -q -O $@ '{}'\n", shell_escape(url)));
                 } else {
                     let deps = if phase.deps.is_empty() {
                         String::new()
@@ -256,15 +262,15 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
             Operation::GitClone { url, tag } => {
                 out.push_str(&format!("{}:{}\n", output, order_only));
                 out.push_str(&format!(
-                    "\tgit clone --depth=1 --branch {} {} $(SRC_DIR)\n",
-                    tag, url
+                    "\tgit clone --depth=1 --branch '{}' '{}' $(SRC_DIR)\n",
+                    shell_escape(tag), shell_escape(url)
                 ));
                 out.push_str("\tcd $(SRC_DIR) && git submodule update --init --recursive\n");
                 // Submodule checkouts
                 for (path, commit) in &submodule_ops {
                     out.push_str(&format!(
-                        "\tcd $(SRC_DIR)/{} && git fetch origin {} && git checkout {}\n",
-                        path, commit, commit
+                        "\tcd $(SRC_DIR)/'{}' && git fetch origin '{}' && git checkout '{}'\n",
+                        shell_escape(path), shell_escape(commit), shell_escape(commit)
                     ));
                 }
                 // Remove .git and create reproducible tarball
