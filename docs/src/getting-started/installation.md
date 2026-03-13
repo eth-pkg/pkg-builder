@@ -52,7 +52,7 @@ sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/n
 ```bash
 git clone https://github.com/eth-pkg/pkg-builder.git
 cd pkg-builder
-cargo install --path .
+cargo install --path crates/cli
 ```
 
 ## Ubuntu-specific setup

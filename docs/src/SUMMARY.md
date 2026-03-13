@@ -10,6 +10,7 @@
 
 # Guides
 
+- [Project Initialization](guides/init.md)
 - [Source Types](guides/source-types.md)
 - [Runtime Recipes](guides/runtime-recipes.md)
 - [Snapshot Pinning](guides/snapshot-pinning.md)

@@ -67,7 +67,7 @@ pub fn generate_toml(config: &InitConfig) -> String {
 
     // [tools]
     out.push_str("\n[tools]\n");
-    out.push_str("pkg_builder = \"0.4.0\"\n");
+    out.push_str("pkg_builder = \"0.3.1\"\n");
     out.push_str("debcrafter = \"8189263\"\n");
     out.push_str("sbuild = \"0.85.6\"\n");
     out.push_str("lintian = \"2.116.3\"\n");

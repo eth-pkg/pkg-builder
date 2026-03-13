@@ -6,6 +6,28 @@ This tutorial walks through building a simple C hello-world package for Debian b
 
 Make sure you've completed the [Installation](installation.md) steps. You should have `pkg-builder` on your PATH and sbuild set up.
 
+## Option A: Use `pkg-builder init`
+
+The fastest way to create a new package is with the interactive wizard:
+
+```bash
+pkg-builder init --output ./my-package
+```
+
+This prompts for package name, version, source type, distribution, runtime, and more. It generates three files:
+
+- `pkg-builder.toml` — package configuration
+- `<name>.sss` — debcrafter source spec
+- `<name>.sps` — debcrafter package spec
+
+For tarball sources, `init` can automatically download the tarball and compute its SHA-256 hash. For Go, Node.js, Rust, and Nim runtimes, it can auto-resolve the latest toolchain version and fetch checksums.
+
+You can also run it fully non-interactively by passing all values as flags — see the [CLI Reference](../reference/cli.md#pkg-builder-init) for details.
+
+Once the files are generated, skip ahead to [Step 1: Create the build environment](#step-1-create-the-build-environment).
+
+## Option B: Use an existing example
+
 ## The example project
 
 The repository includes a complete C example at `examples/bookworm/c/hello-world/`. Let's look at what's inside:

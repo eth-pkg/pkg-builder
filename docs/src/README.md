@@ -17,6 +17,7 @@ pkg-builder solves this by letting you define your entire package in a single `p
 - **Multi-distribution** — Debian (bookworm, trixie) and Ubuntu (noble)
 - **Integrated testing** — lintian, piuparts, and autopkgtest
 - **Package verification** — SHA-1 hash checking for built `.dsc` and `.deb` files
+- **Interactive init wizard** — scaffold new packages with auto-detection of runtime toolchains
 
 ## Quick start
 
@@ -24,7 +25,7 @@ pkg-builder solves this by letting you define your entire package in a single `p
 # Install prerequisites and build pkg-builder
 sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest \
                  vmdb2 qemu-system-x86 git-lfs uidmap
-cargo install --path .
+cargo install --path crates/cli
 
 # Create the build environment
 pkg-builder --config pkg-builder.toml env create
@@ -33,18 +34,23 @@ pkg-builder --config pkg-builder.toml env create
 pkg-builder --config pkg-builder.toml build
 ```
 
+Or scaffold a new package interactively:
+
+```bash
+pkg-builder init --output ./my-package
+```
+
 See [Installation](getting-started/installation.md) for full setup instructions and [Your First Package](getting-started/first-package.md) for a step-by-step tutorial.
 
 ## Architecture
 
-pkg-builder is a Rust workspace with five crates:
+pkg-builder is a Rust workspace with four crates:
 
 | Crate | Purpose |
 |-------|---------|
 | `crates/cli` | Command-line interface and argument parsing |
 | `crates/config` | TOML parsing, validation, and configuration types |
-| `crates/pipeline` | Build pipeline orchestration |
-| `crates/tool` | Wrappers for external tools (git, tar, sbuild, lintian, etc.) |
-| `crates/makefile` | Makefile generation from recipe templates |
+| `crates/init` | Interactive project initialization wizard |
+| `crates/makefile` | Makefile generation with builder/IR/parser/renderer architecture |
 
 The build pipeline works by generating a Makefile from distribution-specific and language-specific recipe templates, then executing it via `make`.
