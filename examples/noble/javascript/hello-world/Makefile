@@ -40,8 +40,8 @@ SRC_HASH := a7c7eb7779e319cc9c884128a64bd0997481c16aab75824b7f6a02844f847cbc46c5
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz
 BINARY_CHECKSUM := f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d
+BINARY_URL := https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz
 YARN_VERSION := 1.22.19
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)

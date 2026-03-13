@@ -40,8 +40,8 @@ SRC_HASH := c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
 BINARY_CHECKSUM := e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1
+BINARY_URL := https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz

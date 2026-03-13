@@ -40,9 +40,9 @@ SRC_HASH := b24e4ff701d8cbccab0cc78f2de55518babcd05a861af8d5d140863637b0ec74ba3e
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
-NIM_VERSION := 2.0.2
-BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
 BINARY_CHECKSUM := 047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz
+BINARY_URL := https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz
+NIM_VERSION := 2.0.2
 OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)
 SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz

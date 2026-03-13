@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
@@ -9,5 +9,5 @@ use serde::Deserialize;
 pub struct RuntimeConfig {
     pub recipe: String,
     #[serde(flatten)]
-    pub vars: HashMap<String, toml::Value>,
+    pub vars: BTreeMap<String, toml::Value>,
 }
