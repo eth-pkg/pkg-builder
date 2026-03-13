@@ -24,7 +24,7 @@ runs:
       shell: bash
       run: |
         cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        pkg-builder package --run-piuparts ${{ inputs.run_piuparts }} --run-autopkgtest ${{ inputs.run_autopkgtest }}
+        pkg-builder package --install-deps --run-piuparts ${{ inputs.run_piuparts }} --run-autopkgtest ${{ inputs.run_autopkgtest }}
 
     - name: piuparts
       if: ${{ inputs.run_piuparts == 'true' }}

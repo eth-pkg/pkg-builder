@@ -47,7 +47,8 @@ impl<'a> MakefileEmitter<'a> {
         out.push_str(".SHELLFLAGS := -eo pipefail -c\n");
         out.push_str(".DELETE_ON_ERROR:\n");
         out.push_str(".NOTPARALLEL:\n");
-        out.push_str("export PATH := $(HOME)/.cargo/bin:$(PATH)\n\n");
+        out.push_str("export PATH := $(HOME)/.cargo/bin:$(PATH)\n");
+        out.push_str("INSTALL_DEPS ?= 0\n\n");
     }
 
     fn emit_variables(&self, out: &mut String) {
@@ -75,6 +76,7 @@ impl<'a> MakefileEmitter<'a> {
         emit_static_var(out, "PKG_NAME", &pkg.name);
         emit_static_var(out, "PKG_VERSION", &pkg.version);
         emit_static_var(out, "PKG_REVISION", &pkg.revision);
+        emit_static_var(out, "PKG_HOMEPAGE", &pkg.homepage);
         emit_static_var(
             out,
             "PKG_SPEC",
@@ -271,9 +273,14 @@ impl<'a> MakefileEmitter<'a> {
             };
             out.push_str(&format!(
                 "\t@command -v {check} >/dev/null 2>&1 || {{ \\\n\
-                 \t  echo 'Missing {check}. Install with:'; \\\n\
-                 \t  echo '  {hint}'; \\\n\
-                 \t  exit 1; \\\n\
+                 \t  if [ \"$(INSTALL_DEPS)\" = \"1\" ]; then \\\n\
+                 \t    echo 'Installing {check}...'; \\\n\
+                 \t    {hint}; \\\n\
+                 \t  else \\\n\
+                 \t    echo 'Missing {check}. Install with:'; \\\n\
+                 \t    echo '  {hint}'; \\\n\
+                 \t    exit 1; \\\n\
+                 \t  fi; \\\n\
                  \t}}\n",
                 check = check_name,
                 hint = install_hint,
@@ -391,6 +398,18 @@ impl<'a> MakefileEmitter<'a> {
                     out.push_str("\tmkdir -p $(SRC_DIR)/.pc && echo 2 > $(SRC_DIR)/.pc/version\n");
                     out.push_str("\tif [ -d $(ROOT)/src ]; then cp -r $(ROOT)/src/. $(SRC_DIR)/; fi\n");
                     out.push_str("\tchmod +x $(SRC_DIR)/debian/rules\n");
+                    // Inject Standards-Version and Homepage into the source
+                    // stanza if missing, and normalise consecutive blank lines.
+                    out.push_str("\t@cd $(SRC_DIR) && \\\n");
+                    out.push_str("\t  if ! grep -q '^Standards-Version:' debian/control; then \\\n");
+                    out.push_str("\t    awk -v hp='$(PKG_HOMEPAGE)' '\\\n");
+                    out.push_str("\t      /^Priority:/ && !done { print; print \"Standards-Version: 4.5.1\"; print \"Homepage: \" hp; done=1; next } \\\n");
+                    out.push_str("\t      { print }' debian/control > debian/control.tmp && \\\n");
+                    out.push_str("\t    mv debian/control.tmp debian/control; \\\n");
+                    out.push_str("\t  fi\n");
+                    out.push_str("\t@cd $(SRC_DIR) && \\\n");
+                    out.push_str("\t  awk 'BEGIN{blank=0} /^$$/{blank++; if(blank==1) print; next} {blank=0; print}' debian/control > debian/control.tmp && \\\n");
+                    out.push_str("\t  mv debian/control.tmp debian/control\n");
                     current_file = "$(SRC_DIR)/debian/source/format".to_string();
                 }
                 Command::Include { .. } => {

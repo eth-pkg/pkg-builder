@@ -80,11 +80,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Run make
+    let install_deps = matches!(&args.action, ActionType::Package(cmd) if cmd.install_deps);
+    let mut make_cmd = Command::new("make");
+    make_cmd.arg(target).current_dir(&output_dir);
+    if install_deps {
+        make_cmd.arg("INSTALL_DEPS=1");
+    }
     info!("Running: make {}", target);
-    let status = Command::new("make")
-        .arg(target)
-        .current_dir(&output_dir)
-        .status()?;
+    let status = make_cmd.status()?;
 
     if !status.success() {
         let code = status.code().unwrap_or(1);
