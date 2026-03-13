@@ -379,10 +379,7 @@ impl<'a> MakefileEmitter<'a> {
                     out.push_str("# === Source ===\n");
                     out.push_str("$(SRC_TARBALL): | $(OUT_DIR)\n");
                     out.push_str("\tmkdir -p $(SRC_DIR)\n");
-                    out.push_str("\ttar --sort=name --owner=0 --group=0 --numeric-owner \\\n");
-                    out.push_str("\t  --mtime='2022-01-01 00:00:00' \\\n");
-                    out.push_str("\t  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \\\n");
-                    out.push_str("\t  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)\n");
+                    out.push_str("\ttar czvf $@ --files-from /dev/null\n");
                     current_file = "$(SRC_TARBALL)".to_string();
                 }
                 Command::Debcrafter { .. } => {
