@@ -16,6 +16,7 @@ toml = { workspace = true }
 semver = { workspace = true }
 url = { version = "2.4.1", features = ["serde"] }
 shellexpand = { workspace = true }
+sha1 = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

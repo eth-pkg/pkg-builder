@@ -5,6 +5,7 @@ pub mod renderer;
 pub mod variables;
 
 use std::path::Path;
+use std::process::Command;
 
 use config::PkgConfig;
 use thiserror::Error;
@@ -25,6 +26,36 @@ pub enum GeneratorError {
     VariableNotFound(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum RunError {
+    #[error("make {target} failed with exit code {code}")]
+    MakeFailed { target: String, code: i32 },
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+/// Run a make target in the given working directory.
+///
+/// If `install_deps` is true, passes `INSTALL_DEPS=1` to make.
+pub fn run_make(target: &str, working_dir: &Path, install_deps: bool) -> Result<(), RunError> {
+    let mut cmd = Command::new("make");
+    cmd.arg(target).current_dir(working_dir);
+    if install_deps {
+        cmd.arg("INSTALL_DEPS=1");
+    }
+
+    let status = cmd.status()?;
+
+    if !status.success() {
+        return Err(RunError::MakeFailed {
+            target: target.to_string(),
+            code: status.code().unwrap_or(1),
+        });
+    }
+
+    Ok(())
 }
 
 /// Generate a Makefile from a PkgConfig.

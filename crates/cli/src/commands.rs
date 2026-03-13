@@ -18,7 +18,7 @@ pub struct PkgBuilderArgs {
 #[derive(Debug, Subcommand)]
 pub enum ActionType {
     /// Interactive project setup wizard
-    Init,
+    Init(InitCommand),
     /// Build the package
     Build(BuildCommand),
     /// Generate Makefile without building
@@ -31,6 +31,58 @@ pub enum ActionType {
     Verify,
     /// Clean build artifacts
     Clean,
+}
+
+#[derive(Debug, Args)]
+pub struct InitCommand {
+    /// Package name
+    #[clap(long)]
+    pub name: Option<String>,
+    /// Package version
+    #[clap(long)]
+    pub version: Option<String>,
+    /// Package revision
+    #[clap(long)]
+    pub revision: Option<String>,
+    /// Homepage URL
+    #[clap(long)]
+    pub homepage: Option<String>,
+    /// Maintainer name
+    #[clap(long)]
+    pub maintainer_name: Option<String>,
+    /// Maintainer email
+    #[clap(long)]
+    pub maintainer_email: Option<String>,
+    /// Debian section (e.g., net, utils, devel, admin, libs, web, etc.)
+    #[clap(long)]
+    pub section: Option<String>,
+    /// Short package description/summary
+    #[clap(long)]
+    pub summary: Option<String>,
+    /// Source type: tarball, git, or virtual
+    #[clap(long)]
+    pub source_type: Option<String>,
+    /// Source URL (tarball URL or git repo URL)
+    #[clap(long)]
+    pub url: Option<String>,
+    /// Git tag (for git source type)
+    #[clap(long)]
+    pub tag: Option<String>,
+    /// Target distribution: bookworm, trixie, or noble
+    #[clap(long)]
+    pub distribution: Option<String>,
+    /// Target architecture
+    #[clap(long)]
+    pub arch: Option<String>,
+    /// Runtime recipe: go, rust, node, java, java-gradle, nim, c, etc. Use "none" for no runtime
+    #[clap(long)]
+    pub runtime: Option<String>,
+    /// Output directory (default: current directory)
+    #[clap(long)]
+    pub output: Option<String>,
+    /// Expected upstream hash for tarball verification
+    #[clap(long)]
+    pub upstream_hash: Option<String>,
 }
 
 #[derive(Debug, Args)]
