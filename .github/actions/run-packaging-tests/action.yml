@@ -8,6 +8,14 @@ inputs:
   language:
     description: 'Language to test'
     required: true
+  run_piuparts:
+    description: 'Whether to run piuparts'
+    required: false
+    default: 'false'
+  run_autopkgtest:
+    description: 'Whether to run autopkgtest'
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -16,7 +24,21 @@ runs:
       shell: bash
       run: |
         cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
-        pkg-builder --install-deps build --with-tests
+        pkg-builder --install-deps build
+
+    - name: Piuparts
+      if: ${{ inputs.run_piuparts == 'true' }}
+      shell: bash
+      run: |
+        cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
+        pkg-builder test piuparts
+
+    - name: Autopkgtest
+      if: ${{ inputs.run_autopkgtest == 'true' }}
+      shell: bash
+      run: |
+        cd examples/${{ inputs.distro }}/${{ inputs.language }}/hello-world
+        pkg-builder test autopkgtest
 
     - name: Verify
       shell: bash
