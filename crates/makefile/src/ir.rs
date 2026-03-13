@@ -71,22 +71,50 @@ pub struct Phase {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operation {
     // Source acquisition
-    Download { url: String, dest: String },
-    Verify { algo: String, hash: String, file: String },
-    VerifyGpg { file: String, sig: String },
-    Extract { file: String, dest: String, strip: Option<u32> },
-    GitClone { url: String, tag: String },
-    SubmoduleCheckout { path: String, commit: String },
+    Download {
+        url: String,
+        dest: String,
+    },
+    Verify {
+        algo: String,
+        hash: String,
+        file: String,
+    },
+    VerifyGpg {
+        file: String,
+        sig: String,
+    },
+    Extract {
+        file: String,
+        dest: String,
+        strip: Option<u32>,
+    },
+    GitClone {
+        url: String,
+        tag: String,
+    },
+    SubmoduleCheckout {
+        path: String,
+        commit: String,
+    },
     CreateEmptyTar,
 
     // Package management
-    AptInstall { packages: Vec<String> },
-    AptRemove { packages: Vec<String> },
+    AptInstall {
+        packages: Vec<String>,
+    },
+    AptRemove {
+        packages: Vec<String>,
+    },
     AptUpdate,
-    DpkgInstall { file: String },
+    DpkgInstall {
+        file: String,
+    },
 
     // Build pipeline
-    Debcrafter { spec: String },
+    Debcrafter {
+        spec: String,
+    },
     Patch,
     Sbuild,
 
@@ -96,16 +124,26 @@ pub enum Operation {
     Autopkgtest,
 
     // File operations
-    Symlink { src: String, target: String },
-    Run { cmd: String },
+    Symlink {
+        src: String,
+        target: String,
+    },
+    Run {
+        cmd: String,
+    },
 
     // Chroot environment
     SnapshotWorkaround,
-    SnapshotSecurity { url: String, codename: String },
+    SnapshotSecurity {
+        url: String,
+        codename: String,
+    },
     NobleRepos,
 
     // Meta
-    Include { name: String },
+    Include {
+        name: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

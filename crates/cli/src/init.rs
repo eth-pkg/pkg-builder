@@ -182,9 +182,7 @@ impl EnumSelect for Runtime {
 }
 
 /// Prompt for all runtime fields based on the RuntimeSetup returned by the lib.
-fn resolve_runtime(
-    runtime: Runtime,
-) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+fn resolve_runtime(runtime: Runtime) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
     match runtime.setup() {
         RuntimeSetup::NoVars => Ok(vec![]),
         RuntimeSetup::ManualOnly => {
@@ -211,7 +209,10 @@ fn resolve_runtime(
                 match runtime.resolve_version(&version) {
                     Ok(v) => v,
                     Err(e) => {
-                        warn!("Could not auto-resolve {} {}: {}. Please enter values manually.", runtime, version, e);
+                        warn!(
+                            "Could not auto-resolve {} {}: {}. Please enter values manually.",
+                            runtime, version, e
+                        );
                         prompt_fields(fields)?
                     }
                 }
@@ -223,9 +224,7 @@ fn resolve_runtime(
                     .default(false)
                     .interact()?
                 {
-                    let value: String = Input::new()
-                        .with_prompt(field.label)
-                        .interact_text()?;
+                    let value: String = Input::new().with_prompt(field.label).interact_text()?;
                     vars.push((field.key.to_string(), value));
                 }
             }
@@ -240,9 +239,7 @@ fn prompt_fields(
 ) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
     let mut vars = Vec::new();
     for field in fields {
-        let value: String = Input::new()
-            .with_prompt(field.label)
-            .interact_text()?;
+        let value: String = Input::new().with_prompt(field.label).interact_text()?;
         vars.push((field.key.to_string(), value));
     }
     Ok(vars)

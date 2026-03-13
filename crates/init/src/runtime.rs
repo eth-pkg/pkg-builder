@@ -69,34 +69,88 @@ impl Runtime {
         match self {
             Runtime::None | Runtime::C => &[],
             Runtime::Go => &[
-                RuntimeField { key: "binary_url", label: "Go binary URL" },
-                RuntimeField { key: "binary_checksum", label: "Go binary checksum (sha256)" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "Go binary URL",
+                },
+                RuntimeField {
+                    key: "binary_checksum",
+                    label: "Go binary checksum (sha256)",
+                },
             ],
             Runtime::Rust => &[
-                RuntimeField { key: "binary_url", label: "Rust binary URL" },
-                RuntimeField { key: "binary_gpg_asc", label: "Rust GPG signature (ASCII-armored)" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "Rust binary URL",
+                },
+                RuntimeField {
+                    key: "binary_gpg_asc",
+                    label: "Rust GPG signature (ASCII-armored)",
+                },
             ],
             Runtime::Node => &[
-                RuntimeField { key: "binary_url", label: "Node.js binary URL" },
-                RuntimeField { key: "binary_checksum", label: "Node.js binary checksum (sha256)" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "Node.js binary URL",
+                },
+                RuntimeField {
+                    key: "binary_checksum",
+                    label: "Node.js binary checksum (sha256)",
+                },
             ],
             Runtime::Java => &[
-                RuntimeField { key: "binary_url", label: "JDK download URL" },
-                RuntimeField { key: "binary_checksum", label: "JDK checksum (sha256)" },
-                RuntimeField { key: "jdk_version", label: "JDK version (e.g. 17.0.10)" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "JDK download URL",
+                },
+                RuntimeField {
+                    key: "binary_checksum",
+                    label: "JDK checksum (sha256)",
+                },
+                RuntimeField {
+                    key: "jdk_version",
+                    label: "JDK version (e.g. 17.0.10)",
+                },
             ],
             Runtime::JavaGradle => &[
-                RuntimeField { key: "binary_url", label: "JDK download URL" },
-                RuntimeField { key: "binary_checksum", label: "JDK checksum (sha256)" },
-                RuntimeField { key: "jdk_version", label: "JDK version (e.g. 17.0.10)" },
-                RuntimeField { key: "gradle_binary_url", label: "Gradle download URL" },
-                RuntimeField { key: "gradle_binary_checksum", label: "Gradle checksum (sha256)" },
-                RuntimeField { key: "gradle_version", label: "Gradle version (e.g. 8.7)" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "JDK download URL",
+                },
+                RuntimeField {
+                    key: "binary_checksum",
+                    label: "JDK checksum (sha256)",
+                },
+                RuntimeField {
+                    key: "jdk_version",
+                    label: "JDK version (e.g. 17.0.10)",
+                },
+                RuntimeField {
+                    key: "gradle_binary_url",
+                    label: "Gradle download URL",
+                },
+                RuntimeField {
+                    key: "gradle_binary_checksum",
+                    label: "Gradle checksum (sha256)",
+                },
+                RuntimeField {
+                    key: "gradle_version",
+                    label: "Gradle version (e.g. 8.7)",
+                },
             ],
             Runtime::Nim => &[
-                RuntimeField { key: "binary_url", label: "Nim binary URL" },
-                RuntimeField { key: "binary_checksum", label: "Nim binary checksum (sha256sum format: 'hash  filename')" },
-                RuntimeField { key: "nim_version", label: "Nim version" },
+                RuntimeField {
+                    key: "binary_url",
+                    label: "Nim binary URL",
+                },
+                RuntimeField {
+                    key: "binary_checksum",
+                    label: "Nim binary checksum (sha256sum format: 'hash  filename')",
+                },
+                RuntimeField {
+                    key: "nim_version",
+                    label: "Nim version",
+                },
             ],
             Runtime::DotnetNoble | Runtime::DotnetDebian | Runtime::DotnetBackup => &[],
         }
@@ -112,11 +166,9 @@ impl Runtime {
             Runtime::DotnetNoble | Runtime::DotnetDebian | Runtime::DotnetBackup => {
                 RuntimeSetup::ManualOnly
             }
-            Runtime::Java | Runtime::JavaGradle => {
-                RuntimeSetup::NeedsInput {
-                    fields: self.required_fields(),
-                }
-            }
+            Runtime::Java | Runtime::JavaGradle => RuntimeSetup::NeedsInput {
+                fields: self.required_fields(),
+            },
             _ => {
                 // Go, Rust, Node, Nim: try auto-resolve
                 match self.resolve_latest() {
@@ -259,9 +311,7 @@ pub enum RuntimeSetup {
     },
 
     /// No auto-resolution available. Consumer should prompt for each field.
-    NeedsInput {
-        fields: &'static [RuntimeField],
-    },
+    NeedsInput { fields: &'static [RuntimeField] },
 
     /// Runtime is too complex for auto-population. Consumer should inform the
     /// user to fill in vars manually after init.
@@ -337,7 +387,9 @@ pub fn rust_download_url(version: &str) -> String {
 }
 
 fn resolve_node_latest() -> Result<(String, String, String), Box<dyn std::error::Error>> {
-    let resp = http_client().get("https://nodejs.org/dist/index.json").send()?;
+    let resp = http_client()
+        .get("https://nodejs.org/dist/index.json")
+        .send()?;
     let releases: serde_json::Value = resp.json()?;
     let arr = releases.as_array().ok_or("Expected array")?;
     let release = arr

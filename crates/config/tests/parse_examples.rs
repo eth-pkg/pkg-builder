@@ -17,13 +17,8 @@ fn examples_dir() -> &'static Path {
 
 fn load_example(distro: &str, lang: &str, name: &str) -> PkgConfig {
     let path = examples_dir().join(distro).join(lang).join(name);
-    PkgConfig::load(&path).unwrap_or_else(|e| {
-        panic!(
-            "Failed to load config at {}: {}",
-            path.display(),
-            e
-        )
-    })
+    PkgConfig::load(&path)
+        .unwrap_or_else(|e| panic!("Failed to load config at {}: {}", path.display(), e))
 }
 
 // ─── Bookworm examples ───
@@ -34,7 +29,10 @@ fn parse_bookworm_c() {
     assert_eq!(cfg.package.name, "hello-world-c");
     assert_eq!(cfg.package.version, "1.0.0");
     assert_eq!(cfg.package.revision, "1");
-    assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
+    assert!(matches!(
+        cfg.build_env.distribution,
+        Distribution::Debian(_)
+    ));
     assert!(matches!(cfg.build_env.arch, Architecture::Amd64));
     match &cfg.source {
         SourceKind::Tarball { hash, .. } => {
@@ -160,7 +158,10 @@ fn parse_bookworm_git_nimbus() {
 #[test]
 fn parse_trixie_c() {
     let cfg = load_example("trixie", "c", "hello-world");
-    assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
+    assert!(matches!(
+        cfg.build_env.distribution,
+        Distribution::Debian(_)
+    ));
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
     assert!(cfg.runtime.is_none());
 }
@@ -328,5 +329,9 @@ fn parse_all_pkg_builder_configs() {
         failures.len(),
         failures.join("\n")
     );
-    assert!(count >= 34, "Expected at least 34 example configs, found {}", count);
+    assert!(
+        count >= 34,
+        "Expected at least 34 example configs, found {}",
+        count
+    );
 }

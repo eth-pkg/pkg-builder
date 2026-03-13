@@ -1,5 +1,6 @@
 mod commands;
 mod init;
+mod update;
 
 use commands::{ActionType, EnvSubCommand, PkgBuilderArgs, TestSubCommand};
 
@@ -29,16 +30,17 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let config_path = args.config.unwrap_or_else(|| ".".to_string());
+
+    if let ActionType::Update(ref update_cmd) = args.action {
+        return update::run(update_cmd, &config_path);
+    }
     let config = config::PkgConfig::load(&config_path)?;
 
     let output_path = Path::new(&config_path);
     let output_dir = if output_path.is_dir() {
         output_path.to_path_buf()
     } else {
-        output_path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .to_path_buf()
+        output_path.parent().unwrap_or(Path::new(".")).to_path_buf()
     };
 
     // Handle verify early — no Makefile generation needed
@@ -57,6 +59,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Determine which make target to run
     let target = match args.action {
         ActionType::Init(_) => unreachable!(),
+        ActionType::Update(_) => unreachable!(),
         ActionType::Verify => unreachable!(),
         ActionType::Generate => return Ok(()),
         ActionType::Build(ref cmd) => {

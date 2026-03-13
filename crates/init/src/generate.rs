@@ -28,8 +28,14 @@ pub fn generate_toml(config: &InitConfig) -> String {
     out.push_str("[package]\n");
     out.push_str(&format!("name = \"{}\"\n", escape_toml(&config.name)));
     out.push_str(&format!("version = \"{}\"\n", escape_toml(&config.version)));
-    out.push_str(&format!("revision = \"{}\"\n", escape_toml(&config.revision)));
-    out.push_str(&format!("homepage = \"{}\"\n", escape_toml(&config.homepage)));
+    out.push_str(&format!(
+        "revision = \"{}\"\n",
+        escape_toml(&config.revision)
+    ));
+    out.push_str(&format!(
+        "homepage = \"{}\"\n",
+        escape_toml(&config.homepage)
+    ));
     out.push_str(&format!("spec = \"{}.sss\"\n", escape_toml(&config.name)));
 
     // [source]
@@ -56,7 +62,10 @@ pub fn generate_toml(config: &InitConfig) -> String {
 
     // [build]
     out.push_str("\n[build]\n");
-    out.push_str(&format!("distribution = \"{}\"\n", escape_toml(&config.distribution.to_string())));
+    out.push_str(&format!(
+        "distribution = \"{}\"\n",
+        escape_toml(&config.distribution.to_string())
+    ));
     out.push_str(&format!("arch = \"{}\"\n", escape_toml(&config.arch)));
     out.push_str(&format!(
         "workdir = \"~/.pkg-builder/packages/{}\"\n",
@@ -66,15 +75,26 @@ pub fn generate_toml(config: &InitConfig) -> String {
     // [runtime]
     if config.runtime != Runtime::None {
         out.push_str("\n[runtime]\n");
-        out.push_str(&format!("recipe = \"{}\"\n", escape_toml(&config.runtime.to_string())));
+        out.push_str(&format!(
+            "recipe = \"{}\"\n",
+            escape_toml(&config.runtime.to_string())
+        ));
         for (key, value) in &config.runtime_vars {
             if value.contains('\n') {
-                out.push_str(&format!("{} = \"\"\"{}\"\"\"", escape_toml(key), escape_toml(value)));
+                out.push_str(&format!(
+                    "{} = \"\"\"{}\"\"\"",
+                    escape_toml(key),
+                    escape_toml(value)
+                ));
                 if !value.ends_with('\n') {
                     out.push('\n');
                 }
             } else {
-                out.push_str(&format!("{} = \"{}\"\n", escape_toml(key), escape_toml(value)));
+                out.push_str(&format!(
+                    "{} = \"{}\"\n",
+                    escape_toml(key),
+                    escape_toml(value)
+                ));
             }
         }
     }
@@ -103,7 +123,8 @@ pub fn generate_sss(config: &InitConfig) -> String {
     out.push_str(&format!("name = \"{}\"\n", escape_toml(&config.name)));
     out.push_str(&format!(
         "maintainer = \"{} <{}>\"\n",
-        escape_toml(&config.maintainer_name), escape_toml(&config.maintainer_email)
+        escape_toml(&config.maintainer_name),
+        escape_toml(&config.maintainer_email)
     ));
     out.push_str(&format!("section = \"{}\"\n", escape_toml(&config.section)));
     out.push_str("variants = []\n");

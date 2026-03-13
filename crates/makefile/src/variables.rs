@@ -29,18 +29,12 @@ impl VariableResolver {
             "build_dir".into(),
             format!(
                 "$(WORK_DIR)/{}-{}-{}",
-                config.package.name,
-                config.package.version,
-                config.package.revision
+                config.package.name, config.package.version, config.package.revision
             ),
         );
         vars.insert(
             "chroot_dir".into(),
-            config
-                .build_env
-                .chroot_dir
-                .display()
-                .to_string(),
+            config.build_env.chroot_dir.display().to_string(),
         );
 
         // Repo URL
@@ -84,10 +78,7 @@ impl VariableResolver {
         vars.insert("runtime_recipe".into(), runtime_recipe);
 
         // Tool versions
-        vars.insert(
-            "debcrafter_rev".into(),
-            "$(DEBCRAFTER_REV)".into(),
-        );
+        vars.insert("debcrafter_rev".into(), "$(DEBCRAFTER_REV)".into());
         vars.insert(
             "sbuild_version".into(),
             config.build_env.tool_versions.sbuild.clone(),
@@ -170,7 +161,10 @@ impl VariableResolver {
 
         let mut indices: Vec<usize> = items.keys().copied().collect();
         indices.sort();
-        indices.into_iter().filter_map(|i| items.remove(&i)).collect()
+        indices
+            .into_iter()
+            .filter_map(|i| items.remove(&i))
+            .collect()
     }
 }
 
@@ -201,10 +195,7 @@ fn insert_runtime_vars(
                         toml::Value::Table(table) => {
                             for (field, val) in table {
                                 if let toml::Value::String(s) = val {
-                                    vars.insert(
-                                        format!("{}.{}.{}", key, i, field),
-                                        s.clone(),
-                                    );
+                                    vars.insert(format!("{}.{}.{}", key, i, field), s.clone());
                                 }
                             }
                         }
@@ -225,8 +216,7 @@ fn insert_runtime_vars(
             for (i, item) in pkgs.iter().enumerate() {
                 if let toml::Value::Table(table) = item {
                     if let Some(toml::Value::String(name)) = table.get("name") {
-                        let apt_name =
-                            transform_dotnet_name(name, &config.build_env.arch);
+                        let apt_name = transform_dotnet_name(name, &config.build_env.arch);
                         vars.insert(format!("packages.{}.apt_name", i), apt_name);
                     }
                 }

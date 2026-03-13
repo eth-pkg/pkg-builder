@@ -58,21 +58,18 @@ impl PkgConfig {
             path.to_path_buf()
         };
 
-        let content = std::fs::read_to_string(&config_path).map_err(|e| ConfigError::ReadError {
-            path: config_path.clone(),
-            source: e,
-        })?;
-
-        let raw: RawConfig =
-            toml::from_str(&content).map_err(|e| ConfigError::ParseError {
+        let content =
+            std::fs::read_to_string(&config_path).map_err(|e| ConfigError::ReadError {
                 path: config_path.clone(),
                 source: e,
             })?;
 
-        let config_root = config_path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .to_path_buf();
+        let raw: RawConfig = toml::from_str(&content).map_err(|e| ConfigError::ParseError {
+            path: config_path.clone(),
+            source: e,
+        })?;
+
+        let config_root = config_path.parent().unwrap_or(Path::new(".")).to_path_buf();
 
         let mut config = raw.into_pkg_config(config_root)?;
 
@@ -88,7 +85,11 @@ impl PkgConfig {
     fn resolve_paths(&mut self) {
         // Resolve workdir
         if self.build_env.workdir.as_os_str().is_empty() {
-            let default = format!("{}/{}", WORKDIR_ROOT, self.build_env.distribution.as_short());
+            let default = format!(
+                "{}/{}",
+                WORKDIR_ROOT,
+                self.build_env.distribution.as_short()
+            );
             self.build_env.workdir = PathBuf::from(default);
         }
         self.build_env.workdir = expand_path(&self.build_env.workdir, None);
@@ -411,7 +412,10 @@ autopkgtest = "5.28"
 
         let result = PkgConfig::load(dir.path());
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ConfigError::ParseError { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            ConfigError::ParseError { .. }
+        ));
     }
 
     #[test]
@@ -487,10 +491,7 @@ autopkgtest = "5.28"
         );
 
         let config = PkgConfig::load(dir.path()).unwrap();
-        assert_eq!(
-            config.build_env.chroot_dir,
-            PathBuf::from("/custom/cache")
-        );
+        assert_eq!(config.build_env.chroot_dir, PathBuf::from("/custom/cache"));
     }
 
     #[test]
@@ -628,10 +629,7 @@ autopkgtest = "5.28"
 
     #[test]
     fn test_expand_path_relative_with_base() {
-        let result = expand_path(
-            Path::new("relative/file.txt"),
-            Some(Path::new("/base/dir")),
-        );
+        let result = expand_path(Path::new("relative/file.txt"), Some(Path::new("/base/dir")));
         assert_eq!(result, PathBuf::from("/base/dir/relative/file.txt"));
     }
 

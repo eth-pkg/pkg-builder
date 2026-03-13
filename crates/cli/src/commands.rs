@@ -19,6 +19,8 @@ pub struct PkgBuilderArgs {
 pub enum ActionType {
     /// Interactive project setup wizard
     Init(InitCommand),
+    /// Update package to a new upstream version
+    Update(UpdateCommand),
     /// Build the package
     Build(BuildCommand),
     /// Generate Makefile without building
@@ -83,6 +85,43 @@ pub struct InitCommand {
     /// Expected upstream hash for tarball verification
     #[clap(long)]
     pub upstream_hash: Option<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct UpdateCommand {
+    /// New upstream version (omit to auto-detect from GitHub)
+    #[clap(long)]
+    pub version: Option<String>,
+    /// Package revision (default: "1")
+    #[clap(long)]
+    pub revision: Option<String>,
+    /// Changelog message (default: "New upstream version {version}")
+    #[clap(long)]
+    pub changelog_msg: Option<String>,
+    /// GitHub owner/repo (inferred from source URL if omitted)
+    #[clap(long)]
+    pub github_repo: Option<String>,
+    /// Update files in the package directory pointed to by --config
+    #[clap(long)]
+    pub in_place: bool,
+    /// Write to a new directory (copies all files + applies updates)
+    #[clap(long)]
+    pub output: Option<String>,
+    /// Skip download, use this source hash directly
+    #[clap(long)]
+    pub hash: Option<String>,
+    /// Skip GitHub lookup, use this commit hash
+    #[clap(long)]
+    pub git_commit: Option<String>,
+    /// Don't download source (leave hash empty/unchanged, skip patch test)
+    #[clap(long)]
+    pub skip_download: bool,
+    /// Also update runtime to latest version
+    #[clap(long)]
+    pub update_runtime: bool,
+    /// Skip patch application testing
+    #[clap(long)]
+    pub skip_patch_check: bool,
 }
 
 #[derive(Debug, Args)]

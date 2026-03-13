@@ -26,50 +26,155 @@ fn generate_for(example_dir: &str) {
 }
 
 // Bookworm
-#[test] fn gen_bookworm_c() { generate_for("bookworm/c/hello-world"); }
-#[test] fn gen_bookworm_go() { generate_for("bookworm/go/hello-world"); }
-#[test] fn gen_bookworm_rust() { generate_for("bookworm/rust/hello-world"); }
-#[test] fn gen_bookworm_java() { generate_for("bookworm/java/hello-world"); }
-#[test] fn gen_bookworm_java_gradle() { generate_for("bookworm/java-gradle/hello-world"); }
-#[test] fn gen_bookworm_javascript() { generate_for("bookworm/javascript/hello-world"); }
-#[test] fn gen_bookworm_typescript() { generate_for("bookworm/typescript/hello-world"); }
-#[test] fn gen_bookworm_nim() { generate_for("bookworm/nim/hello-world"); }
-#[test] fn gen_bookworm_dotnet() { generate_for("bookworm/dotnet/hello-world"); }
-#[test] fn gen_bookworm_virtual() { generate_for("bookworm/virtual/hello-world"); }
-#[test] fn gen_bookworm_git() { generate_for("bookworm/git-package/nimbus"); }
+#[test]
+fn gen_bookworm_c() {
+    generate_for("bookworm/c/hello-world");
+}
+#[test]
+fn gen_bookworm_go() {
+    generate_for("bookworm/go/hello-world");
+}
+#[test]
+fn gen_bookworm_rust() {
+    generate_for("bookworm/rust/hello-world");
+}
+#[test]
+fn gen_bookworm_java() {
+    generate_for("bookworm/java/hello-world");
+}
+#[test]
+fn gen_bookworm_java_gradle() {
+    generate_for("bookworm/java-gradle/hello-world");
+}
+#[test]
+fn gen_bookworm_javascript() {
+    generate_for("bookworm/javascript/hello-world");
+}
+#[test]
+fn gen_bookworm_typescript() {
+    generate_for("bookworm/typescript/hello-world");
+}
+#[test]
+fn gen_bookworm_nim() {
+    generate_for("bookworm/nim/hello-world");
+}
+#[test]
+fn gen_bookworm_dotnet() {
+    generate_for("bookworm/dotnet/hello-world");
+}
+#[test]
+fn gen_bookworm_virtual() {
+    generate_for("bookworm/virtual/hello-world");
+}
+#[test]
+fn gen_bookworm_git() {
+    generate_for("bookworm/git-package/nimbus");
+}
 
 // Noble
-#[test] fn gen_noble_c() { generate_for("noble/c/hello-world"); }
-#[test] fn gen_noble_go() { generate_for("noble/go/hello-world"); }
-#[test] fn gen_noble_rust() { generate_for("noble/rust/hello-world"); }
-#[test] fn gen_noble_java() { generate_for("noble/java/hello-world"); }
-#[test] fn gen_noble_java_gradle() { generate_for("noble/java-gradle/hello-world"); }
-#[test] fn gen_noble_javascript() { generate_for("noble/javascript/hello-world"); }
-#[test] fn gen_noble_typescript() { generate_for("noble/typescript/hello-world"); }
-#[test] fn gen_noble_nim() { generate_for("noble/nim/hello-world"); }
-#[test] fn gen_noble_dotnet() { generate_for("noble/dotnet/hello-world"); }
-#[test] fn gen_noble_dotnet9() { generate_for("noble/dotnet-9/hello-world"); }
-#[test] fn gen_noble_virtual() { generate_for("noble/virtual/hello-world"); }
-#[test] fn gen_noble_git() { generate_for("noble/git-package/nimbus"); }
+#[test]
+fn gen_noble_c() {
+    generate_for("noble/c/hello-world");
+}
+#[test]
+fn gen_noble_go() {
+    generate_for("noble/go/hello-world");
+}
+#[test]
+fn gen_noble_rust() {
+    generate_for("noble/rust/hello-world");
+}
+#[test]
+fn gen_noble_java() {
+    generate_for("noble/java/hello-world");
+}
+#[test]
+fn gen_noble_java_gradle() {
+    generate_for("noble/java-gradle/hello-world");
+}
+#[test]
+fn gen_noble_javascript() {
+    generate_for("noble/javascript/hello-world");
+}
+#[test]
+fn gen_noble_typescript() {
+    generate_for("noble/typescript/hello-world");
+}
+#[test]
+fn gen_noble_nim() {
+    generate_for("noble/nim/hello-world");
+}
+#[test]
+fn gen_noble_dotnet() {
+    generate_for("noble/dotnet/hello-world");
+}
+#[test]
+fn gen_noble_dotnet9() {
+    generate_for("noble/dotnet-9/hello-world");
+}
+#[test]
+fn gen_noble_virtual() {
+    generate_for("noble/virtual/hello-world");
+}
+#[test]
+fn gen_noble_git() {
+    generate_for("noble/git-package/nimbus");
+}
 
 // Trixie
-#[test] fn gen_trixie_c() { generate_for("trixie/c/hello-world"); }
-#[test] fn gen_trixie_go() { generate_for("trixie/go/hello-world"); }
-#[test] fn gen_trixie_rust() { generate_for("trixie/rust/hello-world"); }
-#[test] fn gen_trixie_java() { generate_for("trixie/java/hello-world"); }
-#[test] fn gen_trixie_java_gradle() { generate_for("trixie/java-gradle/hello-world"); }
-#[test] fn gen_trixie_javascript() { generate_for("trixie/javascript/hello-world"); }
-#[test] fn gen_trixie_typescript() { generate_for("trixie/typescript/hello-world"); }
-#[test] fn gen_trixie_nim() { generate_for("trixie/nim/hello-world"); }
-#[test] fn gen_trixie_dotnet() { generate_for("trixie/dotnet/hello-world"); }
-#[test] fn gen_trixie_virtual() { generate_for("trixie/virtual/hello-world"); }
-#[test] fn gen_trixie_git() { generate_for("trixie/git-package/nimbus"); }
+#[test]
+fn gen_trixie_c() {
+    generate_for("trixie/c/hello-world");
+}
+#[test]
+fn gen_trixie_go() {
+    generate_for("trixie/go/hello-world");
+}
+#[test]
+fn gen_trixie_rust() {
+    generate_for("trixie/rust/hello-world");
+}
+#[test]
+fn gen_trixie_java() {
+    generate_for("trixie/java/hello-world");
+}
+#[test]
+fn gen_trixie_java_gradle() {
+    generate_for("trixie/java-gradle/hello-world");
+}
+#[test]
+fn gen_trixie_javascript() {
+    generate_for("trixie/javascript/hello-world");
+}
+#[test]
+fn gen_trixie_typescript() {
+    generate_for("trixie/typescript/hello-world");
+}
+#[test]
+fn gen_trixie_nim() {
+    generate_for("trixie/nim/hello-world");
+}
+#[test]
+fn gen_trixie_dotnet() {
+    generate_for("trixie/dotnet/hello-world");
+}
+#[test]
+fn gen_trixie_virtual() {
+    generate_for("trixie/virtual/hello-world");
+}
+#[test]
+fn gen_trixie_git() {
+    generate_for("trixie/git-package/nimbus");
+}
 
 /// Test that Noble examples have extra repos in the generated Makefile.
 #[test]
 fn test_noble_has_extra_repos() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap().parent().unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
         .join("examples/noble/go/hello-world");
     let config = config::PkgConfig::load(&path).unwrap();
     let makefile = makefile::generate(&config).unwrap();
@@ -81,7 +186,10 @@ fn test_noble_has_extra_repos() {
 #[test]
 fn test_virtual_no_runtime() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap().parent().unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
         .join("examples/bookworm/virtual/hello-world");
     let config = config::PkgConfig::load(&path).unwrap();
     let makefile = makefile::generate(&config).unwrap();
@@ -94,7 +202,10 @@ fn test_virtual_no_runtime() {
 #[test]
 fn test_go_has_chroot_commands() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap().parent().unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
         .join("examples/bookworm/go/hello-world");
     let config = config::PkgConfig::load(&path).unwrap();
     let makefile = makefile::generate(&config).unwrap();
@@ -107,7 +218,10 @@ fn test_go_has_chroot_commands() {
 #[test]
 fn test_dotnet_repeat_expanded() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent().unwrap().parent().unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
         .join("examples/noble/dotnet/hello-world");
     let config = config::PkgConfig::load(&path).unwrap();
     let makefile = makefile::generate(&config).unwrap();

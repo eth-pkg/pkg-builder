@@ -54,7 +54,9 @@ impl<'a> PlanBuilder<'a> {
         let root = &self.config.config_root;
 
         // Paths — ROOT has special padding
-        vars.push(raw("ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))\n"));
+        vars.push(raw(
+            "ROOT    := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))\n",
+        ));
         vars.push(simple(
             "WORK_DIR",
             &portabilize_path(&env.workdir.display().to_string(), root),
@@ -92,10 +94,7 @@ impl<'a> PlanBuilder<'a> {
         let testing = &env.testing;
         vars.push(simple("RUN_LINTIAN", bool_str(testing.run_lintian)));
         vars.push(simple("RUN_PIUPARTS", bool_str(testing.run_piuparts)));
-        vars.push(simple(
-            "RUN_AUTOPKGTEST",
-            bool_str(testing.run_autopkgtest),
-        ));
+        vars.push(simple("RUN_AUTOPKGTEST", bool_str(testing.run_autopkgtest)));
         vars.push(raw(concat!(
             "\nTEST_TARGETS :=\n",
             "ifeq ($(RUN_PIUPARTS),true)\nTEST_TARGETS += test-piuparts\nendif\n",
@@ -134,9 +133,7 @@ impl<'a> PlanBuilder<'a> {
         vars.push(raw(
             "OUT_DIR     = $(WORK_DIR)/$(PKG_NAME)-$(PKG_VERSION)-$(PKG_REVISION)\n",
         ));
-        vars.push(raw(
-            "SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)\n",
-        ));
+        vars.push(raw("SRC_DIR     = $(OUT_DIR)/$(PKG_NAME)-$(PKG_VERSION)\n"));
         vars.push(raw(
             "SRC_TARBALL = $(OUT_DIR)/$(PKG_NAME)_$(PKG_VERSION).orig.tar.gz\n",
         ));
@@ -225,9 +222,12 @@ impl<'a> PlanBuilder<'a> {
                         "apt update",
                     ];
                     for (i, cmd) in noble_cmds.into_iter().enumerate() {
-                        front_ops.insert(i, Operation::Run {
-                            cmd: cmd.to_string(),
-                        });
+                        front_ops.insert(
+                            i,
+                            Operation::Run {
+                                cmd: cmd.to_string(),
+                            },
+                        );
                     }
                 }
                 _ => {}
@@ -355,9 +355,7 @@ impl<'a> PlanBuilder<'a> {
             let prev_output = phases
                 .iter()
                 .rev()
-                .find(|p| {
-                    p.name == "patch" || p.name == "debian" || p.name == "source"
-                })
+                .find(|p| p.name == "patch" || p.name == "debian" || p.name == "source")
                 .and_then(|p| p.output.clone())
                 .unwrap_or_else(|| "preflight".into());
 

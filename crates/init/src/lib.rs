@@ -4,7 +4,9 @@ mod tarball;
 
 pub use generate::{generate_sps, generate_sss, generate_toml};
 pub use runtime::{LatestVersion, Runtime, RuntimeField, RuntimeSetup, ALL_RUNTIMES};
-pub use tarball::{download_and_hash_tarball, sha256_file, try_verify_upstream_hash, TarballResult};
+pub use tarball::{
+    download_and_hash_tarball, sha256_file, try_verify_upstream_hash, TarballResult,
+};
 
 use log::warn;
 use std::fmt;
@@ -13,7 +15,7 @@ use std::path::Path;
 use std::time::Duration;
 
 /// Create an HTTP client with a 30-second timeout.
-pub(crate) fn http_client() -> reqwest::blocking::Client {
+pub fn http_client() -> reqwest::blocking::Client {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
@@ -182,14 +184,8 @@ pub const DEBIAN_SECTIONS: &[&str] = &[
 #[derive(Debug, Clone)]
 pub enum SourceConfig {
     Virtual,
-    Git {
-        url: String,
-        tag: String,
-    },
-    Tarball {
-        url: String,
-        hash: Option<String>,
-    },
+    Git { url: String, tag: String },
+    Tarball { url: String, hash: Option<String> },
 }
 
 /// Resolve source details based on source type.

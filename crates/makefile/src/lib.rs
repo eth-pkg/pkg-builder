@@ -70,7 +70,11 @@ pub fn generate(config: &PkgConfig) -> Result<String, GeneratorError> {
 
     let runtime = if !runtime_name.is_empty() {
         let runtime_source = load_recipe("runtimes", &runtime_name, &config.config_root)?;
-        Some(parser::parse_runtime(&runtime_source, &runtime_name, &vars)?)
+        Some(parser::parse_runtime(
+            &runtime_source,
+            &runtime_name,
+            &vars,
+        )?)
     } else {
         None
     };
@@ -98,11 +102,7 @@ fn validate_recipe_name(name: &str) -> Result<(), GeneratorError> {
 }
 
 /// Load a recipe file. Checks local directory first, then built-in.
-fn load_recipe(
-    kind: &str,
-    name: &str,
-    config_root: &Path,
-) -> Result<String, GeneratorError> {
+fn load_recipe(kind: &str, name: &str, config_root: &Path) -> Result<String, GeneratorError> {
     validate_recipe_name(name)?;
     let local_path = config_root.join(kind).join(format!("{}.recipe", name));
     if local_path.exists() {
@@ -121,15 +121,33 @@ fn load_recipe(
 fn load_builtin_recipe(kind: &str, name: &str) -> Option<&'static str> {
     match (kind, name) {
         // Pipelines
-        ("pipelines", "debian-bookworm") => Some(include_str!("../../../pipelines/debian-bookworm.recipe")),
-        ("pipelines", "debian-trixie") => Some(include_str!("../../../pipelines/debian-trixie.recipe")),
-        ("pipelines", "ubuntu-noble") => Some(include_str!("../../../pipelines/ubuntu-noble.recipe")),
-        ("pipelines", "debian-bookworm-git") => Some(include_str!("../../../pipelines/debian-bookworm-git.recipe")),
-        ("pipelines", "debian-trixie-git") => Some(include_str!("../../../pipelines/debian-trixie-git.recipe")),
-        ("pipelines", "ubuntu-noble-git") => Some(include_str!("../../../pipelines/ubuntu-noble-git.recipe")),
-        ("pipelines", "debian-bookworm-virtual") => Some(include_str!("../../../pipelines/debian-bookworm-virtual.recipe")),
-        ("pipelines", "debian-trixie-virtual") => Some(include_str!("../../../pipelines/debian-trixie-virtual.recipe")),
-        ("pipelines", "ubuntu-noble-virtual") => Some(include_str!("../../../pipelines/ubuntu-noble-virtual.recipe")),
+        ("pipelines", "debian-bookworm") => {
+            Some(include_str!("../../../pipelines/debian-bookworm.recipe"))
+        }
+        ("pipelines", "debian-trixie") => {
+            Some(include_str!("../../../pipelines/debian-trixie.recipe"))
+        }
+        ("pipelines", "ubuntu-noble") => {
+            Some(include_str!("../../../pipelines/ubuntu-noble.recipe"))
+        }
+        ("pipelines", "debian-bookworm-git") => Some(include_str!(
+            "../../../pipelines/debian-bookworm-git.recipe"
+        )),
+        ("pipelines", "debian-trixie-git") => {
+            Some(include_str!("../../../pipelines/debian-trixie-git.recipe"))
+        }
+        ("pipelines", "ubuntu-noble-git") => {
+            Some(include_str!("../../../pipelines/ubuntu-noble-git.recipe"))
+        }
+        ("pipelines", "debian-bookworm-virtual") => Some(include_str!(
+            "../../../pipelines/debian-bookworm-virtual.recipe"
+        )),
+        ("pipelines", "debian-trixie-virtual") => Some(include_str!(
+            "../../../pipelines/debian-trixie-virtual.recipe"
+        )),
+        ("pipelines", "ubuntu-noble-virtual") => Some(include_str!(
+            "../../../pipelines/ubuntu-noble-virtual.recipe"
+        )),
         // Runtimes
         ("runtimes", "go") => Some(include_str!("../../../runtimes/go.recipe")),
         ("runtimes", "rust") => Some(include_str!("../../../runtimes/rust.recipe")),
@@ -138,8 +156,12 @@ fn load_builtin_recipe(kind: &str, name: &str) -> Option<&'static str> {
         ("runtimes", "java-gradle") => Some(include_str!("../../../runtimes/java-gradle.recipe")),
         ("runtimes", "nim") => Some(include_str!("../../../runtimes/nim.recipe")),
         ("runtimes", "dotnet-noble") => Some(include_str!("../../../runtimes/dotnet-noble.recipe")),
-        ("runtimes", "dotnet-debian") => Some(include_str!("../../../runtimes/dotnet-debian.recipe")),
-        ("runtimes", "dotnet-backup") => Some(include_str!("../../../runtimes/dotnet-backup.recipe")),
+        ("runtimes", "dotnet-debian") => {
+            Some(include_str!("../../../runtimes/dotnet-debian.recipe"))
+        }
+        ("runtimes", "dotnet-backup") => {
+            Some(include_str!("../../../runtimes/dotnet-backup.recipe"))
+        }
         ("runtimes", "c") => Some(include_str!("../../../runtimes/c.recipe")),
         _ => None,
     }

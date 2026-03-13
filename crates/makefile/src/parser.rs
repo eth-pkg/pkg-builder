@@ -92,7 +92,10 @@ pub fn parse_pipeline(
             "INSTALL" => {
                 let (tool, cmd) =
                     split_two(args, file_name, i + 1, "INSTALL <tool> <install command>")?;
-                if !installable_tools.iter().any(|t: &ToolInstall| t.name == tool) {
+                if !installable_tools
+                    .iter()
+                    .any(|t: &ToolInstall| t.name == tool)
+                {
                     installable_tools.push(ToolInstall {
                         name: tool.to_string(),
                         install_cmd: cmd.to_string(),
@@ -103,12 +106,8 @@ pub fn parse_pipeline(
                 chroot_modifiers.push(Operation::SnapshotWorkaround);
             }
             "SNAPSHOT_SECURITY" => {
-                let (url, codename) = split_two(
-                    args,
-                    file_name,
-                    i + 1,
-                    "SNAPSHOT_SECURITY <url> <codename>",
-                )?;
+                let (url, codename) =
+                    split_two(args, file_name, i + 1, "SNAPSHOT_SECURITY <url> <codename>")?;
                 chroot_modifiers.push(Operation::SnapshotSecurity {
                     url: url.to_string(),
                     codename: codename.to_string(),
@@ -198,7 +197,10 @@ fn parse_flat_pipeline(
             "INSTALL" => {
                 let (tool, cmd) =
                     split_two(args, file_name, i + 1, "INSTALL <tool> <install command>")?;
-                if !installable_tools.iter().any(|t: &ToolInstall| t.name == tool) {
+                if !installable_tools
+                    .iter()
+                    .any(|t: &ToolInstall| t.name == tool)
+                {
                     installable_tools.push(ToolInstall {
                         name: tool.to_string(),
                         install_cmd: cmd.to_string(),
@@ -271,12 +273,8 @@ fn parse_flat_pipeline(
                 chroot_modifiers.push(Operation::SnapshotWorkaround);
             }
             "SNAPSHOT_SECURITY" => {
-                let (url, codename) = split_two(
-                    args,
-                    file_name,
-                    i + 1,
-                    "SNAPSHOT_SECURITY <url> <codename>",
-                )?;
+                let (url, codename) =
+                    split_two(args, file_name, i + 1, "SNAPSHOT_SECURITY <url> <codename>")?;
                 chroot_modifiers.push(Operation::SnapshotSecurity {
                     url: url.to_string(),
                     codename: codename.to_string(),
@@ -403,7 +401,11 @@ fn parse_single_operation(
         "VERIFY" => {
             let parts: Vec<&str> = args.splitn(3, ' ').collect();
             if parts.len() < 3 {
-                return Err(parse_err(file_name, line_num, "VERIFY <algo> <hash> <file>"));
+                return Err(parse_err(
+                    file_name,
+                    line_num,
+                    "VERIFY <algo> <hash> <file>",
+                ));
             }
             Ok(Operation::Verify {
                 algo: parts[0].into(),
@@ -463,8 +465,12 @@ fn parse_single_operation(
         "INCLUDE" => Ok(Operation::Include { name: args.into() }),
         "SNAPSHOT_WORKAROUND" => Ok(Operation::SnapshotWorkaround),
         "SNAPSHOT_SECURITY" => {
-            let (url, codename) =
-                split_two(args, file_name, line_num, "SNAPSHOT_SECURITY <url> <codename>")?;
+            let (url, codename) = split_two(
+                args,
+                file_name,
+                line_num,
+                "SNAPSHOT_SECURITY <url> <codename>",
+            )?;
             Ok(Operation::SnapshotSecurity {
                 url: url.into(),
                 codename: codename.into(),
@@ -482,7 +488,11 @@ fn parse_single_operation(
         "REQUIRE" => {
             let tools: Vec<String> = args.split_whitespace().map(String::from).collect();
             if tools.is_empty() {
-                return Err(parse_err(file_name, line_num, "REQUIRE <tool1> [tool2] ..."));
+                return Err(parse_err(
+                    file_name,
+                    line_num,
+                    "REQUIRE <tool1> [tool2] ...",
+                ));
             }
             // In runtime context, REQUIRE is not used but we handle gracefully
             // by returning a Run that's a no-op. Actually this shouldn't appear in runtime.
@@ -567,8 +577,7 @@ fn parse_repeat_ops(
             .map(|line| {
                 let mut expanded = vars.substitute(line);
                 for (field, value) in item {
-                    expanded =
-                        expanded.replace(&format!("{{{{{}.{}}}}}", item_var, field), value);
+                    expanded = expanded.replace(&format!("{{{{{}.{}}}}}", item_var, field), value);
                 }
                 expanded
             })
@@ -696,7 +705,10 @@ INCLUDE go
 SBUILD
 "#;
         let pl = parse_pipeline(source, "test", &empty_vars()).unwrap();
-        assert_eq!(pl.required_tools, vec!["wget", "tar", "debcrafter", "dpkg-parsechangelog", "sbuild"]);
+        assert_eq!(
+            pl.required_tools,
+            vec!["wget", "tar", "debcrafter", "dpkg-parsechangelog", "sbuild"]
+        );
         assert_eq!(pl.installable_tools.len(), 1);
         assert_eq!(pl.installable_tools[0].name, "debcrafter");
         assert_eq!(pl.phases.len(), 4);

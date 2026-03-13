@@ -84,10 +84,7 @@ fn validate_source_fields(config: &PkgConfig) -> Result<(), ConfigError> {
             validate_safe_url("source.url", url)?;
             validate_safe_shell_value("source.tag", tag)?;
             for (i, sub) in submodules.iter().enumerate() {
-                validate_safe_shell_value(
-                    &format!("source.submodules[{}].path", i),
-                    &sub.path,
-                )?;
+                validate_safe_shell_value(&format!("source.submodules[{}].path", i), &sub.path)?;
                 if sub.path.contains("..") {
                     return Err(ConfigError::Validation(format!(
                         "source.submodules[{}].path must not contain '..'",
@@ -130,13 +127,11 @@ fn validate_snapshot_config(config: &mut PkgConfig) -> Result<(), ConfigError> {
 
     // Validate and normalize dates
     if let Some(ref date) = config.build_env.snapshot_date {
-        let normalized =
-            normalize_snapshot_date(date).map_err(|e| ConfigError::Validation(e))?;
+        let normalized = normalize_snapshot_date(date).map_err(|e| ConfigError::Validation(e))?;
         config.build_env.snapshot_date = Some(normalized);
     }
     if let Some(ref date) = config.build_env.snapshot_security_date {
-        let normalized =
-            normalize_snapshot_date(date).map_err(|e| ConfigError::Validation(e))?;
+        let normalized = normalize_snapshot_date(date).map_err(|e| ConfigError::Validation(e))?;
         config.build_env.snapshot_security_date = Some(normalized);
     }
 
@@ -200,18 +195,14 @@ mod tests {
 
     #[test]
     fn test_debian_snapshot_passes() {
-        let mut cfg = test_config_with_snapshot(
-            Distribution::bookworm(),
-            Some("20250101T000000Z"),
-            None,
-        );
+        let mut cfg =
+            test_config_with_snapshot(Distribution::bookworm(), Some("20250101T000000Z"), None);
         assert!(validate_and_normalize(&mut cfg).is_ok());
     }
 
     #[test]
     fn test_debian_snapshot_short_date_normalized() {
-        let mut cfg =
-            test_config_with_snapshot(Distribution::bookworm(), Some("20250101"), None);
+        let mut cfg = test_config_with_snapshot(Distribution::bookworm(), Some("20250101"), None);
         assert!(validate_and_normalize(&mut cfg).is_ok());
         assert_eq!(
             cfg.build_env.snapshot_date.as_deref(),
@@ -221,33 +212,23 @@ mod tests {
 
     #[test]
     fn test_ubuntu_snapshot_rejected() {
-        let mut cfg = test_config_with_snapshot(
-            Distribution::noble(),
-            Some("20250101T000000Z"),
-            None,
-        );
+        let mut cfg =
+            test_config_with_snapshot(Distribution::noble(), Some("20250101T000000Z"), None);
         let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("Ubuntu"));
     }
 
     #[test]
     fn test_security_without_main_rejected() {
-        let mut cfg = test_config_with_snapshot(
-            Distribution::bookworm(),
-            None,
-            Some("20250101T000000Z"),
-        );
+        let mut cfg =
+            test_config_with_snapshot(Distribution::bookworm(), None, Some("20250101T000000Z"));
         let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("snapshot_security_date requires"));
     }
 
     #[test]
     fn test_invalid_date_rejected() {
-        let mut cfg = test_config_with_snapshot(
-            Distribution::bookworm(),
-            Some("2025-01-01"),
-            None,
-        );
+        let mut cfg = test_config_with_snapshot(Distribution::bookworm(), Some("2025-01-01"), None);
         let err = validate_and_normalize(&mut cfg).unwrap_err();
         assert!(err.to_string().contains("Invalid snapshot date"));
     }

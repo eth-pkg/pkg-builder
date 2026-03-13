@@ -48,11 +48,9 @@ pub fn download_and_hash_tarball(
     // Verify against upstream hash if provided
     if let Some(upstream) = upstream_hash {
         if hash != upstream {
-            return Err(format!(
-                "Hash mismatch! Computed: {}, Expected: {}",
-                hash, upstream
-            )
-            .into());
+            return Err(
+                format!("Hash mismatch! Computed: {}, Expected: {}", hash, upstream).into(),
+            );
         }
     } else {
         try_verify_upstream_hash(url, &hash);

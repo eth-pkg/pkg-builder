@@ -1,4 +1,4 @@
-use crate::ir::{BuildPlan, Condition, Operation, Phase, Preamble, VarDecl, VarValue, AssignKind};
+use crate::ir::{AssignKind, BuildPlan, Condition, Operation, Phase, Preamble, VarDecl, VarValue};
 
 /// Escape a string for safe use inside single-quoted shell arguments.
 /// Replaces `'` with `'\''` (end quote, escaped quote, restart quote).
@@ -263,14 +263,17 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
                 out.push_str(&format!("{}:{}\n", output, order_only));
                 out.push_str(&format!(
                     "\tgit clone --depth=1 --branch '{}' '{}' $(SRC_DIR)\n",
-                    shell_escape(tag), shell_escape(url)
+                    shell_escape(tag),
+                    shell_escape(url)
                 ));
                 out.push_str("\tcd $(SRC_DIR) && git submodule update --init --recursive\n");
                 // Submodule checkouts
                 for (path, commit) in &submodule_ops {
                     out.push_str(&format!(
                         "\tcd $(SRC_DIR)/'{}' && git fetch origin '{}' && git checkout '{}'\n",
-                        shell_escape(path), shell_escape(commit), shell_escape(commit)
+                        shell_escape(path),
+                        shell_escape(commit),
+                        shell_escape(commit)
                     ));
                 }
                 // Remove .git and create reproducible tarball
@@ -306,7 +309,10 @@ fn render_debian_phase(out: &mut String, phase: &Phase) {
         format!(" {}", phase.deps.join(" "))
     };
 
-    out.push_str(&format!("\n# === Debian packaging ===\n{}:{}\n", output, deps));
+    out.push_str(&format!(
+        "\n# === Debian packaging ===\n{}:{}\n",
+        output, deps
+    ));
 
     for op in &phase.operations {
         match op {
@@ -375,8 +381,12 @@ fn render_sbuild_flags(out: &mut String) {
     out.push_str("SBUILD_FLAGS += \\\n");
     out.push_str("\t  --run-lintian \\\n");
     out.push_str("\t  --lintian-opt=-i --lintian-opt=--I \\\n");
-    out.push_str("\t  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \\\n");
-    out.push_str("\t  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \\\n");
+    out.push_str(
+        "\t  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \\\n",
+    );
+    out.push_str(
+        "\t  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \\\n",
+    );
     out.push_str("\t  --lintian-opt=--tag-display-limit=0 \\\n");
     out.push_str("\t  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning\n");
     out.push_str("else\n");
@@ -433,9 +443,10 @@ fn render_env_phase(out: &mut String, phase: &Phase) {
     };
 
     // Check if uses snapshot (marker operation present)
-    let uses_snapshot = phase.operations.iter().any(|op| {
-        matches!(op, Operation::Run { cmd } if cmd == "__uses_snapshot")
-    });
+    let uses_snapshot = phase
+        .operations
+        .iter()
+        .any(|op| matches!(op, Operation::Run { cmd } if cmd == "__uses_snapshot"));
 
     out.push_str(&format!("$(CHROOT_TARBALL):{}\n", order_only));
     if uses_snapshot {
@@ -502,7 +513,9 @@ fn operations_to_chroot_commands(ops: &[Operation]) -> Vec<String> {
 /// Convert a single operation to a chroot-setup-command string.
 fn operation_to_chroot(op: &Operation) -> Option<String> {
     match op {
-        Operation::AptInstall { packages } => Some(format!("apt install -y {}", packages.join(" "))),
+        Operation::AptInstall { packages } => {
+            Some(format!("apt install -y {}", packages.join(" ")))
+        }
         Operation::AptRemove { packages } => Some(format!("apt remove -y {}", packages.join(" "))),
         Operation::AptUpdate => Some("apt-get update -y".to_string()),
         Operation::Download { url, dest } => Some(format!("wget -q -O {} {}", dest, url)),

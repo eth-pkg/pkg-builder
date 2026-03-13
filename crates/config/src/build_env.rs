@@ -207,7 +207,10 @@ impl<'de> Deserialize<'de> for Architecture {
         let s = String::deserialize(deserializer)?;
         match s.as_str() {
             "amd64" => Ok(Architecture::Amd64),
-            _ => Err(de::Error::custom(format!("Unsupported architecture: {}", s))),
+            _ => Err(de::Error::custom(format!(
+                "Unsupported architecture: {}",
+                s
+            ))),
         }
     }
 }
@@ -352,7 +355,9 @@ mod tests {
     fn test_noble_has_extra_chroot_commands() {
         let cmds = Distribution::noble().extra_chroot_commands();
         assert!(!cmds.is_empty());
-        assert!(cmds.iter().any(|c| c.contains("software-properties-common")));
+        assert!(cmds
+            .iter()
+            .any(|c| c.contains("software-properties-common")));
         assert!(cmds.iter().any(|c| c.contains("universe")));
         assert!(cmds.iter().any(|c| c.contains("multiverse")));
     }
@@ -405,7 +410,10 @@ mod tests {
         assert_eq!(Architecture::Amd64.to_string(), "amd64");
     }
 
-    fn test_build_env(snapshot_date: Option<&str>, snapshot_security_date: Option<&str>) -> BuildEnv {
+    fn test_build_env(
+        snapshot_date: Option<&str>,
+        snapshot_security_date: Option<&str>,
+    ) -> BuildEnv {
         BuildEnv {
             distribution: Distribution::bookworm(),
             arch: Architecture::Amd64,

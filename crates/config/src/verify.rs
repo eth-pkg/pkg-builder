@@ -29,10 +29,10 @@ pub fn verify_hashes(config: &PkgConfig) -> Result<(), Box<dyn std::error::Error
         .ok_or("No [verify] section in pkg-builder.toml")?;
 
     let pkg = &config.package;
-    let artifacts_dir = config.build_env.workdir.join(format!(
-        "{}-{}-{}",
-        pkg.name, pkg.version, pkg.revision
-    ));
+    let artifacts_dir = config
+        .build_env
+        .workdir
+        .join(format!("{}-{}-{}", pkg.name, pkg.version, pkg.revision));
 
     verify_hashes_in_dir(verify_config, &artifacts_dir)
 }
@@ -50,7 +50,11 @@ fn sha256_file(path: &Path) -> Result<String, std::io::Error> {
         }
         hasher.update(&buf[..n]);
     }
-    Ok(hasher.finalize().iter().map(|b| format!("{:02x}", b)).collect())
+    Ok(hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect())
 }
 
 /// Verify package hashes against files in a specific directory.
