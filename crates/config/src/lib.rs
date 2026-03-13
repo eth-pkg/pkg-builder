@@ -287,6 +287,7 @@ workdir = "/tmp/test"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -331,6 +332,7 @@ workdir = "/tmp/test"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -373,6 +375,7 @@ binary_checksum = "abc123"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -436,6 +439,7 @@ workdir = "/tmp/test"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -476,6 +480,7 @@ chroot_dir = "/custom/cache"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -528,6 +533,7 @@ workdir = "/tmp/test"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -576,6 +582,7 @@ workdir = "/tmp/test"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -666,6 +673,7 @@ binary_checksum = "5901c52b"
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"
@@ -714,6 +722,7 @@ packages = [
 
 [tools]
 pkg_builder = "0.3.1"
+debcrafter = "8189263"
 sbuild = "0.85.6"
 lintian = "2.116.3"
 piuparts = "1.1.7"

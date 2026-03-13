@@ -37,7 +37,7 @@ pub fn generate(config: &PkgConfig) -> Result<String, GeneratorError> {
     let pipeline_source = load_recipe("pipelines", &pipeline_name, &config.config_root)?;
     let pipeline_cmds = RecipeParser::parse(&pipeline_source, &pipeline_name, &vars)?;
 
-    // Load runtime recipe (may be empty for c/python)
+    // Load runtime recipe (may be empty for c)
     let runtime_cmds = if !runtime_name.is_empty() {
         let runtime_source = load_recipe("runtimes", &runtime_name, &config.config_root)?;
         RecipeParser::parse(&runtime_source, &runtime_name, &vars)?
@@ -78,15 +78,12 @@ fn load_builtin_recipe(kind: &str, name: &str) -> Option<&'static str> {
         ("pipelines", "debian-bookworm") => Some(include_str!("../../../pipelines/debian-bookworm.recipe")),
         ("pipelines", "debian-trixie") => Some(include_str!("../../../pipelines/debian-trixie.recipe")),
         ("pipelines", "ubuntu-noble") => Some(include_str!("../../../pipelines/ubuntu-noble.recipe")),
-        ("pipelines", "ubuntu-jammy") => Some(include_str!("../../../pipelines/ubuntu-jammy.recipe")),
         ("pipelines", "debian-bookworm-git") => Some(include_str!("../../../pipelines/debian-bookworm-git.recipe")),
         ("pipelines", "debian-trixie-git") => Some(include_str!("../../../pipelines/debian-trixie-git.recipe")),
         ("pipelines", "ubuntu-noble-git") => Some(include_str!("../../../pipelines/ubuntu-noble-git.recipe")),
-        ("pipelines", "ubuntu-jammy-git") => Some(include_str!("../../../pipelines/ubuntu-jammy-git.recipe")),
         ("pipelines", "debian-bookworm-virtual") => Some(include_str!("../../../pipelines/debian-bookworm-virtual.recipe")),
         ("pipelines", "debian-trixie-virtual") => Some(include_str!("../../../pipelines/debian-trixie-virtual.recipe")),
         ("pipelines", "ubuntu-noble-virtual") => Some(include_str!("../../../pipelines/ubuntu-noble-virtual.recipe")),
-        ("pipelines", "ubuntu-jammy-virtual") => Some(include_str!("../../../pipelines/ubuntu-jammy-virtual.recipe")),
         // Runtimes
         ("runtimes", "go") => Some(include_str!("../../../runtimes/go.recipe")),
         ("runtimes", "rust") => Some(include_str!("../../../runtimes/rust.recipe")),
@@ -98,7 +95,6 @@ fn load_builtin_recipe(kind: &str, name: &str) -> Option<&'static str> {
         ("runtimes", "dotnet-debian") => Some(include_str!("../../../runtimes/dotnet-debian.recipe")),
         ("runtimes", "dotnet-backup") => Some(include_str!("../../../runtimes/dotnet-backup.recipe")),
         ("runtimes", "c") => Some(include_str!("../../../runtimes/c.recipe")),
-        ("runtimes", "python") => Some(include_str!("../../../runtimes/python.recipe")),
         _ => None,
     }
 }

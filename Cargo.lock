@@ -594,7 +594,6 @@ dependencies = [
  "dirs",
  "log",
  "pkg-builder-config",
- "pkg-builder-makefile",
  "pkg-builder-tool",
  "rand",
  "sha1",

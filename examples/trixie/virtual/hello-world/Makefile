@@ -88,7 +88,10 @@ $(OUT_DIR):
 # === Source ===
 $(SRC_TARBALL): | $(OUT_DIR)
 	mkdir -p $(SRC_DIR)
-	tar -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)
+	tar --sort=name --owner=0 --group=0 --numeric-owner \
+	  --mtime='2022-01-01 00:00:00' \
+	  '--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime' \
+	  -czf $@ -C $(OUT_DIR) $(PKG_NAME)-$(PKG_VERSION)
 
 # === Debian packaging ===
 $(SRC_DIR)/debian/rules: $(SRC_TARBALL)

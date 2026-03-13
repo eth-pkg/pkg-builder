@@ -26,7 +26,6 @@ pub enum DebianCodename {
 #[derive(Debug, Clone, PartialEq)]
 pub enum UbuntuCodename {
     Noble,
-    Jammy,
 }
 
 impl DebianCodename {
@@ -42,14 +41,12 @@ impl UbuntuCodename {
     pub fn as_str(&self) -> &'static str {
         match self {
             UbuntuCodename::Noble => "noble numbat",
-            UbuntuCodename::Jammy => "jammy jellyfish",
         }
     }
 
     pub fn as_short(&self) -> &'static str {
         match self {
             UbuntuCodename::Noble => "noble",
-            UbuntuCodename::Jammy => "jammy",
         }
     }
 }
@@ -79,16 +76,11 @@ impl Distribution {
         Distribution::Ubuntu(UbuntuCodename::Noble)
     }
 
-    pub fn jammy() -> Self {
-        Distribution::Ubuntu(UbuntuCodename::Jammy)
-    }
-
     pub fn from_codename(codename: &str) -> Result<Self, DistributionError> {
         match codename {
             "bookworm" => Ok(Self::bookworm()),
             "trixie" => Ok(Self::trixie()),
             "noble" | "noble numbat" => Ok(Self::noble()),
-            "jammy" | "jammy jellyfish" => Ok(Self::jammy()),
             _ => Err(DistributionError::UnsupportedCodename(codename.to_string())),
         }
     }
@@ -307,14 +299,6 @@ mod tests {
             Ok(Distribution::Ubuntu(UbuntuCodename::Noble))
         ));
         assert!(matches!(
-            Distribution::from_codename("jammy"),
-            Ok(Distribution::Ubuntu(UbuntuCodename::Jammy))
-        ));
-        assert!(matches!(
-            Distribution::from_codename("jammy jellyfish"),
-            Ok(Distribution::Ubuntu(UbuntuCodename::Jammy))
-        ));
-        assert!(matches!(
             Distribution::from_codename("trixie"),
             Ok(Distribution::Debian(DebianCodename::Trixie))
         ));
@@ -326,7 +310,6 @@ mod tests {
         assert_eq!(Distribution::bookworm().as_short(), "bookworm");
         assert_eq!(Distribution::trixie().as_short(), "trixie");
         assert_eq!(Distribution::noble().as_short(), "noble");
-        assert_eq!(Distribution::jammy().as_short(), "jammy");
     }
 
     #[test]
@@ -341,10 +324,6 @@ mod tests {
         );
         assert_eq!(
             Distribution::noble().repo_url(),
-            "http://archive.ubuntu.com/ubuntu"
-        );
-        assert_eq!(
-            Distribution::jammy().repo_url(),
             "http://archive.ubuntu.com/ubuntu"
         );
     }
@@ -382,18 +361,9 @@ mod tests {
     }
 
     #[test]
-    fn test_jammy_no_extra_chroot_commands() {
-        assert!(Distribution::jammy().extra_chroot_commands().is_empty());
-    }
-
-    #[test]
     fn test_ubuntu_lintian_suppressions() {
         let noble = Distribution::noble();
         let supprs = noble.lintian_suppressions();
-        assert!(supprs.contains(&"malformed-deb-archive"));
-
-        let jammy = Distribution::jammy();
-        let supprs = jammy.lintian_suppressions();
         assert!(supprs.contains(&"malformed-deb-archive"));
     }
 

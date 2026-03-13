@@ -11,7 +11,6 @@ path = "src/lib.rs"
 [dependencies]
 pkg-builder-config = { path = "../config" }
 pkg-builder-tool = { path = "../tool" }
-pkg-builder-makefile = { path = "../makefile" }
 log = { workspace = true }
 thiserror = { workspace = true }
 dirs = { workspace = true }

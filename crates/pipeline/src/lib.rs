@@ -1,4 +1,3 @@
-pub mod build;
 pub mod context;
 pub mod env;
 pub mod prepare;
@@ -51,10 +50,6 @@ impl PackageBuilder {
 
     pub fn clean_env(&self) -> Result<(), PipelineError> {
         env::clean_env(&self.ws)
-    }
-
-    pub fn build(&self) -> Result<(), PipelineError> {
-        build::build_package(&self.ws)
     }
 
     pub fn run_lintian(&self) -> Result<(), PipelineError> {

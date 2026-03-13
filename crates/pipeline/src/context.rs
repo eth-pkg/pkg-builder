@@ -107,6 +107,7 @@ mod tests {
                     run_autopkgtest: false,
                 },
                 tool_versions: ToolVersions {
+                    debcrafter: "8189263".to_string(),
                     sbuild: "0.85.6".to_string(),
                     lintian: "2.116.3".to_string(),
                     piuparts: "1.1.7".to_string(),
@@ -116,6 +117,7 @@ mod tests {
                 snapshot_security_date: None,
             },
             runtime: None,
+            verify: None,
             config_root: PathBuf::from("/test/config"),
         }
     }

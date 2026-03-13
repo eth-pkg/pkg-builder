@@ -107,6 +107,7 @@ mod tests {
                 snapshot_security_date: snapshot_security_date.map(String::from),
             },
             runtime: None,
+            verify: None,
             config_root: PathBuf::from("/test"),
         }
     }

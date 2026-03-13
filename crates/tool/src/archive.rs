@@ -67,7 +67,18 @@ pub fn extract_tar(tarball: &Path, dest: &Path) -> Result<(), ToolError> {
 pub fn create_empty_tar(tarball: &Path, working_dir: &Path) -> Result<(), ToolError> {
     info!("Creating empty .tar.gz for virtual package");
     let output = Command::new("tar")
-        .args(["czvf", &tarball.display().to_string(), "--files-from", "/dev/null"])
+        .args([
+            "--sort=name",
+            "--owner=0",
+            "--group=0",
+            "--numeric-owner",
+            "--mtime=2022-01-01 00:00:00",
+            "--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime",
+            "-czf",
+            &tarball.display().to_string(),
+            "--files-from",
+            "/dev/null",
+        ])
         .current_dir(working_dir)
         .output()?;
 

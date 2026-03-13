@@ -29,7 +29,6 @@ fn generate_for(example_dir: &str) {
 #[test] fn gen_bookworm_c() { generate_for("bookworm/c/hello-world"); }
 #[test] fn gen_bookworm_go() { generate_for("bookworm/go/hello-world"); }
 #[test] fn gen_bookworm_rust() { generate_for("bookworm/rust/hello-world"); }
-#[test] fn gen_bookworm_python() { generate_for("bookworm/python/hello-world"); }
 #[test] fn gen_bookworm_java() { generate_for("bookworm/java/hello-world"); }
 #[test] fn gen_bookworm_java_gradle() { generate_for("bookworm/java-gradle/hello-world"); }
 #[test] fn gen_bookworm_javascript() { generate_for("bookworm/javascript/hello-world"); }
@@ -43,7 +42,6 @@ fn generate_for(example_dir: &str) {
 #[test] fn gen_noble_c() { generate_for("noble/c/hello-world"); }
 #[test] fn gen_noble_go() { generate_for("noble/go/hello-world"); }
 #[test] fn gen_noble_rust() { generate_for("noble/rust/hello-world"); }
-#[test] fn gen_noble_python() { generate_for("noble/python/hello-world"); }
 #[test] fn gen_noble_java() { generate_for("noble/java/hello-world"); }
 #[test] fn gen_noble_java_gradle() { generate_for("noble/java-gradle/hello-world"); }
 #[test] fn gen_noble_javascript() { generate_for("noble/javascript/hello-world"); }
@@ -58,7 +56,6 @@ fn generate_for(example_dir: &str) {
 #[test] fn gen_trixie_c() { generate_for("trixie/c/hello-world"); }
 #[test] fn gen_trixie_go() { generate_for("trixie/go/hello-world"); }
 #[test] fn gen_trixie_rust() { generate_for("trixie/rust/hello-world"); }
-#[test] fn gen_trixie_python() { generate_for("trixie/python/hello-world"); }
 #[test] fn gen_trixie_java() { generate_for("trixie/java/hello-world"); }
 #[test] fn gen_trixie_java_gradle() { generate_for("trixie/java-gradle/hello-world"); }
 #[test] fn gen_trixie_javascript() { generate_for("trixie/javascript/hello-world"); }
@@ -67,19 +64,6 @@ fn generate_for(example_dir: &str) {
 #[test] fn gen_trixie_dotnet() { generate_for("trixie/dotnet/hello-world"); }
 #[test] fn gen_trixie_virtual() { generate_for("trixie/virtual/hello-world"); }
 #[test] fn gen_trixie_git() { generate_for("trixie/git-package/nimbus"); }
-
-// Jammy
-#[test] fn gen_jammy_c() { generate_for("jammy/c/hello-world"); }
-#[test] fn gen_jammy_go() { generate_for("jammy/go/hello-world"); }
-#[test] fn gen_jammy_rust() { generate_for("jammy/rust/hello-world"); }
-#[test] fn gen_jammy_java() { generate_for("jammy/java/hello-world"); }
-#[test] fn gen_jammy_java_gradle() { generate_for("jammy/java-gradle/hello-world"); }
-#[test] fn gen_jammy_javascript() { generate_for("jammy/javascript/hello-world"); }
-#[test] fn gen_jammy_typescript() { generate_for("jammy/typescript/hello-world"); }
-#[test] fn gen_jammy_nim() { generate_for("jammy/nim/hello-world"); }
-#[test] fn gen_jammy_dotnet() { generate_for("jammy/dotnet/hello-world"); }
-#[test] fn gen_jammy_virtual() { generate_for("jammy/virtual/hello-world"); }
-#[test] fn gen_jammy_git() { generate_for("jammy/git-package/nimbus"); }
 
 /// Test that Noble examples have extra repos in the generated Makefile.
 #[test]

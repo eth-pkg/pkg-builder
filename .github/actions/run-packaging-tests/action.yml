@@ -3,7 +3,7 @@ description: 'Runs the packaging tests'
 
 inputs:
   distro:
-    description: 'Distribution to test (bookworm, jammy, noble)'
+    description: 'Distribution to test (bookworm, trixie, noble)'
     required: true
   language:
     description: 'Language to test'

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use config::build_env::{Distribution, UbuntuCodename};
+use config::build_env::Distribution;
 use log::info;
 
 use crate::command::run_command_sudo;
@@ -43,12 +43,6 @@ impl Piuparts<'_> {
                         "deb https://packages.microsoft.com/debian/12/prod {} main",
                         debian
                     );
-                    args.push(format!("--extra-repo={}", repo));
-                    args.push("--do-not-verify-signatures".to_string());
-                }
-                Distribution::Ubuntu(UbuntuCodename::Jammy) => {
-                    let repo =
-                        "deb https://packages.microsoft.com/debian/12/prod jammy main".to_string();
                     args.push(format!("--extra-repo={}", repo));
                     args.push("--do-not-verify-signatures".to_string());
                 }
@@ -111,22 +105,6 @@ mod tests {
         let piuparts = Piuparts {
             distribution: &dist,
             deb_file: Path::new("hello_1.0.0-1_amd64.deb"),
-            deb_dir: Path::new("/build"),
-            is_dotnet: true,
-            repo_url: dist.repo_url(),
-        };
-
-        let args = piuparts.build_args();
-        assert!(args.iter().any(|a| a.contains("packages.microsoft.com")));
-        assert!(args.contains(&"--do-not-verify-signatures".to_string()));
-    }
-
-    #[test]
-    fn test_piuparts_build_args_dotnet_jammy() {
-        let dist = Distribution::Ubuntu(UbuntuCodename::Jammy);
-        let piuparts = Piuparts {
-            distribution: &dist,
-            deb_file: Path::new("hello.deb"),
             deb_dir: Path::new("/build"),
             is_dotnet: true,
             repo_url: dist.repo_url(),

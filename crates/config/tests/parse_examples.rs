@@ -2,7 +2,6 @@
 
 use config::build_env::{Architecture, Distribution};
 use config::source::SourceKind;
-use config::verify::PkgVerifyConfig;
 use config::PkgConfig;
 use std::path::Path;
 
@@ -27,27 +26,12 @@ fn load_example(distro: &str, lang: &str, name: &str) -> PkgConfig {
     })
 }
 
-fn load_verify(distro: &str, lang: &str, name: &str) -> PkgVerifyConfig {
-    let path = examples_dir()
-        .join(distro)
-        .join(lang)
-        .join(name)
-        .join("pkg-builder-verify.toml");
-    PkgVerifyConfig::load(&path).unwrap_or_else(|e| {
-        panic!(
-            "Failed to load verify config at {}: {}",
-            path.display(),
-            e
-        )
-    })
-}
-
 // ─── Bookworm examples ───
 
 #[test]
 fn parse_bookworm_c() {
     let cfg = load_example("bookworm", "c", "hello-world");
-    assert_eq!(cfg.package.name, "hello-world");
+    assert_eq!(cfg.package.name, "hello-world-c");
     assert_eq!(cfg.package.version, "1.0.0");
     assert_eq!(cfg.package.revision, "1");
     assert!(matches!(cfg.build_env.distribution, Distribution::Debian(_)));
@@ -141,13 +125,6 @@ fn parse_bookworm_nim() {
 }
 
 #[test]
-fn parse_bookworm_python() {
-    let cfg = load_example("bookworm", "python", "hello-world");
-    assert_eq!(cfg.package.name, "hello-world-python");
-    assert!(cfg.runtime.is_none()); // Python has no runtime
-}
-
-#[test]
 fn parse_bookworm_virtual() {
     let cfg = load_example("bookworm", "virtual", "hello-world");
     assert_eq!(cfg.package.name, "test-virtual-package");
@@ -159,7 +136,7 @@ fn parse_bookworm_virtual() {
 #[test]
 fn parse_bookworm_git_nimbus() {
     let cfg = load_example("bookworm", "git-package", "nimbus");
-    assert_eq!(cfg.package.name, "hello-world");
+    assert_eq!(cfg.package.name, "hello-world-git-nim");
     match &cfg.source {
         SourceKind::Git {
             url,
@@ -239,12 +216,6 @@ fn parse_trixie_nim() {
 }
 
 #[test]
-fn parse_trixie_python() {
-    let cfg = load_example("trixie", "python", "hello-world");
-    assert!(cfg.runtime.is_none());
-}
-
-#[test]
 fn parse_trixie_virtual() {
     let cfg = load_example("trixie", "virtual", "hello-world");
     assert!(matches!(cfg.source, SourceKind::Virtual));
@@ -314,67 +285,6 @@ fn parse_noble_git_nimbus() {
     assert!(matches!(cfg.source, SourceKind::Git { .. }));
 }
 
-// ─── Jammy examples ───
-
-#[test]
-fn parse_jammy_c() {
-    let cfg = load_example("jammy", "c", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "jammy");
-}
-
-#[test]
-fn parse_jammy_rust() {
-    let cfg = load_example("jammy", "rust", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "jammy");
-}
-
-#[test]
-fn parse_jammy_go() {
-    let cfg = load_example("jammy", "go", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "jammy");
-}
-
-#[test]
-fn parse_jammy_dotnet() {
-    let cfg = load_example("jammy", "dotnet", "hello-world");
-    assert_eq!(cfg.build_env.distribution.as_short(), "jammy");
-}
-
-#[test]
-fn parse_jammy_virtual() {
-    let cfg = load_example("jammy", "virtual", "hello-world");
-    assert!(matches!(cfg.source, SourceKind::Virtual));
-}
-
-#[test]
-fn parse_jammy_git_nimbus() {
-    let cfg = load_example("jammy", "git-package", "nimbus");
-    assert!(matches!(cfg.source, SourceKind::Git { .. }));
-}
-
-// ─── Verify configs ───
-
-#[test]
-fn parse_verify_bookworm_c() {
-    let cfg = load_verify("bookworm", "c", "hello-world");
-    assert!(!cfg.verify.package_hash.is_empty());
-    assert_eq!(cfg.verify.package_hash.len(), 2);
-    for ph in &cfg.verify.package_hash {
-        assert_eq!(ph.hash.len(), 40, "SHA-1 hash should be 40 chars: {}", ph.name);
-    }
-}
-
-#[test]
-fn parse_verify_bookworm_rust() {
-    let cfg = load_verify("bookworm", "rust", "hello-world");
-    assert_eq!(cfg.verify.package_hash.len(), 4);
-    let names: Vec<&str> = cfg.verify.package_hash.iter().map(|h| h.name.as_str()).collect();
-    assert!(names.iter().any(|n| n.ends_with(".dsc")));
-    assert!(names.iter().any(|n| n.ends_with(".orig.tar.gz")));
-    assert!(names.iter().any(|n| n.ends_with(".debian.tar.xz")));
-    assert!(names.iter().any(|n| n.ends_with(".deb")));
-}
-
 // ─── Parse ALL examples (comprehensive sweep) ───
 
 #[test]
@@ -418,49 +328,5 @@ fn parse_all_pkg_builder_configs() {
         failures.len(),
         failures.join("\n")
     );
-    assert!(count >= 42, "Expected at least 42 example configs, found {}", count);
-}
-
-#[test]
-fn parse_all_verify_configs() {
-    let examples = examples_dir();
-    let mut count = 0;
-    let mut failures = Vec::new();
-
-    for distro_entry in std::fs::read_dir(examples).unwrap() {
-        let distro_entry = distro_entry.unwrap();
-        if !distro_entry.path().is_dir() {
-            continue;
-        }
-        for lang_entry in std::fs::read_dir(distro_entry.path()).unwrap() {
-            let lang_entry = lang_entry.unwrap();
-            if !lang_entry.path().is_dir() {
-                continue;
-            }
-            for pkg_entry in std::fs::read_dir(lang_entry.path()).unwrap() {
-                let pkg_entry = pkg_entry.unwrap();
-                let pkg_dir = pkg_entry.path();
-                if !pkg_dir.is_dir() {
-                    continue;
-                }
-                let verify_file = pkg_dir.join("pkg-builder-verify.toml");
-                if verify_file.exists() {
-                    match PkgVerifyConfig::load(&verify_file) {
-                        Ok(_) => count += 1,
-                        Err(e) => {
-                            failures.push(format!("{}: {}", verify_file.display(), e));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    assert!(
-        failures.is_empty(),
-        "Failed to parse {} verify config(s):\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
-    assert!(count >= 30, "Expected at least 30 verify configs, found {}", count);
+    assert!(count >= 34, "Expected at least 34 example configs, found {}", count);
 }
