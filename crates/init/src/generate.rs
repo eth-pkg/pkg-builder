@@ -76,7 +76,7 @@ pub fn generate_toml(config: &InitConfig) -> String {
     if config.runtime != Runtime::None {
         out.push_str("\n[runtime]\n");
         out.push_str(&format!(
-            "recipe = \"{}\"\n",
+            "profile = \"{}\"\n",
             escape_toml(&config.runtime.to_string())
         ));
         for (key, value) in &config.runtime_vars {

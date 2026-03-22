@@ -1,0 +1,10 @@
+# Runtime: Go
+SBUILD_FLAGS += --chroot-setup-commands='apt install -y wget'
+SBUILD_FLAGS += --chroot-setup-commands='wget -q -O /tmp/go.tar.gz $(BINARY_URL)'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && echo "$(BINARY_CHECKSUM) go.tar.gz" >> hash_file.txt && cat hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go'
+SBUILD_FLAGS += --chroot-setup-commands='go version'
+SBUILD_FLAGS += --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg'
+SBUILD_FLAGS += --chroot-setup-commands='apt remove -y wget'

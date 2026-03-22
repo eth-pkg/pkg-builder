@@ -1,29 +1,18 @@
 use std::path::Path;
 
+use config::build_env::DebianCodename;
 use config::PkgConfig;
 
 use crate::ir::*;
-use crate::parser::{ParsedPipeline, ParsedRuntime};
-use crate::variables::VariableResolver;
 
 pub struct PlanBuilder<'a> {
     config: &'a PkgConfig,
-    pipeline: ParsedPipeline,
-    runtime: Option<ParsedRuntime>,
+    runtime_mk: Option<String>,
 }
 
 impl<'a> PlanBuilder<'a> {
-    pub fn new(
-        config: &'a PkgConfig,
-        _vars: &'a VariableResolver,
-        pipeline: ParsedPipeline,
-        runtime: Option<ParsedRuntime>,
-    ) -> Self {
-        Self {
-            config,
-            pipeline,
-            runtime,
-        }
+    pub fn new(config: &'a PkgConfig, runtime_mk: Option<String>) -> Self {
+        Self { config, runtime_mk }
     }
 
     pub fn build(self) -> BuildPlan {
@@ -35,16 +24,87 @@ impl<'a> PlanBuilder<'a> {
 
     fn build_preamble(&self) -> Preamble {
         let variables = self.build_variables();
-        let required_tools = self.pipeline.required_tools.clone();
-        let installable_tools = self.pipeline.installable_tools.clone();
-        let chroot_setup = self.build_chroot_setup();
+        let required_tools = self.required_tools();
+        let installable_tools = self.installable_tools();
+        let chroot_modifier_lines = self.build_chroot_modifier_lines();
 
         Preamble {
             variables,
             required_tools,
             installable_tools,
-            chroot_setup,
+            runtime_mk: self.runtime_mk.clone(),
+            chroot_modifier_lines,
         }
+    }
+
+    fn required_tools(&self) -> Vec<String> {
+        let mut tools = Vec::new();
+        match &self.config.source {
+            config::source::SourceKind::Tarball { .. } => {
+                tools.extend(["wget", "tar"].iter().map(|s| s.to_string()));
+            }
+            config::source::SourceKind::Git { .. } => {
+                tools.extend(["git", "tar"].iter().map(|s| s.to_string()));
+            }
+            config::source::SourceKind::Virtual => {
+                tools.push("tar".to_string());
+            }
+        }
+        tools.extend(
+            ["debcrafter", "dpkg-parsechangelog", "sbuild"]
+                .iter()
+                .map(|s| s.to_string()),
+        );
+        tools
+    }
+
+    fn installable_tools(&self) -> Vec<ToolInstall> {
+        vec![ToolInstall {
+            name: "debcrafter".to_string(),
+            install_cmd:
+                "cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV)"
+                    .to_string(),
+        }]
+    }
+
+    fn build_chroot_modifier_lines(&self) -> Vec<String> {
+        let mut lines = Vec::new();
+
+        // Noble repos (must come before runtime)
+        for cmd in self.config.build_env.distribution.extra_chroot_commands() {
+            lines.push(format!(
+                "SBUILD_FLAGS += --chroot-setup-commands='{}'",
+                shell_escape(&cmd)
+            ));
+        }
+
+        // Snapshot workaround (must come before runtime)
+        if self.config.build_env.uses_snapshot() {
+            lines.insert(
+                0,
+                "SBUILD_FLAGS += --chroot-setup-commands='echo '\\''Acquire::Check-Valid-Until \"false\";'\\'' > /etc/apt/apt.conf.d/99snapshot'"
+                    .to_string(),
+            );
+        }
+
+        // Snapshot security (must come after runtime)
+        if let Some(security_url) = self.config.build_env.security_repo_url() {
+            let codename = match &self.config.build_env.distribution {
+                config::build_env::Distribution::Debian(DebianCodename::Bookworm) => "bookworm",
+                config::build_env::Distribution::Debian(DebianCodename::Trixie) => "trixie",
+                _ => self.config.build_env.distribution.as_short(),
+            };
+            lines.push(format!(
+                "SBUILD_FLAGS += --chroot-setup-commands='echo '\\''deb {} {}-security main'\\'' > /etc/apt/sources.list.d/security-snapshot.list'",
+                security_url, codename
+            ));
+            lines.push(
+                "SBUILD_FLAGS += --chroot-setup-commands='apt-get update'"
+                    .to_string(),
+            );
+        }
+
+        lines
     }
 
     fn build_variables(&self) -> Vec<VarDecl> {
@@ -157,6 +217,9 @@ impl<'a> PlanBuilder<'a> {
             None => return,
         };
 
+        let mut has_packages = false;
+        let mut pkg_count = 0;
+
         for (key, value) in &runtime.vars {
             match value {
                 toml::Value::String(s) => {
@@ -164,6 +227,8 @@ impl<'a> PlanBuilder<'a> {
                     vars.push(simple(&var_name, s));
                 }
                 toml::Value::Array(arr) if key == "packages" => {
+                    has_packages = true;
+                    pkg_count = arr.len();
                     for (i, item) in arr.iter().enumerate() {
                         if let toml::Value::Table(table) = item {
                             let n = i + 1;
@@ -182,68 +247,26 @@ impl<'a> PlanBuilder<'a> {
                 _ => {}
             }
         }
-    }
 
-    fn build_chroot_setup(&self) -> Vec<Operation> {
-        let mut chroot_ops: Vec<Operation> = Vec::new();
+        // Emit RUNTIME_PKG_INDICES for dotnet .mk foreach/eval loops
+        if has_packages && pkg_count > 0 {
+            let indices: Vec<String> = (1..=pkg_count).map(|i| i.to_string()).collect();
+            vars.push(simple("RUNTIME_PKG_INDICES", &indices.join(" ")));
 
-        // Process pipeline chroot modifiers
-        let mut front_ops: Vec<Operation> = Vec::new();
-        let mut back_ops: Vec<Operation> = Vec::new();
-
-        for op in &self.pipeline.chroot_modifiers {
-            match op {
-                Operation::SnapshotWorkaround => {
-                    front_ops.insert(
-                        0,
-                        Operation::Run {
-                            cmd: r#"echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot"#
-                                .to_string(),
-                        },
-                    );
-                }
-                Operation::SnapshotSecurity { url, codename } => {
-                    back_ops.push(Operation::Run {
-                        cmd: format!(
-                            "echo 'deb {} {}-security main' > /etc/apt/sources.list.d/security-snapshot.list",
-                            url, codename
-                        ),
-                    });
-                    back_ops.push(Operation::Run {
-                        cmd: "apt-get update".to_string(),
-                    });
-                }
-                Operation::NobleRepos => {
-                    let noble_cmds = vec![
-                        "apt install -y software-properties-common",
-                        "add-apt-repository universe",
-                        "add-apt-repository restricted",
-                        "add-apt-repository multiverse",
-                        "apt update",
-                    ];
-                    for (i, cmd) in noble_cmds.into_iter().enumerate() {
-                        front_ops.insert(
-                            i,
-                            Operation::Run {
-                                cmd: cmd.to_string(),
-                            },
-                        );
+            // Emit APT_NAME variants for dotnet packages
+            if runtime.profile.starts_with("dotnet") {
+                if let Some(toml::Value::Array(pkgs)) = runtime.vars.get("packages") {
+                    for (i, item) in pkgs.iter().enumerate() {
+                        if let toml::Value::Table(table) = item {
+                            if let Some(toml::Value::String(name)) = table.get("name") {
+                                let apt_name = transform_dotnet_name(name, &self.config.build_env.arch);
+                                vars.push(simple(&format!("PKG{}_APT_NAME", i + 1), &apt_name));
+                            }
+                        }
                     }
                 }
-                _ => {}
             }
         }
-
-        chroot_ops.extend(front_ops);
-
-        // Add runtime operations
-        if let Some(ref runtime) = self.runtime {
-            chroot_ops.extend(runtime.operations.clone());
-        }
-
-        chroot_ops.extend(back_ops);
-
-        chroot_ops
     }
 
     fn build_phases(&self) -> Vec<Phase> {
@@ -260,84 +283,119 @@ impl<'a> PlanBuilder<'a> {
             is_alias: false,
         });
 
-        // Source phase
-        let source_phase = self.pipeline.phases.iter().find(|p| p.name == "source");
-        if let Some(sp) = source_phase {
-            let has_local_source = sp.operations.iter().any(|op| {
-                matches!(op, Operation::Download { url, .. }
-                    if !url.starts_with("http://") && !url.starts_with("https://"))
-            });
+        // Source phase — built from config source kind
+        match &self.config.source {
+            config::source::SourceKind::Tarball { url, hash, .. } => {
+                let is_local = !url.starts_with("http://") && !url.starts_with("https://");
+                let deps = if is_local {
+                    vec!["$(SRC_URL)".to_string()]
+                } else {
+                    vec![]
+                };
 
-            let deps = if has_local_source {
-                vec!["$(SRC_URL)".to_string()]
-            } else {
-                vec![]
-            };
+                let algo = hash.as_ref().map(|h| {
+                    if h.len() == 128 { "sha512" } else { "sha256" }
+                });
 
-            let mut operations = sp.operations.clone();
+                let mut operations = vec![Operation::Download {
+                    url: url.clone(),
+                    dest: "$(SRC_TARBALL)".into(),
+                }];
+                if let (Some(algo), Some(hash)) = (algo, hash) {
+                    operations.push(Operation::Verify {
+                        algo: algo.to_string(),
+                        hash: hash.clone(),
+                        file: "$(SRC_TARBALL)".into(),
+                    });
+                }
 
-            // Add git submodule operations if applicable
-            if let config::source::SourceKind::Git { submodules, .. } = &self.config.source {
+                phases.push(Phase {
+                    name: "source".into(),
+                    output: Some("$(SRC_TARBALL)".into()),
+                    deps,
+                    order_only_deps: vec!["$(OUT_DIR)".into()],
+                    operations,
+                    condition: None,
+                    is_alias: false,
+                });
+            }
+            config::source::SourceKind::Git { url, tag, submodules } => {
+                let mut operations = vec![Operation::GitClone {
+                    url: url.clone(),
+                    tag: tag.clone(),
+                }];
+
                 for submodule in submodules {
                     operations.push(Operation::SubmoduleCheckout {
                         path: submodule.path.clone(),
                         commit: submodule.commit.trim().to_string(),
                     });
                 }
-            }
 
-            phases.push(Phase {
-                name: "source".into(),
-                output: Some("$(SRC_TARBALL)".into()),
-                deps,
-                order_only_deps: vec!["$(OUT_DIR)".into()],
-                operations,
-                condition: None,
-                is_alias: false,
-            });
+                phases.push(Phase {
+                    name: "source".into(),
+                    output: Some("$(SRC_TARBALL)".into()),
+                    deps: vec![],
+                    order_only_deps: vec!["$(OUT_DIR)".into()],
+                    operations,
+                    condition: None,
+                    is_alias: false,
+                });
+            }
+            config::source::SourceKind::Virtual => {
+                phases.push(Phase {
+                    name: "source".into(),
+                    output: Some("$(SRC_TARBALL)".into()),
+                    deps: vec![],
+                    order_only_deps: vec!["$(OUT_DIR)".into()],
+                    operations: vec![Operation::CreateEmptyTar],
+                    condition: None,
+                    is_alias: false,
+                });
+            }
         }
 
         // Debian phase
-        let debian_phase = self.pipeline.phases.iter().find(|p| p.name == "debian");
-        if let Some(dp) = debian_phase {
-            let prev_output = phases
-                .iter()
-                .rev()
-                .find(|p| p.name == "source")
-                .and_then(|p| p.output.clone())
-                .unwrap_or_else(|| "preflight".into());
+        let prev_output = "$(SRC_TARBALL)".to_string();
+        let mut debian_ops = vec![];
 
-            phases.push(Phase {
-                name: "debian".into(),
-                output: Some("$(SRC_DIR)/debian/rules".into()),
-                deps: vec![prev_output],
-                order_only_deps: vec![],
-                operations: dp.operations.clone(),
-                condition: None,
-                is_alias: false,
-            });
+        // For tarball and virtual: extract first, then debcrafter
+        match &self.config.source {
+            config::source::SourceKind::Tarball { .. } | config::source::SourceKind::Virtual => {
+                debian_ops.push(Operation::Extract {
+                    file: "$(SRC_TARBALL)".into(),
+                    dest: "$(SRC_DIR)".into(),
+                    strip: None,
+                });
+            }
+            config::source::SourceKind::Git { .. } => {
+                // Git: source was already extracted during clone
+            }
         }
+        debian_ops.push(Operation::Debcrafter {
+            spec: "$(PKG_SPEC)".into(),
+        });
+
+        phases.push(Phase {
+            name: "debian".into(),
+            output: Some("$(SRC_DIR)/debian/rules".into()),
+            deps: vec![prev_output],
+            order_only_deps: vec![],
+            operations: debian_ops,
+            condition: None,
+            is_alias: false,
+        });
 
         // Patch phase
-        let patch_phase = self.pipeline.phases.iter().find(|p| p.name == "patch");
-        if patch_phase.is_some() {
-            let prev_output = phases
-                .iter()
-                .rev()
-                .find(|p| p.name == "debian")
-                .and_then(|p| p.output.clone())
-                .unwrap_or_else(|| "preflight".into());
-
-            phases.push(Phase {
-                name: "patch".into(),
-                output: Some("$(SRC_DIR)/debian/source/format".into()),
-                deps: vec![prev_output],
-                order_only_deps: vec![],
-                operations: vec![Operation::Patch],
-                condition: None,
-                is_alias: false,
-            });
-        }
+        phases.push(Phase {
+            name: "patch".into(),
+            output: Some("$(SRC_DIR)/debian/source/format".into()),
+            deps: vec!["$(SRC_DIR)/debian/rules".into()],
+            order_only_deps: vec![],
+            operations: vec![Operation::Patch],
+            condition: None,
+            is_alias: false,
+        });
 
         // SBUILD_FLAGS (pseudo-phase for rendering)
         phases.push(Phase {
@@ -351,24 +409,18 @@ impl<'a> PlanBuilder<'a> {
         });
 
         // Build phase
-        if self.pipeline.phases.iter().any(|p| p.name == "build") || patch_phase.is_some() {
-            let prev_output = phases
-                .iter()
-                .rev()
-                .find(|p| p.name == "patch" || p.name == "debian" || p.name == "source")
-                .and_then(|p| p.output.clone())
-                .unwrap_or_else(|| "preflight".into());
-
-            phases.push(Phase {
-                name: "build".into(),
-                output: Some("$(OUT_DIR)/.built".into()),
-                deps: vec![prev_output, "$(CHROOT_TARBALL)".into()],
-                order_only_deps: vec![],
-                operations: vec![Operation::Sbuild],
-                condition: None,
-                is_alias: false,
-            });
-        }
+        phases.push(Phase {
+            name: "build".into(),
+            output: Some("$(OUT_DIR)/.built".into()),
+            deps: vec![
+                "$(SRC_DIR)/debian/source/format".into(),
+                "$(CHROOT_TARBALL)".into(),
+            ],
+            order_only_deps: vec![],
+            operations: vec![Operation::Sbuild],
+            condition: None,
+            is_alias: false,
+        });
 
         // Phony aliases
         phases.push(Phase {
@@ -388,9 +440,7 @@ impl<'a> PlanBuilder<'a> {
             deps: vec![],
             order_only_deps: vec!["preflight".into()],
             operations: if self.config.build_env.uses_snapshot() {
-                vec![Operation::Run {
-                    cmd: "__uses_snapshot".into(),
-                }]
+                vec![Operation::UsesSnapshot]
             } else {
                 vec![]
             },
@@ -468,4 +518,20 @@ fn portabilize_path(path: &str, config_root: &Path) -> String {
     }
 
     path.to_string()
+}
+
+/// Escape a string for safe use inside single-quoted shell arguments in Makefile.
+fn shell_escape(s: &str) -> String {
+    s.replace('\'', "'\\''")
+}
+
+/// Transform dotnet package name to apt name format.
+fn transform_dotnet_name(input: &str, arch: &config::build_env::Architecture) -> String {
+    let arch_str = format!("_{}", arch);
+    if let Some(pos) = input.find(&arch_str) {
+        let trimmed = &input[..pos];
+        trimmed.replace('_', "=")
+    } else {
+        input.replace('_', "=")
+    }
 }

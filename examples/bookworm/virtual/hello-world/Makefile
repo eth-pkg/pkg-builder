@@ -75,10 +75,10 @@ preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
 	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
 	    echo 'Installing $(DEBCRAFTER)...'; \
-	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev 8189263 && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
 	  else \
 	    echo 'Missing $(DEBCRAFTER). Install with:'; \
-	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev 8189263 && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
 	    exit 1; \
 	  fi; \
 	}
@@ -102,7 +102,7 @@ $(SRC_TARBALL): | $(OUT_DIR)
 # === Debian packaging ===
 $(SRC_DIR)/debian/rules: $(SRC_TARBALL)
 	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL) --strip-components=1
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -147,8 +147,7 @@ SBUILD_FLAGS += \
 	  --build-dir=$(OUT_DIR)
 
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) \
-	  $(SRC_DIR)
+	sbuild $(SBUILD_FLAGS) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===

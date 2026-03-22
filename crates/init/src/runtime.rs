@@ -41,7 +41,7 @@ impl fmt::Display for Runtime {
 }
 
 impl Runtime {
-    /// The string used in pkg-builder.toml `recipe = "..."`.
+    /// The string used in pkg-builder.toml `profile = "..."`.
     pub fn as_str(&self) -> &'static str {
         match self {
             Runtime::None => "none",

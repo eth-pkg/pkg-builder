@@ -153,18 +153,20 @@ SBUILD_FLAGS += \
 	  --no-run-autopkgtest \
 	  --build-dir=$(OUT_DIR)
 
+# === Chroot setup ===
+# Runtime: Go
+SBUILD_FLAGS += --chroot-setup-commands='apt install -y wget'
+SBUILD_FLAGS += --chroot-setup-commands='wget -q -O /tmp/go.tar.gz $(BINARY_URL)'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && echo "$(BINARY_CHECKSUM) go.tar.gz" >> hash_file.txt && cat hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go'
+SBUILD_FLAGS += --chroot-setup-commands='go version'
+SBUILD_FLAGS += --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg'
+SBUILD_FLAGS += --chroot-setup-commands='apt remove -y wget'
+
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) \
-	  --chroot-setup-commands='apt install -y wget' \
-	  --chroot-setup-commands='wget -q -O /tmp/go.tar.gz https://go.dev/dl/go1.22.2.linux-amd64.tar.gz' \
-	  --chroot-setup-commands='cd /tmp && echo "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17 go.tar.gz" >> hash_file.txt && cat hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt' \
-	  --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go' \
-	  --chroot-setup-commands='go version' \
-	  --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg' \
-	  --chroot-setup-commands='apt remove -y wget' \
-	  $(SRC_DIR)
+	sbuild $(SBUILD_FLAGS) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===

@@ -214,7 +214,7 @@ fn test_go_has_chroot_commands() {
     assert!(makefile.contains("ln -s /usr/local/go/bin/go /usr/bin/go"));
 }
 
-/// Test that dotnet REPEAT expands all packages.
+/// Test that dotnet packages are set up with foreach/eval and PKG indices.
 #[test]
 fn test_dotnet_repeat_expanded() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -226,7 +226,18 @@ fn test_dotnet_repeat_expanded() {
     let config = config::PkgConfig::load(&path).unwrap();
     let makefile = makefile::generate(&config).unwrap();
     assert!(makefile.contains("dotnet --version"));
-    // Should have multiple dpkg -i lines for each package
-    let dpkg_count = makefile.matches("dpkg -i").count();
-    assert!(dpkg_count > 5, "Expected many dpkg -i, got {}", dpkg_count);
+    // Should have RUNTIME_PKG_INDICES for foreach/eval expansion
+    assert!(
+        makefile.contains("RUNTIME_PKG_INDICES"),
+        "Expected RUNTIME_PKG_INDICES variable"
+    );
+    // Should have per-package variables (PKG1_NAME, PKG2_NAME, etc.)
+    assert!(makefile.contains("PKG1_NAME"), "Expected PKG1_NAME variable");
+    // Should use $(foreach) for package iteration
+    assert!(
+        makefile.contains("$(foreach"),
+        "Expected $(foreach) in dotnet .mk"
+    );
+    // Should have dpkg -i in the foreach body
+    assert!(makefile.contains("dpkg -i"), "Expected dpkg -i in .mk");
 }

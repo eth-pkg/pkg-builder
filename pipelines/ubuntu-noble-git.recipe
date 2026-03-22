@@ -1,9 +1,0 @@
-# Pipeline: Ubuntu Noble (git source)
-INSTALL debcrafter cargo install --git https://github.com/Kixunil/debcrafter --rev {{debcrafter_rev}}
-REQUIRE git tar debcrafter dpkg-parsechangelog sbuild
-GIT_CLONE {{git_url}} {{git_tag}}
-DEBCRAFTER {{spec_file}}
-PATCH
-NOBLE_REPOS
-INCLUDE {{runtime_recipe}}
-SBUILD

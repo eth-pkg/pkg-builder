@@ -1,0 +1,11 @@
+# Runtime: Java (JDK only)
+SBUILD_FLAGS += --chroot-setup-commands='apt install -y wget'
+SBUILD_FLAGS += --chroot-setup-commands='mkdir -p /opt/lib/jvm/jdk-$(JDK_VERSION)-oracle && mkdir -p /usr/lib/jvm'
+SBUILD_FLAGS += --chroot-setup-commands='wget -q -O /tmp/jdk.tar.gz $(BINARY_URL)'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && echo "$(BINARY_CHECKSUM) jdk.tar.gz" >>hash_file.txt && cat hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-$(JDK_VERSION)-oracle --strip-components=1 && rm -f jdk.tar.gz hash_file.txt'
+SBUILD_FLAGS += --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-$(JDK_VERSION)-oracle/bin/java /usr/bin/java'
+SBUILD_FLAGS += --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-$(JDK_VERSION)-oracle/bin/javac /usr/bin/javac'
+SBUILD_FLAGS += --chroot-setup-commands='java -version'
+SBUILD_FLAGS += --chroot-setup-commands='apt remove -y wget'

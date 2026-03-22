@@ -14,9 +14,12 @@ pub struct Preamble {
     pub required_tools: Vec<String>,
     /// Tools to auto-install if missing (from INSTALL).
     pub installable_tools: Vec<ToolInstall>,
-    /// Commands to run inside sbuild chroot before building.
-    /// Populated from runtime recipe + SNAPSHOT_WORKAROUND/NOBLE_REPOS etc.
-    pub chroot_setup: Vec<Operation>,
+    /// Runtime .mk content to inline into the generated Makefile.
+    /// None means no runtime (e.g., C or virtual packages).
+    pub runtime_mk: Option<String>,
+    /// Distribution-specific chroot modifier lines (snapshot workaround, noble repos).
+    /// These are raw `SBUILD_FLAGS += --chroot-setup-commands='...'` lines.
+    pub chroot_modifier_lines: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,8 +69,7 @@ pub struct Phase {
     pub is_alias: bool,
 }
 
-/// A build operation — the semantic commands that recipes express.
-/// This replaces the old Command enum.
+/// A build operation — the semantic commands for the pipeline phases.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operation {
     // Source acquisition
@@ -79,10 +81,6 @@ pub enum Operation {
         algo: String,
         hash: String,
         file: String,
-    },
-    VerifyGpg {
-        file: String,
-        sig: String,
     },
     Extract {
         file: String,
@@ -99,18 +97,6 @@ pub enum Operation {
     },
     CreateEmptyTar,
 
-    // Package management
-    AptInstall {
-        packages: Vec<String>,
-    },
-    AptRemove {
-        packages: Vec<String>,
-    },
-    AptUpdate,
-    DpkgInstall {
-        file: String,
-    },
-
     // Build pipeline
     Debcrafter {
         spec: String,
@@ -123,27 +109,8 @@ pub enum Operation {
     Piuparts,
     Autopkgtest,
 
-    // File operations
-    Symlink {
-        src: String,
-        target: String,
-    },
-    Run {
-        cmd: String,
-    },
-
-    // Chroot environment
-    SnapshotWorkaround,
-    SnapshotSecurity {
-        url: String,
-        codename: String,
-    },
-    NobleRepos,
-
-    // Meta
-    Include {
-        name: String,
-    },
+    // Marker for snapshot-based env phase
+    UsesSnapshot,
 }
 
 #[derive(Debug, Clone, PartialEq)]

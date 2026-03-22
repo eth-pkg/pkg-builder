@@ -332,7 +332,7 @@ fn resolve_runtime_update(
     config: &PkgConfig,
 ) -> Result<Option<Vec<(String, String)>>, UpdateError> {
     if let Some(ref rt) = config.runtime {
-        if let Some(runtime) = pkg_builder_init::Runtime::from_str(&rt.recipe) {
+        if let Some(runtime) = pkg_builder_init::Runtime::from_str(&rt.profile) {
             match runtime.resolve_version(
                 // Try to extract current version from runtime vars
                 &extract_runtime_version(&rt.vars).unwrap_or_default(),

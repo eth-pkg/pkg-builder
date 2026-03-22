@@ -211,7 +211,7 @@ fn insert_runtime_vars(
     }
 
     // Derive apt_name for dotnet packages
-    if runtime.recipe.starts_with("dotnet") {
+    if runtime.profile.starts_with("dotnet") {
         if let Some(toml::Value::Array(pkgs)) = runtime.vars.get("packages") {
             for (i, item) in pkgs.iter().enumerate() {
                 if let toml::Value::Table(table) = item {
@@ -253,7 +253,7 @@ fn derive_recipe_names(config: &PkgConfig) -> (String, String) {
     let pipeline = format!("{}-{}{}", distro_family, distro, source_suffix);
 
     let runtime = match &config.runtime {
-        Some(rt) => rt.recipe.clone(),
+        Some(rt) => rt.profile.clone(),
         None => String::new(),
     };
 

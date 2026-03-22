@@ -190,8 +190,8 @@ fn render_phase(out: &mut String, phase: &Phase, plan: &BuildPlan) {
         "source" => render_source_phase(out, phase),
         "debian" => render_debian_phase(out, phase),
         "patch" => render_patch_phase(out, phase),
-        "sbuild_flags" => render_sbuild_flags(out),
-        "build" => render_build_phase(out, phase, &plan.preamble.chroot_setup),
+        "sbuild_flags" => render_sbuild_flags(out, &plan.preamble),
+        "build" => render_build_phase(out, phase),
         "phony_aliases" => render_phony_aliases(out),
         "env" => render_env_phase(out, phase),
         "test" => render_test_phase(out),
@@ -234,11 +234,6 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
             }
         })
         .collect();
-
-    let is_git = phase
-        .operations
-        .iter()
-        .any(|op| matches!(op, Operation::GitClone { .. }));
 
     for op in &phase.operations {
         match op {
@@ -293,11 +288,6 @@ fn render_source_phase(out: &mut String, phase: &Phase) {
             }
             _ => {}
         }
-    }
-
-    // For non-git sources, no extra tarball creation needed
-    if !is_git {
-        // Already complete
     }
 }
 
@@ -367,7 +357,7 @@ fn render_patch_phase(out: &mut String, phase: &Phase) {
     out.push_str("\t  mv debian/control.tmp debian/control\n");
 }
 
-fn render_sbuild_flags(out: &mut String) {
+fn render_sbuild_flags(out: &mut String, preamble: &Preamble) {
     out.push_str("\n# === Build ===\n");
     out.push_str("SBUILD_FLAGS := \\\n");
     out.push_str("\t  -d $(DISTRIBUTION) \\\n");
@@ -396,31 +386,58 @@ fn render_sbuild_flags(out: &mut String) {
     out.push_str("\t  --no-run-autopkgtest \\\n");
     out.push_str("\t  --build-dir=$(OUT_DIR)\n");
     out.push('\n');
+
+    // Chroot modifier lines (snapshot workaround, noble repos) — before runtime
+    // Split: lines before runtime (noble repos, snapshot workaround) go first
+    let has_modifiers = !preamble.chroot_modifier_lines.is_empty();
+    let has_runtime = preamble.runtime_mk.is_some();
+
+    if has_modifiers || has_runtime {
+        out.push_str("# === Chroot setup ===\n");
+    }
+
+    // Emit chroot modifier lines (noble repos, snapshot workaround come before runtime;
+    // snapshot security comes after, but we emit all together since the builder already
+    // orders them correctly — snapshot workaround first, noble repos, then security last)
+    // However, we need to split: security lines must come after runtime.
+    // For simplicity, emit all modifier lines, then runtime, but the builder already
+    // puts snapshot workaround and noble repos first, and security last.
+    // Actually, per the plan: noble repos before runtime, security after runtime.
+    // Let's split on the security marker.
+    let (pre_runtime_lines, post_runtime_lines): (Vec<_>, Vec<_>) = preamble
+        .chroot_modifier_lines
+        .iter()
+        .partition(|line| !line.contains("security-snapshot.list") && !line.contains("apt-get update"));
+
+    for line in &pre_runtime_lines {
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    // Runtime .mk content (inlined)
+    if let Some(ref mk_content) = preamble.runtime_mk {
+        out.push_str(mk_content);
+        if !mk_content.ends_with('\n') {
+            out.push('\n');
+        }
+    }
+
+    for line in &post_runtime_lines {
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    if has_modifiers || has_runtime {
+        out.push('\n');
+    }
 }
 
-fn render_build_phase(out: &mut String, phase: &Phase, chroot_setup: &[Operation]) {
+fn render_build_phase(out: &mut String, phase: &Phase) {
     let output = phase.output.as_deref().unwrap_or("$(OUT_DIR)/.built");
     let deps = phase.deps.join(" ");
 
     out.push_str(&format!("{}: {}\n", output, deps));
-    out.push_str("\tsbuild $(SBUILD_FLAGS) \\\n");
-
-    // Convert chroot_setup operations to chroot-setup-commands
-    let chroot_commands = operations_to_chroot_commands(chroot_setup);
-    for cmd in &chroot_commands {
-        if cmd.contains('\n') {
-            let escaped = cmd
-                .replace('\\', "\\\\")
-                .replace('\'', "\\'")
-                .replace('\n', "\\n");
-            out.push_str(&format!("\t  --chroot-setup-commands=$$'{}' \\\n", escaped));
-        } else {
-            let escaped = cmd.replace('\'', "'\\''");
-            out.push_str(&format!("\t  --chroot-setup-commands='{}' \\\n", escaped));
-        }
-    }
-
-    out.push_str("\t  $(SRC_DIR)\n");
+    out.push_str("\tsbuild $(SBUILD_FLAGS) $(SRC_DIR)\n");
     out.push_str("\ttouch $@\n");
 }
 
@@ -446,7 +463,7 @@ fn render_env_phase(out: &mut String, phase: &Phase) {
     let uses_snapshot = phase
         .operations
         .iter()
-        .any(|op| matches!(op, Operation::Run { cmd } if cmd == "__uses_snapshot"));
+        .any(|op| matches!(op, Operation::UsesSnapshot));
 
     out.push_str(&format!("$(CHROOT_TARBALL):{}\n", order_only));
     if uses_snapshot {
@@ -499,82 +516,13 @@ fn render_clean_phase(out: &mut String) {
     out.push_str("\trm -rf $(OUT_DIR)\n");
 }
 
-/// Convert runtime operations to chroot-setup-command strings.
-fn operations_to_chroot_commands(ops: &[Operation]) -> Vec<String> {
-    let mut cmds = Vec::new();
-    for op in ops {
-        if let Some(cmd) = operation_to_chroot(op) {
-            cmds.push(cmd);
-        }
-    }
-    cmds
-}
-
-/// Convert a single operation to a chroot-setup-command string.
-fn operation_to_chroot(op: &Operation) -> Option<String> {
-    match op {
-        Operation::AptInstall { packages } => {
-            Some(format!("apt install -y {}", packages.join(" ")))
-        }
-        Operation::AptRemove { packages } => Some(format!("apt remove -y {}", packages.join(" "))),
-        Operation::AptUpdate => Some("apt-get update -y".to_string()),
-        Operation::Download { url, dest } => Some(format!("wget -q -O {} {}", dest, url)),
-        Operation::Verify { algo, hash, file } => {
-            Some(format!("echo '{} {}' | {}sum -c", hash, file, algo))
-        }
-        Operation::Extract { file, dest, strip } => match strip {
-            Some(n) => Some(format!(
-                "tar -C {} -xf {} --strip-components={}",
-                dest, file, n
-            )),
-            None => Some(format!("tar -C {} -xf {}", dest, file)),
-        },
-        Operation::Symlink { src, target } => Some(format!("ln -s {} {}", src, target)),
-        Operation::DpkgInstall { file } => Some(format!("dpkg -i {}", file)),
-        Operation::Run { cmd } => Some(cmd.clone()),
-        Operation::VerifyGpg { file, sig } => Some(format!("gpg --verify {} {}", sig, file)),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_operation_to_chroot_apt_install() {
-        let op = Operation::AptInstall {
-            packages: vec!["wget".into(), "gpg".into()],
-        };
-        assert_eq!(
-            operation_to_chroot(&op),
-            Some("apt install -y wget gpg".to_string())
-        );
-    }
-
-    #[test]
-    fn test_operation_to_chroot_download() {
-        let op = Operation::Download {
-            url: "https://example.com/file".into(),
-            dest: "/tmp/file".into(),
-        };
-        assert_eq!(
-            operation_to_chroot(&op),
-            Some("wget -q -O /tmp/file https://example.com/file".to_string())
-        );
-    }
-
-    #[test]
-    fn test_operation_to_chroot_run() {
-        let op = Operation::Run {
-            cmd: "go version".into(),
-        };
-        assert_eq!(operation_to_chroot(&op), Some("go version".to_string()));
-    }
-
-    #[test]
-    fn test_operation_to_chroot_non_runtime() {
-        assert_eq!(operation_to_chroot(&Operation::Sbuild), None);
-        assert_eq!(operation_to_chroot(&Operation::Patch), None);
+    fn test_shell_escape() {
+        assert_eq!(shell_escape("hello"), "hello");
+        assert_eq!(shell_escape("it's"), "it'\\''s");
     }
 }

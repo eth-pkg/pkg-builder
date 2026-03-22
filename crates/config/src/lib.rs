@@ -385,7 +385,7 @@ autopkgtest = "5.28"
         let config = PkgConfig::load(dir.path()).unwrap();
         assert!(matches!(config.source, SourceKind::Git { .. }));
         assert!(config.runtime.is_some());
-        assert_eq!(config.runtime.as_ref().unwrap().recipe, "go");
+        assert_eq!(config.runtime.as_ref().unwrap().profile, "go");
     }
 
     #[test]
@@ -679,7 +679,7 @@ autopkgtest = "5.28"
 
         let config = PkgConfig::load(dir.path()).unwrap();
         let rt = config.runtime.as_ref().unwrap();
-        assert_eq!(rt.recipe, "go");
+        assert_eq!(rt.profile, "go");
         assert_eq!(
             rt.vars.get("binary_url").and_then(|v| v.as_str()),
             Some("https://go.dev/dl/go1.22.2.linux-amd64.tar.gz")
@@ -728,7 +728,7 @@ autopkgtest = "5.28"
 
         let config = PkgConfig::load(dir.path()).unwrap();
         let rt = config.runtime.as_ref().unwrap();
-        assert_eq!(rt.recipe, "dotnet-backup");
+        assert_eq!(rt.profile, "dotnet-backup");
         let pkgs = rt.vars.get("packages").unwrap().as_array().unwrap();
         assert_eq!(pkgs.len(), 2);
     }

@@ -51,7 +51,7 @@ fn parse_bookworm_rust() {
     let cfg = load_example("bookworm", "rust", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-rust");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "rust");
+    assert_eq!(rt.profile, "rust");
     assert!(rt.vars.contains_key("binary_url"));
     assert!(rt.vars.contains_key("binary_gpg_asc"));
 }
@@ -61,7 +61,7 @@ fn parse_bookworm_go() {
     let cfg = load_example("bookworm", "go", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-go");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "go");
+    assert_eq!(rt.profile, "go");
     let url = rt.vars.get("binary_url").unwrap().as_str().unwrap();
     assert!(url.contains("go.dev"));
 }
@@ -71,7 +71,7 @@ fn parse_bookworm_java() {
     let cfg = load_example("bookworm", "java", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-java");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "java");
+    assert_eq!(rt.profile, "java");
     assert!(rt.vars.contains_key("binary_url"));
 }
 
@@ -80,7 +80,7 @@ fn parse_bookworm_java_gradle() {
     let cfg = load_example("bookworm", "java-gradle", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-java-gradle");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "java-gradle");
+    assert_eq!(rt.profile, "java-gradle");
     assert!(rt.vars.contains_key("gradle_binary_url"));
 }
 
@@ -89,7 +89,7 @@ fn parse_bookworm_javascript() {
     let cfg = load_example("bookworm", "javascript", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-javascript");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "node");
+    assert_eq!(rt.profile, "node");
     assert!(rt.vars.contains_key("binary_url"));
     assert!(rt.vars.contains_key("yarn_version"));
 }
@@ -99,7 +99,7 @@ fn parse_bookworm_typescript() {
     let cfg = load_example("bookworm", "typescript", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-typescript");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "node");
+    assert_eq!(rt.profile, "node");
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn parse_bookworm_dotnet() {
     let cfg = load_example("bookworm", "dotnet", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-dotnet");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "dotnet-backup");
+    assert_eq!(rt.profile, "dotnet-backup");
     let pkgs = rt.vars.get("packages").unwrap().as_array().unwrap();
     assert!(pkgs.len() >= 10);
 }
@@ -117,7 +117,7 @@ fn parse_bookworm_nim() {
     let cfg = load_example("bookworm", "nim", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-nim");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "nim");
+    assert_eq!(rt.profile, "nim");
     let url = rt.vars.get("binary_url").unwrap().as_str().unwrap();
     assert!(url.contains("nim-lang.org"));
 }
@@ -149,7 +149,7 @@ fn parse_bookworm_git_nimbus() {
         _ => panic!("Expected Git source"),
     }
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "nim");
+    assert_eq!(rt.profile, "nim");
     assert!(!cfg.build_env.testing.run_lintian);
 }
 
@@ -170,50 +170,50 @@ fn parse_trixie_c() {
 fn parse_trixie_rust() {
     let cfg = load_example("trixie", "rust", "hello-world");
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "rust");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "rust");
 }
 
 #[test]
 fn parse_trixie_go() {
     let cfg = load_example("trixie", "go", "hello-world");
     assert_eq!(cfg.build_env.distribution.as_short(), "trixie");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "go");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "go");
 }
 
 #[test]
 fn parse_trixie_java() {
     let cfg = load_example("trixie", "java", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "java");
 }
 
 #[test]
 fn parse_trixie_java_gradle() {
     let cfg = load_example("trixie", "java-gradle", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java-gradle");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "java-gradle");
 }
 
 #[test]
 fn parse_trixie_javascript() {
     let cfg = load_example("trixie", "javascript", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "node");
 }
 
 #[test]
 fn parse_trixie_typescript() {
     let cfg = load_example("trixie", "typescript", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "node");
 }
 
 #[test]
 fn parse_trixie_dotnet() {
     let cfg = load_example("trixie", "dotnet", "hello-world");
-    assert!(cfg.runtime.as_ref().unwrap().recipe.starts_with("dotnet"));
+    assert!(cfg.runtime.as_ref().unwrap().profile.starts_with("dotnet"));
 }
 
 #[test]
 fn parse_trixie_nim() {
     let cfg = load_example("trixie", "nim", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "nim");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "nim");
 }
 
 #[test]
@@ -243,7 +243,7 @@ fn parse_noble_go() {
 #[test]
 fn parse_noble_rust() {
     let cfg = load_example("noble", "rust", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "rust");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "rust");
 }
 
 #[test]
@@ -251,7 +251,7 @@ fn parse_noble_dotnet9() {
     let cfg = load_example("noble", "dotnet-9", "hello-world");
     assert_eq!(cfg.package.name, "hello-world-dotnet");
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
-    assert_eq!(rt.recipe, "dotnet-backup");
+    assert_eq!(rt.profile, "dotnet-backup");
     // Noble dotnet-9 has deps field
     assert!(rt.vars.contains_key("deps"));
 }
@@ -265,19 +265,19 @@ fn parse_noble_virtual() {
 #[test]
 fn parse_noble_nim() {
     let cfg = load_example("noble", "nim", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "nim");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "nim");
 }
 
 #[test]
 fn parse_noble_java() {
     let cfg = load_example("noble", "java", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "java");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "java");
 }
 
 #[test]
 fn parse_noble_javascript() {
     let cfg = load_example("noble", "javascript", "hello-world");
-    assert_eq!(cfg.runtime.as_ref().unwrap().recipe, "node");
+    assert_eq!(cfg.runtime.as_ref().unwrap().profile, "node");
 }
 
 #[test]
