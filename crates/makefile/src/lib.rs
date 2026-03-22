@@ -1,6 +1,7 @@
 pub mod builder;
 pub mod ir;
 pub mod renderer;
+pub mod sbuild_conf;
 pub mod variables;
 
 use std::path::Path;
@@ -48,16 +49,28 @@ pub fn run_make(target: &str, working_dir: &Path, install_deps: bool) -> Result<
     Ok(())
 }
 
-/// Generate a Makefile from a PkgConfig.
-pub fn generate(config: &PkgConfig) -> Result<String, GeneratorError> {
-    let runtime_mk = if let Some(ref rt) = config.runtime {
-        Some(load_runtime_mk(&rt.profile, &config.config_root)?)
+/// Output of the generate step: Makefile + sbuild.conf.
+pub struct GenerateOutput {
+    pub makefile: String,
+    pub sbuild_conf: String,
+}
+
+/// Generate a Makefile and sbuild.conf from a PkgConfig.
+pub fn generate(config: &PkgConfig) -> Result<GenerateOutput, GeneratorError> {
+    let runtime_perl = if let Some(ref rt) = config.runtime {
+        Some(load_runtime_perl(&rt.profile, &config.config_root)?)
     } else {
         None
     };
 
-    let plan = builder::PlanBuilder::new(config, runtime_mk).build();
-    Ok(renderer::render_makefile(&plan))
+    let plan = builder::PlanBuilder::new(config, runtime_perl).build();
+    let makefile = renderer::render_makefile(&plan);
+    let sbuild_conf = sbuild_conf::render_sbuild_conf(config, &plan.preamble);
+
+    Ok(GenerateOutput {
+        makefile,
+        sbuild_conf,
+    })
 }
 
 /// Validate that a profile name contains only safe characters.
@@ -75,37 +88,37 @@ fn validate_profile_name(name: &str) -> Result<(), GeneratorError> {
     Ok(())
 }
 
-/// Load a runtime .mk file. Checks local directory first, then built-in.
-fn load_runtime_mk(name: &str, config_root: &Path) -> Result<String, GeneratorError> {
+/// Load a runtime .perl template. Checks local directory first, then built-in.
+fn load_runtime_perl(name: &str, config_root: &Path) -> Result<String, GeneratorError> {
     validate_profile_name(name)?;
 
     // Check local override first
-    let local_path = config_root.join("runtimes").join(format!("{}.mk", name));
+    let local_path = config_root.join("runtimes").join(format!("{}.perl", name));
     if local_path.exists() {
         return std::fs::read_to_string(&local_path).map_err(GeneratorError::Io);
     }
 
-    match load_builtin_runtime_mk(name) {
+    match load_builtin_runtime_perl(name) {
         Some(content) => Ok(content.to_string()),
         None => Err(GeneratorError::ProfileNotFound(format!(
-            "runtimes/{}.mk",
+            "runtimes/{}.perl",
             name
         ))),
     }
 }
 
-fn load_builtin_runtime_mk(name: &str) -> Option<&'static str> {
+fn load_builtin_runtime_perl(name: &str) -> Option<&'static str> {
     match name {
-        "go" => Some(include_str!("../../../runtimes/go.mk")),
-        "rust" => Some(include_str!("../../../runtimes/rust.mk")),
-        "node" => Some(include_str!("../../../runtimes/node.mk")),
-        "java" => Some(include_str!("../../../runtimes/java.mk")),
-        "java-gradle" => Some(include_str!("../../../runtimes/java-gradle.mk")),
-        "nim" => Some(include_str!("../../../runtimes/nim.mk")),
-        "dotnet-noble" => Some(include_str!("../../../runtimes/dotnet-noble.mk")),
-        "dotnet-debian" => Some(include_str!("../../../runtimes/dotnet-debian.mk")),
-        "dotnet-backup" => Some(include_str!("../../../runtimes/dotnet-backup.mk")),
-        "c" => Some(include_str!("../../../runtimes/c.mk")),
+        "go" => Some(include_str!("../../../runtimes/go.perl")),
+        "rust" => Some(include_str!("../../../runtimes/rust.perl")),
+        "node" => Some(include_str!("../../../runtimes/node.perl")),
+        "java" => Some(include_str!("../../../runtimes/java.perl")),
+        "java-gradle" => Some(include_str!("../../../runtimes/java-gradle.perl")),
+        "nim" => Some(include_str!("../../../runtimes/nim.perl")),
+        "dotnet-noble" => Some(include_str!("../../../runtimes/dotnet-noble.perl")),
+        "dotnet-debian" => Some(include_str!("../../../runtimes/dotnet-debian.perl")),
+        "dotnet-backup" => Some(include_str!("../../../runtimes/dotnet-backup.perl")),
+        "c" => Some(include_str!("../../../runtimes/c.perl")),
         _ => None,
     }
 }
@@ -115,9 +128,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_builtin_runtime_mk_exist() {
-        assert!(load_builtin_runtime_mk("go").is_some());
-        assert!(load_builtin_runtime_mk("c").is_some());
-        assert!(load_builtin_runtime_mk("nonexistent").is_none());
+    fn test_builtin_runtime_perl_exist() {
+        assert!(load_builtin_runtime_perl("go").is_some());
+        assert!(load_builtin_runtime_perl("c").is_some());
+        assert!(load_builtin_runtime_perl("nonexistent").is_none());
     }
 }

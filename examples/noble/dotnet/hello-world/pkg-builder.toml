@@ -35,16 +35,8 @@ packages = [
     { name = "dotnet8_8.0.104-8.0.4-0ubuntu1_amd64", hash = "a2ada74cdc4a74a7f22aa48205cfc45999c94974", url = "http://backup.eth-nodes.com/20240529-noble/dotnet8_8.0.104-8.0.4-0ubuntu1_amd64.deb" },
 ]
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.20"
 # [verify] hashes not yet populated — run build + verify to generate

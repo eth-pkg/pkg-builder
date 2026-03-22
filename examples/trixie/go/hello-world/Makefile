@@ -23,18 +23,6 @@ DISTRIBUTION := trixie
 ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
-RUN_LINTIAN := true
-RUN_PIUPARTS := true
-RUN_AUTOPKGTEST := true
-
-TEST_TARGETS :=
-ifeq ($(RUN_PIUPARTS),true)
-TEST_TARGETS += test-piuparts
-endif
-ifeq ($(RUN_AUTOPKGTEST),true)
-TEST_TARGETS += test-autopkgtest
-endif
-
 SRC_URL := $(ROOT)/hello-world-go-1.0.0.tar.gz
 SRC_HASH_ALGO := sha512
 SRC_HASH := c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d15ffb763f2f3ea6022116e3ce44df25384522fbdd40dd79a3a84252640cb
@@ -59,21 +47,16 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	debian \
 	patch \
 	sbuild \
-	test \
-	test-lintian \
-	test-piuparts \
-	test-autopkgtest \
 	help \
 	clean
 
-all: build $(TEST_TARGETS)
+all: build
 
 # === Help ===
 help:
 	@echo "Targets:"
 	@echo "  make env      Create sbuild chroot"
 	@echo "  make build    Build package"
-	@echo "  make test     Run all tests"
 	@echo "  make clean    Remove build artifacts"
 
 # === Preflight check ===
@@ -130,43 +113,8 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	  mv debian/control.tmp debian/control
 
 # === Build ===
-SBUILD_FLAGS := \
-	  -d $(DISTRIBUTION) \
-	  -A -s --source-only-changes \
-	  -c $(CHROOT_TARBALL) \
-	  -v --chroot-mode=unshare \
-	  --no-run-piuparts \
-	  --no-apt-upgrade \
-	  --no-apt-distupgrade
-ifeq ($(RUN_LINTIAN),true)
-SBUILD_FLAGS += \
-	  --run-lintian \
-	  --lintian-opt=-i --lintian-opt=--I \
-	  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \
-	  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \
-	  --lintian-opt=--tag-display-limit=0 \
-	  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning
-else
-SBUILD_FLAGS += --no-run-lintian
-endif
-SBUILD_FLAGS += \
-	  --no-run-autopkgtest \
-	  --build-dir=$(OUT_DIR)
-
-# === Chroot setup ===
-# Runtime: Go
-SBUILD_FLAGS += --chroot-setup-commands='apt install -y wget'
-SBUILD_FLAGS += --chroot-setup-commands='wget -q -O /tmp/go.tar.gz $(BINARY_URL)'
-SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && echo "$(BINARY_CHECKSUM) go.tar.gz" >> hash_file.txt && cat hash_file.txt'
-SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt'
-SBUILD_FLAGS += --chroot-setup-commands='cd /tmp && rm -rf /usr/local/go && mkdir /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm -f go.tar.gz hash_file.txt'
-SBUILD_FLAGS += --chroot-setup-commands='ln -s /usr/local/go/bin/go /usr/bin/go'
-SBUILD_FLAGS += --chroot-setup-commands='go version'
-SBUILD_FLAGS += --chroot-setup-commands='chmod -R a+rwx /usr/local/go/pkg'
-SBUILD_FLAGS += --chroot-setup-commands='apt remove -y wget'
-
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) $(SRC_DIR)
+	SBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
@@ -185,26 +133,6 @@ env: $(CHROOT_TARBALL)
 
 env-clean:
 	rm -f $(CHROOT_TARBALL)
-
-# === Test ===
-test-lintian: build
-	lintian -i -I --tag-display-limit=0 \
-	  --suppress-tags bad-distribution-in-changes-file \
-	  --suppress-tags debug-file-with-no-debug-symbols \
-	  --fail-on=error --fail-on=warning \
-	  $(OUT_DIR)/*.changes
-
-ifeq ($(RUN_PIUPARTS),true)
-test-piuparts: build
-	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
-endif
-
-ifeq ($(RUN_AUTOPKGTEST),true)
-test-autopkgtest: build
-	sudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img
-endif
-
-test: $(TEST_TARGETS)
 
 # === Clean ===
 clean:

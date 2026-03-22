@@ -99,20 +99,11 @@ pub fn generate_toml(config: &InitConfig) -> String {
         }
     }
 
-    // [testing]
-    out.push_str("\n[testing]\n");
-    out.push_str("lintian = false\n");
-    out.push_str("piuparts = false\n");
-    out.push_str("autopkgtest = false\n");
-
     // [tools]
     out.push_str("\n[tools]\n");
     out.push_str("pkg_builder = \"0.3.1\"\n");
     out.push_str("debcrafter = \"8189263\"\n");
     out.push_str("sbuild = \"0.85.6\"\n");
-    out.push_str("lintian = \"2.116.3\"\n");
-    out.push_str("piuparts = \"1.1.7\"\n");
-    out.push_str("autopkgtest = \"5.28\"\n");
 
     out
 }

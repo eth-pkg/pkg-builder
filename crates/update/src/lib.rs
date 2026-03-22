@@ -472,9 +472,6 @@ workdir = "/tmp/test"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         )
         .unwrap();

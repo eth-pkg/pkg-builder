@@ -23,18 +23,6 @@ DISTRIBUTION := noble
 ARCH := amd64
 REPO_URL := http://archive.ubuntu.com/ubuntu
 
-RUN_LINTIAN := true
-RUN_PIUPARTS := true
-RUN_AUTOPKGTEST := true
-
-TEST_TARGETS :=
-ifeq ($(RUN_PIUPARTS),true)
-TEST_TARGETS += test-piuparts
-endif
-ifeq ($(RUN_AUTOPKGTEST),true)
-TEST_TARGETS += test-autopkgtest
-endif
-
 SRC_URL := $(ROOT)/hello-world-java-1.0.0.tar.gz
 SRC_HASH_ALGO := sha256
 SRC_HASH := c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7
@@ -59,21 +47,16 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	debian \
 	patch \
 	sbuild \
-	test \
-	test-lintian \
-	test-piuparts \
-	test-autopkgtest \
 	help \
 	clean
 
-all: build $(TEST_TARGETS)
+all: build
 
 # === Help ===
 help:
 	@echo "Targets:"
 	@echo "  make env      Create sbuild chroot"
 	@echo "  make build    Build package"
-	@echo "  make test     Run all tests"
 	@echo "  make clean    Remove build artifacts"
 
 # === Preflight check ===
@@ -130,47 +113,8 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	  mv debian/control.tmp debian/control
 
 # === Build ===
-SBUILD_FLAGS := \
-	  -d $(DISTRIBUTION) \
-	  -A -s --source-only-changes \
-	  -c $(CHROOT_TARBALL) \
-	  -v --chroot-mode=unshare \
-	  --no-run-piuparts \
-	  --no-apt-upgrade \
-	  --no-apt-distupgrade
-ifeq ($(RUN_LINTIAN),true)
-SBUILD_FLAGS += \
-	  --run-lintian \
-	  --lintian-opt=-i --lintian-opt=--I \
-	  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \
-	  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \
-	  --lintian-opt=--tag-display-limit=0 \
-	  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning
-else
-SBUILD_FLAGS += --no-run-lintian
-endif
-SBUILD_FLAGS += \
-	  --no-run-autopkgtest \
-	  --build-dir=$(OUT_DIR)
-
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) \
-	  --chroot-setup-commands='apt install -y software-properties-common' \
-	  --chroot-setup-commands='add-apt-repository universe' \
-	  --chroot-setup-commands='add-apt-repository restricted' \
-	  --chroot-setup-commands='add-apt-repository multiverse' \
-	  --chroot-setup-commands='apt update' \
-	  --chroot-setup-commands='apt install -y wget' \
-	  --chroot-setup-commands='mkdir -p /opt/lib/jvm/jdk-{{jdk_version}}-oracle && mkdir -p /usr/lib/jvm' \
-	  --chroot-setup-commands='wget -q -O /tmp/jdk.tar.gz https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz' \
-	  --chroot-setup-commands='cd /tmp && echo "e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1 jdk.tar.gz" >>hash_file.txt && cat hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && tar -zxf jdk.tar.gz -C /opt/lib/jvm/jdk-{{jdk_version}}-oracle --strip-components=1 && rm -f jdk.tar.gz hash_file.txt' \
-	  --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-{{jdk_version}}-oracle/bin/java /usr/bin/java' \
-	  --chroot-setup-commands='ln -s /opt/lib/jvm/jdk-{{jdk_version}}-oracle/bin/javac /usr/bin/javac' \
-	  --chroot-setup-commands='java -version' \
-	  --chroot-setup-commands='apt remove -y wget' \
-	  $(SRC_DIR)
+	SBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
@@ -189,26 +133,6 @@ env: $(CHROOT_TARBALL)
 
 env-clean:
 	rm -f $(CHROOT_TARBALL)
-
-# === Test ===
-test-lintian: build
-	lintian -i -I --tag-display-limit=0 \
-	  --suppress-tags bad-distribution-in-changes-file \
-	  --suppress-tags debug-file-with-no-debug-symbols \
-	  --fail-on=error --fail-on=warning \
-	  $(OUT_DIR)/*.changes
-
-ifeq ($(RUN_PIUPARTS),true)
-test-piuparts: build
-	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
-endif
-
-ifeq ($(RUN_AUTOPKGTEST),true)
-test-autopkgtest: build
-	sudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img
-endif
-
-test: $(TEST_TARGETS)
 
 # === Clean ===
 clean:

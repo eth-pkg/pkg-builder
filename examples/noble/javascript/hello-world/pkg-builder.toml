@@ -21,18 +21,10 @@ binary_url = "https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x
 binary_checksum = "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d"
 yarn_version = "1.22.19"
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.20"
 
 [verify]
 package_hash = [

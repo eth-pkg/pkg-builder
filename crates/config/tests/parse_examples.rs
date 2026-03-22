@@ -41,9 +41,6 @@ fn parse_bookworm_c() {
         _ => panic!("Expected Tarball source"),
     }
     assert!(cfg.runtime.is_none()); // C has no runtime
-    assert!(cfg.build_env.testing.run_lintian);
-    assert!(cfg.build_env.testing.run_piuparts);
-    assert!(cfg.build_env.testing.run_autopkgtest);
 }
 
 #[test]
@@ -128,7 +125,6 @@ fn parse_bookworm_virtual() {
     assert_eq!(cfg.package.name, "test-virtual-package");
     assert!(matches!(cfg.source, SourceKind::Virtual));
     assert!(cfg.runtime.is_none());
-    assert!(!cfg.build_env.testing.run_autopkgtest);
 }
 
 #[test]
@@ -150,7 +146,6 @@ fn parse_bookworm_git_nimbus() {
     }
     let rt = cfg.runtime.as_ref().expect("Expected runtime");
     assert_eq!(rt.profile, "nim");
-    assert!(!cfg.build_env.testing.run_lintian);
 }
 
 // ─── Trixie examples ───

@@ -30,16 +30,8 @@ packages = [
     { name = "dotnet-sdk-8.0_8.0.204-1_amd64", hash = "a94237cb852aae05b67a5c8428a6c4f9cfb4beaa", url = "http://backup.eth-nodes.com/20240529/dotnet-sdk-8.0_8.0.204-1_amd64.deb" },
 ]
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 # [verify] hashes not yet populated — run build + verify to generate

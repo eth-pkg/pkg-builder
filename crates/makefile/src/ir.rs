@@ -14,12 +14,13 @@ pub struct Preamble {
     pub required_tools: Vec<String>,
     /// Tools to auto-install if missing (from INSTALL).
     pub installable_tools: Vec<ToolInstall>,
-    /// Runtime .mk content to inline into the generated Makefile.
-    /// None means no runtime (e.g., C or virtual packages).
-    pub runtime_mk: Option<String>,
-    /// Distribution-specific chroot modifier lines (snapshot workaround, noble repos).
-    /// These are raw `SBUILD_FLAGS += --chroot-setup-commands='...'` lines.
-    pub chroot_modifier_lines: Vec<String>,
+    /// Substituted Perl template for runtime setup (variable declarations + @runtime_commands).
+    /// Included verbatim in sbuild.conf. None for no-runtime builds.
+    pub runtime_perl: Option<String>,
+    /// Distribution modifier commands before runtime (snapshot workaround, noble repos).
+    pub pre_runtime_commands: Vec<String>,
+    /// Distribution modifier commands after runtime (snapshot security).
+    pub post_runtime_commands: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -103,11 +104,6 @@ pub enum Operation {
     },
     Patch,
     Sbuild,
-
-    // Testing
-    Lintian,
-    Piuparts,
-    Autopkgtest,
 
     // Marker for snapshot-based env phase
     UsesSnapshot,

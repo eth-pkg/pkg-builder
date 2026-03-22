@@ -84,34 +84,8 @@ impl VariableResolver {
             config.build_env.tool_versions.sbuild.clone(),
         );
         vars.insert(
-            "lintian_version".into(),
-            config.build_env.tool_versions.lintian.clone(),
-        );
-        vars.insert(
-            "piuparts_version".into(),
-            config.build_env.tool_versions.piuparts.clone(),
-        );
-        vars.insert(
-            "autopkgtest_version".into(),
-            config.build_env.tool_versions.autopkgtest.clone(),
-        );
-        vars.insert(
             "pkg_builder_version".into(),
             config.build_env.pkg_builder_version.clone(),
-        );
-
-        // Testing flags
-        vars.insert(
-            "run_lintian".into(),
-            config.build_env.testing.run_lintian.to_string(),
-        );
-        vars.insert(
-            "run_piuparts".into(),
-            config.build_env.testing.run_piuparts.to_string(),
-        );
-        vars.insert(
-            "run_autopkgtest".into(),
-            config.build_env.testing.run_autopkgtest.to_string(),
         );
 
         Self { vars }

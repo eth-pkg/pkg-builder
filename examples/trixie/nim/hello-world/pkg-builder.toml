@@ -21,18 +21,10 @@ binary_url = "https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz"
 binary_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz"
 nim_version = "2.0.2"
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 
 [verify]
 package_hash = [

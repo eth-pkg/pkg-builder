@@ -2,7 +2,7 @@ mod commands;
 mod init;
 mod update;
 
-use commands::{ActionType, EnvSubCommand, PkgBuilderArgs, TestSubCommand};
+use commands::{ActionType, EnvSubCommand, PkgBuilderArgs};
 
 use clap::Parser;
 use env_logger::Env;
@@ -50,11 +50,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // Generate Makefile
-    let makefile_content = makefile::generate(&config)?;
+    // Generate Makefile and sbuild.conf
+    let output = makefile::generate(&config)?;
     let makefile_path = output_dir.join("Makefile");
-    std::fs::write(&makefile_path, &makefile_content)?;
+    std::fs::write(&makefile_path, &output.makefile)?;
     info!("Generated Makefile at {:?}", makefile_path);
+
+    let sbuild_conf_path = output_dir.join("sbuild.conf");
+    std::fs::write(&sbuild_conf_path, &output.sbuild_conf)?;
+    info!("Generated sbuild.conf at {:?}", sbuild_conf_path);
 
     // Determine which make target to run
     let target = match args.action {
@@ -62,24 +66,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ActionType::Update(_) => unreachable!(),
         ActionType::Verify => unreachable!(),
         ActionType::Generate => return Ok(()),
-        ActionType::Build(ref cmd) => {
-            if cmd.with_tests {
-                "all"
-            } else {
-                "build"
-            }
-        }
+        ActionType::Build => "build",
         ActionType::Env(ref env_cmd) => match env_cmd.sub_command {
             EnvSubCommand::Create => "env",
             EnvSubCommand::Clean => "env-clean",
         },
         ActionType::Clean => "clean",
-        ActionType::Test(ref test_cmd) => match test_cmd.sub_command {
-            None => "test",
-            Some(TestSubCommand::Lintian) => "test-lintian",
-            Some(TestSubCommand::Piuparts) => "test-piuparts",
-            Some(TestSubCommand::Autopkgtest) => "test-autopkgtest",
-        },
     };
 
     // Run make

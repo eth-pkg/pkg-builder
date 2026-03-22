@@ -166,17 +166,9 @@ mod tests {
                 pkg_builder_version: "0.3.1".to_string(),
                 chroot_dir: PathBuf::from("/tmp/cache"),
                 workdir: PathBuf::from("/tmp/work"),
-                testing: TestingConfig {
-                    run_lintian: false,
-                    run_piuparts: false,
-                    run_autopkgtest: false,
-                },
                 tool_versions: ToolVersions {
                     debcrafter: "8189263".to_string(),
                     sbuild: "0.85.6".to_string(),
-                    lintian: "2.116.3".to_string(),
-                    piuparts: "1.1.7".to_string(),
-                    autopkgtest: "5.28".to_string(),
                 },
                 snapshot_date: snapshot_date.map(String::from),
                 snapshot_security_date: snapshot_security_date.map(String::from),

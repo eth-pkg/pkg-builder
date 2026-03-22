@@ -23,18 +23,6 @@ DISTRIBUTION := noble
 ARCH := amd64
 REPO_URL := http://archive.ubuntu.com/ubuntu
 
-RUN_LINTIAN := true
-RUN_PIUPARTS := true
-RUN_AUTOPKGTEST := false
-
-TEST_TARGETS :=
-ifeq ($(RUN_PIUPARTS),true)
-TEST_TARGETS += test-piuparts
-endif
-ifeq ($(RUN_AUTOPKGTEST),true)
-TEST_TARGETS += test-autopkgtest
-endif
-
 DEBCRAFTER_REV := 8189263
 DEBCRAFTER  := debcrafter-$(DEBCRAFTER_REV)
 
@@ -53,21 +41,16 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	debian \
 	patch \
 	sbuild \
-	test \
-	test-lintian \
-	test-piuparts \
-	test-autopkgtest \
 	help \
 	clean
 
-all: build $(TEST_TARGETS)
+all: build
 
 # === Help ===
 help:
 	@echo "Targets:"
 	@echo "  make env      Create sbuild chroot"
 	@echo "  make build    Build package"
-	@echo "  make test     Run all tests"
 	@echo "  make clean    Remove build artifacts"
 
 # === Preflight check ===
@@ -75,10 +58,10 @@ preflight:
 	@command -v $(DEBCRAFTER) >/dev/null 2>&1 || { \
 	  if [ "$(INSTALL_DEPS)" = "1" ]; then \
 	    echo 'Installing $(DEBCRAFTER)...'; \
-	    cargo install --git https://github.com/Kixunil/debcrafter --rev 8189263 && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
+	    cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER); \
 	  else \
 	    echo 'Missing $(DEBCRAFTER). Install with:'; \
-	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev 8189263 && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
+	    echo '  cargo install --git https://github.com/Kixunil/debcrafter --rev $(DEBCRAFTER_REV) && cp $(HOME)/.cargo/bin/debcrafter $(HOME)/.cargo/bin/$(DEBCRAFTER)'; \
 	    exit 1; \
 	  fi; \
 	}
@@ -102,7 +85,7 @@ $(SRC_TARBALL): | $(OUT_DIR)
 # === Debian packaging ===
 $(SRC_DIR)/debian/rules: $(SRC_TARBALL)
 	mkdir -p $(SRC_DIR)
-	tar -C $(SRC_DIR) -xf $(SRC_TARBALL) --strip-components=1
+	tar -C $(SRC_DIR) -xf $(SRC_TARBALL)
 	$(DEBCRAFTER) $(PKG_SPEC) $(OUT_DIR)
 
 $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
@@ -123,38 +106,8 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	  mv debian/control.tmp debian/control
 
 # === Build ===
-SBUILD_FLAGS := \
-	  -d $(DISTRIBUTION) \
-	  -A -s --source-only-changes \
-	  -c $(CHROOT_TARBALL) \
-	  -v --chroot-mode=unshare \
-	  --no-run-piuparts \
-	  --no-apt-upgrade \
-	  --no-apt-distupgrade
-ifeq ($(RUN_LINTIAN),true)
-SBUILD_FLAGS += \
-	  --run-lintian \
-	  --lintian-opt=-i --lintian-opt=--I \
-	  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \
-	  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \
-	  --lintian-opt=--tag-display-limit=0 \
-	  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning
-else
-SBUILD_FLAGS += --no-run-lintian
-endif
-SBUILD_FLAGS += \
-	  --no-run-autopkgtest \
-	  --build-dir=$(OUT_DIR)
-
-# === Chroot setup ===
-SBUILD_FLAGS += --chroot-setup-commands='apt install -y software-properties-common'
-SBUILD_FLAGS += --chroot-setup-commands='add-apt-repository universe'
-SBUILD_FLAGS += --chroot-setup-commands='add-apt-repository restricted'
-SBUILD_FLAGS += --chroot-setup-commands='add-apt-repository multiverse'
-SBUILD_FLAGS += --chroot-setup-commands='apt update'
-
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) $(SRC_DIR)
+	SBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
@@ -173,26 +126,6 @@ env: $(CHROOT_TARBALL)
 
 env-clean:
 	rm -f $(CHROOT_TARBALL)
-
-# === Test ===
-test-lintian: build
-	lintian -i -I --tag-display-limit=0 \
-	  --suppress-tags bad-distribution-in-changes-file \
-	  --suppress-tags debug-file-with-no-debug-symbols \
-	  --fail-on=error --fail-on=warning \
-	  $(OUT_DIR)/*.changes
-
-ifeq ($(RUN_PIUPARTS),true)
-test-piuparts: build
-	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
-endif
-
-ifeq ($(RUN_AUTOPKGTEST),true)
-test-autopkgtest: build
-	sudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img
-endif
-
-test: $(TEST_TARGETS)
 
 # === Clean ===
 clean:

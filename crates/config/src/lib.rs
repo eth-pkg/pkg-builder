@@ -139,8 +139,6 @@ struct RawConfig {
     build: RawBuild,
     #[serde(default)]
     runtime: Option<RuntimeConfig>,
-    #[serde(default)]
-    testing: Option<RawTesting>,
     tools: RawTools,
     #[serde(default)]
     verify: Option<VerifyConfig>,
@@ -178,23 +176,10 @@ struct RawBuild {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct RawTesting {
-    #[serde(default)]
-    lintian: bool,
-    #[serde(default)]
-    piuparts: bool,
-    #[serde(default)]
-    autopkgtest: bool,
-}
-
-#[derive(Debug, serde::Deserialize)]
 struct RawTools {
     pkg_builder: String,
     debcrafter: String,
     sbuild: String,
-    lintian: String,
-    piuparts: String,
-    autopkgtest: String,
 }
 
 impl RawConfig {
@@ -213,12 +198,6 @@ impl RawConfig {
             RawSource::Virtual => SourceKind::Virtual,
         };
 
-        let testing = self.testing.unwrap_or(RawTesting {
-            lintian: false,
-            piuparts: false,
-            autopkgtest: false,
-        });
-
         let build_env = BuildEnv {
             distribution: self.build.distribution,
             arch: self.build.arch,
@@ -228,17 +207,9 @@ impl RawConfig {
                 .chroot_dir
                 .unwrap_or_else(|| PathBuf::from("~/.cache/sbuild")),
             workdir: self.build.workdir,
-            testing: build_env::TestingConfig {
-                run_lintian: testing.lintian,
-                run_piuparts: testing.piuparts,
-                run_autopkgtest: testing.autopkgtest,
-            },
             tool_versions: build_env::ToolVersions {
                 debcrafter: self.tools.debcrafter,
                 sbuild: self.tools.sbuild,
-                lintian: self.tools.lintian,
-                piuparts: self.tools.piuparts,
-                autopkgtest: self.tools.autopkgtest,
             },
             snapshot_date: self.build.snapshot_date,
             snapshot_security_date: self.build.snapshot_security_date,
@@ -288,9 +259,6 @@ workdir = "/tmp/test"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#
     }
 
@@ -333,9 +301,6 @@ workdir = "/tmp/test"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -376,9 +341,6 @@ binary_checksum = "abc123"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -443,9 +405,6 @@ workdir = "/tmp/test"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -484,9 +443,6 @@ chroot_dir = "/custom/cache"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -534,9 +490,6 @@ workdir = "/tmp/test"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -556,43 +509,6 @@ autopkgtest = "5.28"
             }
             _ => panic!("Expected Tarball"),
         }
-    }
-
-    #[test]
-    fn test_testing_defaults_to_false() {
-        let dir = tempdir().unwrap();
-        write_config(
-            dir.path(),
-            r#"
-[package]
-name = "test"
-version = "1.0.0"
-revision = "1"
-homepage = "https://example.com"
-spec = "test.sss"
-
-[source]
-type = "virtual"
-
-[build]
-distribution = "bookworm"
-arch = "amd64"
-workdir = "/tmp/test"
-
-[tools]
-pkg_builder = "0.3.1"
-debcrafter = "8189263"
-sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
-"#,
-        );
-
-        let config = PkgConfig::load(dir.path()).unwrap();
-        assert!(!config.build_env.testing.run_lintian);
-        assert!(!config.build_env.testing.run_piuparts);
-        assert!(!config.build_env.testing.run_autopkgtest);
     }
 
     #[test]
@@ -671,9 +587,6 @@ binary_checksum = "5901c52b"
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 
@@ -720,9 +633,6 @@ packages = [
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 "#,
         );
 

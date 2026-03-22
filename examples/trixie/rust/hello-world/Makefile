@@ -23,18 +23,6 @@ DISTRIBUTION := trixie
 ARCH := amd64
 REPO_URL := http://deb.debian.org/debian
 
-RUN_LINTIAN := true
-RUN_PIUPARTS := true
-RUN_AUTOPKGTEST := true
-
-TEST_TARGETS :=
-ifeq ($(RUN_PIUPARTS),true)
-TEST_TARGETS += test-piuparts
-endif
-ifeq ($(RUN_AUTOPKGTEST),true)
-TEST_TARGETS += test-autopkgtest
-endif
-
 SRC_URL := $(ROOT)/hello-world-rust-1.0.0.tar.gz
 SRC_HASH_ALGO := sha512
 SRC_HASH := f5bab501028b666be71da81dcd675082d05ad4b8e1650350d27a89209a0e239a209a05b7cd3f89b1ec909260a6a2382f1c929b09ca61353594fe5836420b232d
@@ -77,21 +65,16 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	debian \
 	patch \
 	sbuild \
-	test \
-	test-lintian \
-	test-piuparts \
-	test-autopkgtest \
 	help \
 	clean
 
-all: build $(TEST_TARGETS)
+all: build
 
 # === Help ===
 help:
 	@echo "Targets:"
 	@echo "  make env      Create sbuild chroot"
 	@echo "  make build    Build package"
-	@echo "  make test     Run all tests"
 	@echo "  make clean    Remove build artifacts"
 
 # === Preflight check ===
@@ -148,41 +131,8 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	  mv debian/control.tmp debian/control
 
 # === Build ===
-SBUILD_FLAGS := \
-	  -d $(DISTRIBUTION) \
-	  -A -s --source-only-changes \
-	  -c $(CHROOT_TARBALL) \
-	  -v --chroot-mode=unshare \
-	  --no-run-piuparts \
-	  --no-apt-upgrade \
-	  --no-apt-distupgrade
-ifeq ($(RUN_LINTIAN),true)
-SBUILD_FLAGS += \
-	  --run-lintian \
-	  --lintian-opt=-i --lintian-opt=--I \
-	  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \
-	  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \
-	  --lintian-opt=--tag-display-limit=0 \
-	  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning
-else
-SBUILD_FLAGS += --no-run-lintian
-endif
-SBUILD_FLAGS += \
-	  --no-run-autopkgtest \
-	  --build-dir=$(OUT_DIR)
-
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) \
-	  --chroot-setup-commands='apt install -y wget gpg gpg-agent' \
-	  --chroot-setup-commands='wget -q -O /tmp/package.tar.xz https://static.rust-lang.org/dist/rust-1.94.0-x86_64-unknown-linux-gnu.tar.xz' \
-	  --chroot-setup-commands=$$'cd /tmp && echo "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCgAQBQJpqcrwCRCFq5bm+hvl/gAA9D0QANn8ev2hsore88LH1pYjT/em\nfcer+TMQHazVsX5Ay4fLN79yyTXWXw/fO0E6JVKbZGuU2PpjrauXHahnrs8qTHkz\n5nHMa6GcjbD5Ai1lzAeIo9Fl6qmszxf35uu6Fze71rqcW7slgOpRcGxUQaZFrHQo\n+cEwAJ5XI9xiYjJDPRiZQu3hItcs2F3k+BUpl9E4N699818Iz/Nkxpd+B3OsU41x\nTessON17oSSB8wNMq38SZW4bou1MWyWQASxS3ijzKipii2ABAY+71IUFxtDzWs/s\n+kpvXD2UWVb/UMXQoXsWZ5mQj47Nj/AupWp/KX8v5Jamjivh6F+SG6Skq9cLgk3X\np1KhpJQefTDPx1rtz/MUWKMVeYEgd4oxy3yXQx5fcY+OD+31fntPkZKRBawrVwqd\nFx8AJ162fcp/3EIalVnBe+nnYb0/Tvk/CVvJRUqnJ3nc2t4qOOY9L0WC1LpBkEeD\ntMm+q2TPYoMLA0LQSXcCFYj4BEThTHZI/ZvBKRGdopud7JTpSG7BczzjtC1z6nhQ\nPbads6M8GUHuIkfmSkVJron1EKqFISO8yTEd0HQlxSc8Pl2jioVkWnv9oM4os1zm\nHHPLL77IzTAsDXtWSzvt3IuL+tmI2ZG9c3FvzTlC5Eji9+HOecCOR2QfrdJaqsRp\n4yBHeEEQXm/cW4SVspKo\n=Bvj8\n-----END PGP SIGNATURE-----\n" >> package.tar.xz.asc' \
-	  --chroot-setup-commands='wget -qO- https://keybase.io/rust/pgp_keys.asc | gpg --import' \
-	  --chroot-setup-commands='cd /tmp && gpg --verify package.tar.xz.asc package.tar.xz' \
-	  --chroot-setup-commands='cd /tmp && tar xJf package.tar.xz -C . --strip-components=1 && rm -f package.tar.xz package.tar.xz.asc' \
-	  --chroot-setup-commands='cd /tmp && /bin/bash install.sh --components=rustc,cargo,rust-std-x86_64-unknown-linux-gnu' \
-	  --chroot-setup-commands='rm -rf /tmp/rustc /tmp/cargo /tmp/rust-std-x86_64-unknown-linux-gnu /tmp/install.sh' \
-	  --chroot-setup-commands='apt remove -y wget gpg gpg-agent' \
-	  $(SRC_DIR)
+	SBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
@@ -201,26 +151,6 @@ env: $(CHROOT_TARBALL)
 
 env-clean:
 	rm -f $(CHROOT_TARBALL)
-
-# === Test ===
-test-lintian: build
-	lintian -i -I --tag-display-limit=0 \
-	  --suppress-tags bad-distribution-in-changes-file \
-	  --suppress-tags debug-file-with-no-debug-symbols \
-	  --fail-on=error --fail-on=warning \
-	  $(OUT_DIR)/*.changes
-
-ifeq ($(RUN_PIUPARTS),true)
-test-piuparts: build
-	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
-endif
-
-ifeq ($(RUN_AUTOPKGTEST),true)
-test-autopkgtest: build
-	sudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img
-endif
-
-test: $(TEST_TARGETS)
 
 # === Clean ===
 clean:

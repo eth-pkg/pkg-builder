@@ -131,14 +131,6 @@ impl Distribution {
         }
     }
 
-    /// Tags that lintian should suppress for this distribution.
-    pub fn lintian_suppressions(&self) -> Vec<&str> {
-        match self {
-            Distribution::Ubuntu(_) => vec!["malformed-deb-archive"],
-            Distribution::Debian(_) => vec![],
-        }
-    }
-
     pub fn is_ubuntu(&self) -> bool {
         matches!(self, Distribution::Ubuntu(_))
     }
@@ -223,7 +215,6 @@ pub struct BuildEnv {
     pub pkg_builder_version: String,
     pub chroot_dir: PathBuf,
     pub workdir: PathBuf,
-    pub testing: TestingConfig,
     pub tool_versions: ToolVersions,
     pub snapshot_date: Option<String>,
     pub snapshot_security_date: Option<String>,
@@ -255,19 +246,9 @@ impl BuildEnv {
 }
 
 #[derive(Debug, Clone)]
-pub struct TestingConfig {
-    pub run_lintian: bool,
-    pub run_piuparts: bool,
-    pub run_autopkgtest: bool,
-}
-
-#[derive(Debug, Clone)]
 pub struct ToolVersions {
     pub debcrafter: String,
     pub sbuild: String,
-    pub lintian: String,
-    pub piuparts: String,
-    pub autopkgtest: String,
 }
 
 /// Normalize a snapshot date: accept `YYYYMMDD` (append `T000000Z`) or full `YYYYMMDDTHHMMSSZ`.
@@ -373,19 +354,6 @@ mod tests {
     }
 
     #[test]
-    fn test_ubuntu_lintian_suppressions() {
-        let noble = Distribution::noble();
-        let supprs = noble.lintian_suppressions();
-        assert!(supprs.contains(&"malformed-deb-archive"));
-    }
-
-    #[test]
-    fn test_debian_no_lintian_suppressions() {
-        assert!(Distribution::bookworm().lintian_suppressions().is_empty());
-        assert!(Distribution::trixie().lintian_suppressions().is_empty());
-    }
-
-    #[test]
     fn test_is_ubuntu_debian() {
         assert!(Distribution::noble().is_ubuntu());
         assert!(!Distribution::noble().is_debian());
@@ -420,17 +388,9 @@ mod tests {
             pkg_builder_version: "0.3.1".to_string(),
             chroot_dir: PathBuf::from("/tmp/cache"),
             workdir: PathBuf::from("/tmp/work"),
-            testing: TestingConfig {
-                run_lintian: false,
-                run_piuparts: false,
-                run_autopkgtest: false,
-            },
             tool_versions: ToolVersions {
                 debcrafter: "8189263".to_string(),
                 sbuild: "0.85.6".to_string(),
-                lintian: "2.116.3".to_string(),
-                piuparts: "1.1.7".to_string(),
-                autopkgtest: "5.28".to_string(),
             },
             snapshot_date: snapshot_date.map(String::from),
             snapshot_security_date: snapshot_security_date.map(String::from),

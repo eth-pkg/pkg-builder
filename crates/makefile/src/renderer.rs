@@ -78,17 +78,13 @@ fn render_phony(out: &mut String) {
          \tdebian \\\n\
          \tpatch \\\n\
          \tsbuild \\\n\
-         \ttest \\\n\
-         \ttest-lintian \\\n\
-         \ttest-piuparts \\\n\
-         \ttest-autopkgtest \\\n\
          \thelp \\\n\
          \tclean\n\n",
     );
 }
 
 fn render_targets(out: &mut String, plan: &BuildPlan) {
-    out.push_str("all: build $(TEST_TARGETS)\n\n");
+    out.push_str("all: build\n\n");
 
     // Help target
     render_help_target(out);
@@ -108,7 +104,6 @@ fn render_help_target(out: &mut String) {
     out.push_str("\t@echo \"Targets:\"\n");
     out.push_str("\t@echo \"  make env      Create sbuild chroot\"\n");
     out.push_str("\t@echo \"  make build    Build package\"\n");
-    out.push_str("\t@echo \"  make test     Run all tests\"\n");
     out.push_str("\t@echo \"  make clean    Remove build artifacts\"\n");
     out.push('\n');
 }
@@ -176,7 +171,7 @@ fn render_preflight_target(out: &mut String, preamble: &Preamble) {
     out.push('\n');
 }
 
-fn render_phase(out: &mut String, phase: &Phase, plan: &BuildPlan) {
+fn render_phase(out: &mut String, phase: &Phase, _plan: &BuildPlan) {
     if let Some(ref cond) = phase.condition {
         match cond {
             Condition::Eq(a, b) => out.push_str(&format!("ifeq ({},{})\n", a, b)),
@@ -190,11 +185,9 @@ fn render_phase(out: &mut String, phase: &Phase, plan: &BuildPlan) {
         "source" => render_source_phase(out, phase),
         "debian" => render_debian_phase(out, phase),
         "patch" => render_patch_phase(out, phase),
-        "sbuild_flags" => render_sbuild_flags(out, &plan.preamble),
         "build" => render_build_phase(out, phase),
         "phony_aliases" => render_phony_aliases(out),
         "env" => render_env_phase(out, phase),
-        "test" => render_test_phase(out),
         "clean" => render_clean_phase(out),
         _ => {}
     }
@@ -357,87 +350,13 @@ fn render_patch_phase(out: &mut String, phase: &Phase) {
     out.push_str("\t  mv debian/control.tmp debian/control\n");
 }
 
-fn render_sbuild_flags(out: &mut String, preamble: &Preamble) {
-    out.push_str("\n# === Build ===\n");
-    out.push_str("SBUILD_FLAGS := \\\n");
-    out.push_str("\t  -d $(DISTRIBUTION) \\\n");
-    out.push_str("\t  -A -s --source-only-changes \\\n");
-    out.push_str("\t  -c $(CHROOT_TARBALL) \\\n");
-    out.push_str("\t  -v --chroot-mode=unshare \\\n");
-    out.push_str("\t  --no-run-piuparts \\\n");
-    out.push_str("\t  --no-apt-upgrade \\\n");
-    out.push_str("\t  --no-apt-distupgrade\n");
-    out.push_str("ifeq ($(RUN_LINTIAN),true)\n");
-    out.push_str("SBUILD_FLAGS += \\\n");
-    out.push_str("\t  --run-lintian \\\n");
-    out.push_str("\t  --lintian-opt=-i --lintian-opt=--I \\\n");
-    out.push_str(
-        "\t  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \\\n",
-    );
-    out.push_str(
-        "\t  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \\\n",
-    );
-    out.push_str("\t  --lintian-opt=--tag-display-limit=0 \\\n");
-    out.push_str("\t  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning\n");
-    out.push_str("else\n");
-    out.push_str("SBUILD_FLAGS += --no-run-lintian\n");
-    out.push_str("endif\n");
-    out.push_str("SBUILD_FLAGS += \\\n");
-    out.push_str("\t  --no-run-autopkgtest \\\n");
-    out.push_str("\t  --build-dir=$(OUT_DIR)\n");
-    out.push('\n');
-
-    // Chroot modifier lines (snapshot workaround, noble repos) — before runtime
-    // Split: lines before runtime (noble repos, snapshot workaround) go first
-    let has_modifiers = !preamble.chroot_modifier_lines.is_empty();
-    let has_runtime = preamble.runtime_mk.is_some();
-
-    if has_modifiers || has_runtime {
-        out.push_str("# === Chroot setup ===\n");
-    }
-
-    // Emit chroot modifier lines (noble repos, snapshot workaround come before runtime;
-    // snapshot security comes after, but we emit all together since the builder already
-    // orders them correctly — snapshot workaround first, noble repos, then security last)
-    // However, we need to split: security lines must come after runtime.
-    // For simplicity, emit all modifier lines, then runtime, but the builder already
-    // puts snapshot workaround and noble repos first, and security last.
-    // Actually, per the plan: noble repos before runtime, security after runtime.
-    // Let's split on the security marker.
-    let (pre_runtime_lines, post_runtime_lines): (Vec<_>, Vec<_>) = preamble
-        .chroot_modifier_lines
-        .iter()
-        .partition(|line| !line.contains("security-snapshot.list") && !line.contains("apt-get update"));
-
-    for line in &pre_runtime_lines {
-        out.push_str(line);
-        out.push('\n');
-    }
-
-    // Runtime .mk content (inlined)
-    if let Some(ref mk_content) = preamble.runtime_mk {
-        out.push_str(mk_content);
-        if !mk_content.ends_with('\n') {
-            out.push('\n');
-        }
-    }
-
-    for line in &post_runtime_lines {
-        out.push_str(line);
-        out.push('\n');
-    }
-
-    if has_modifiers || has_runtime {
-        out.push('\n');
-    }
-}
-
 fn render_build_phase(out: &mut String, phase: &Phase) {
+    out.push_str("\n# === Build ===\n");
     let output = phase.output.as_deref().unwrap_or("$(OUT_DIR)/.built");
     let deps = phase.deps.join(" ");
 
     out.push_str(&format!("{}: {}\n", output, deps));
-    out.push_str("\tsbuild $(SBUILD_FLAGS) $(SRC_DIR)\n");
+    out.push_str("\tSBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)\n");
     out.push_str("\ttouch $@\n");
 }
 
@@ -483,31 +402,6 @@ fn render_env_phase(out: &mut String, phase: &Phase) {
     out.push_str("env-clean:\n");
     out.push_str("\trm -f $(CHROOT_TARBALL)\n");
     out.push('\n');
-}
-
-fn render_test_phase(out: &mut String) {
-    out.push_str("# === Test ===\n");
-
-    out.push_str("test-lintian: build\n");
-    out.push_str("\tlintian -i -I --tag-display-limit=0 \\\n");
-    out.push_str("\t  --suppress-tags bad-distribution-in-changes-file \\\n");
-    out.push_str("\t  --suppress-tags debug-file-with-no-debug-symbols \\\n");
-    out.push_str("\t  --fail-on=error --fail-on=warning \\\n");
-    out.push_str("\t  $(OUT_DIR)/*.changes\n\n");
-
-    out.push_str("ifeq ($(RUN_PIUPARTS),true)\n");
-    out.push_str("test-piuparts: build\n");
-    out.push_str("\tsudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb\n");
-    out.push_str("endif\n\n");
-
-    out.push_str("ifeq ($(RUN_AUTOPKGTEST),true)\n");
-    out.push_str("test-autopkgtest: build\n");
-    out.push_str(
-        "\tsudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img\n",
-    );
-    out.push_str("endif\n\n");
-
-    out.push_str("test: $(TEST_TARGETS)\n\n");
 }
 
 fn render_clean_phase(out: &mut String) {

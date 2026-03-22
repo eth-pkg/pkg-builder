@@ -22,13 +22,11 @@ pub enum ActionType {
     /// Update package to a new upstream version
     Update(UpdateCommand),
     /// Build the package
-    Build(BuildCommand),
+    Build,
     /// Generate Makefile without building
     Generate,
     /// Manage build environment (sbuild chroot)
     Env(EnvCommand),
-    /// Run tests
-    Test(TestCommand),
     /// Verify package hashes
     Verify,
     /// Clean build artifacts
@@ -125,13 +123,6 @@ pub struct UpdateCommand {
 }
 
 #[derive(Debug, Args)]
-pub struct BuildCommand {
-    /// Also run enabled tests after building
-    #[clap(long)]
-    pub with_tests: bool,
-}
-
-#[derive(Debug, Args)]
 pub struct EnvCommand {
     #[clap(subcommand)]
     pub sub_command: EnvSubCommand,
@@ -145,18 +136,3 @@ pub enum EnvSubCommand {
     Clean,
 }
 
-#[derive(Debug, Args)]
-pub struct TestCommand {
-    #[clap(subcommand)]
-    pub sub_command: Option<TestSubCommand>,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum TestSubCommand {
-    /// Run lintian checks on host
-    Lintian,
-    /// Run piuparts tests
-    Piuparts,
-    /// Run autopkgtest tests
-    Autopkgtest,
-}

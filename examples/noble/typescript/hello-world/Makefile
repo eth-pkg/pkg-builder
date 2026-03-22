@@ -23,18 +23,6 @@ DISTRIBUTION := noble
 ARCH := amd64
 REPO_URL := http://archive.ubuntu.com/ubuntu
 
-RUN_LINTIAN := true
-RUN_PIUPARTS := true
-RUN_AUTOPKGTEST := true
-
-TEST_TARGETS :=
-ifeq ($(RUN_PIUPARTS),true)
-TEST_TARGETS += test-piuparts
-endif
-ifeq ($(RUN_AUTOPKGTEST),true)
-TEST_TARGETS += test-autopkgtest
-endif
-
 SRC_URL := $(ROOT)/hello-world-typescript-1.0.0.tar.gz
 SRC_HASH_ALGO := sha512
 SRC_HASH := e28af9271dd941888317597af77246c14671c83254a06c756d5fc56f0291a411e89fb730c1d19a848b3c3ac185c0ba20ed1accdd5feb6cc2a1c1c3a2febeba5c
@@ -60,21 +48,16 @@ CHROOT_TARBALL = $(CHROOT_DIR)/$(DISTRIBUTION)-$(ARCH).tar.gz
 	debian \
 	patch \
 	sbuild \
-	test \
-	test-lintian \
-	test-piuparts \
-	test-autopkgtest \
 	help \
 	clean
 
-all: build $(TEST_TARGETS)
+all: build
 
 # === Help ===
 help:
 	@echo "Targets:"
 	@echo "  make env      Create sbuild chroot"
 	@echo "  make build    Build package"
-	@echo "  make test     Run all tests"
 	@echo "  make clean    Remove build artifacts"
 
 # === Preflight check ===
@@ -131,50 +114,8 @@ $(SRC_DIR)/debian/source/format: $(SRC_DIR)/debian/rules
 	  mv debian/control.tmp debian/control
 
 # === Build ===
-SBUILD_FLAGS := \
-	  -d $(DISTRIBUTION) \
-	  -A -s --source-only-changes \
-	  -c $(CHROOT_TARBALL) \
-	  -v --chroot-mode=unshare \
-	  --no-run-piuparts \
-	  --no-apt-upgrade \
-	  --no-apt-distupgrade
-ifeq ($(RUN_LINTIAN),true)
-SBUILD_FLAGS += \
-	  --run-lintian \
-	  --lintian-opt=-i --lintian-opt=--I \
-	  --lintian-opt=--suppress-tags --lintian-opt=bad-distribution-in-changes-file \
-	  --lintian-opt=--suppress-tags --lintian-opt=debug-file-with-no-debug-symbols \
-	  --lintian-opt=--tag-display-limit=0 \
-	  --lintian-opts=--fail-on=error --lintian-opts=--fail-on=warning
-else
-SBUILD_FLAGS += --no-run-lintian
-endif
-SBUILD_FLAGS += \
-	  --no-run-autopkgtest \
-	  --build-dir=$(OUT_DIR)
-
 $(OUT_DIR)/.built: $(SRC_DIR)/debian/source/format $(CHROOT_TARBALL)
-	sbuild $(SBUILD_FLAGS) \
-	  --chroot-setup-commands='apt install -y software-properties-common' \
-	  --chroot-setup-commands='add-apt-repository universe' \
-	  --chroot-setup-commands='add-apt-repository restricted' \
-	  --chroot-setup-commands='add-apt-repository multiverse' \
-	  --chroot-setup-commands='apt update' \
-	  --chroot-setup-commands='apt install -y wget' \
-	  --chroot-setup-commands='wget -q -O /tmp/node.tar.gz https://nodejs.org/download/release/v20.12.2/node-v20.12.2-linux-x64.tar.gz' \
-	  --chroot-setup-commands='cd /tmp && echo "f8f9b6877778ed2d5f920a5bd853f0f8a8be1c42f6d448c763a95625cbbb4b0d node.tar.gz" >> hash_file.txt && cat hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && sha256sum -c hash_file.txt' \
-	  --chroot-setup-commands='cd /tmp && rm -rf /usr/share/node && mkdir /usr/share/node && tar -C /usr/share/node -xzf node.tar.gz --strip-components=1 && rm -f node.tar.gz hash_file.txt' \
-	  --chroot-setup-commands='ls -l /usr/share/node/bin' \
-	  --chroot-setup-commands='ln -s /usr/share/node/bin/node /usr/bin/node' \
-	  --chroot-setup-commands='ln -s /usr/share/node/bin/npm /usr/bin/npm' \
-	  --chroot-setup-commands='ln -s /usr/share/node/bin/npx /usr/bin/npx' \
-	  --chroot-setup-commands='ln -s /usr/share/node/bin/corepack /usr/bin/corepack' \
-	  --chroot-setup-commands='apt remove -y wget' \
-	  --chroot-setup-commands='node --version' \
-	  --chroot-setup-commands='npm --version' \
-	  $(SRC_DIR)
+	SBUILD_CONFIG=$(ROOT)/sbuild.conf sbuild -c $(CHROOT_TARBALL) $(SRC_DIR)
 	touch $@
 
 # === Phony aliases ===
@@ -193,26 +134,6 @@ env: $(CHROOT_TARBALL)
 
 env-clean:
 	rm -f $(CHROOT_TARBALL)
-
-# === Test ===
-test-lintian: build
-	lintian -i -I --tag-display-limit=0 \
-	  --suppress-tags bad-distribution-in-changes-file \
-	  --suppress-tags debug-file-with-no-debug-symbols \
-	  --fail-on=error --fail-on=warning \
-	  $(OUT_DIR)/*.changes
-
-ifeq ($(RUN_PIUPARTS),true)
-test-piuparts: build
-	sudo piuparts -d $(DISTRIBUTION) $(OUT_DIR)/*.deb
-endif
-
-ifeq ($(RUN_AUTOPKGTEST),true)
-test-autopkgtest: build
-	sudo autopkgtest $(OUT_DIR)/*.changes -- qemu $(CHROOT_DIR)/autopkgtest-$(DISTRIBUTION)-$(ARCH).img
-endif
-
-test: $(TEST_TARGETS)
 
 # === Clean ===
 clean:

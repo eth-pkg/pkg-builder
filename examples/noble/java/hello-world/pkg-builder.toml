@@ -20,18 +20,10 @@ recipe = "java"
 binary_url = "https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz"
 binary_checksum = "e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1"
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.20"
 
 [verify]
 package_hash = [

@@ -7,12 +7,15 @@ use crate::ir::*;
 
 pub struct PlanBuilder<'a> {
     config: &'a PkgConfig,
-    runtime_mk: Option<String>,
+    runtime_perl: Option<String>,
 }
 
 impl<'a> PlanBuilder<'a> {
-    pub fn new(config: &'a PkgConfig, runtime_mk: Option<String>) -> Self {
-        Self { config, runtime_mk }
+    pub fn new(config: &'a PkgConfig, runtime_perl: Option<String>) -> Self {
+        Self {
+            config,
+            runtime_perl,
+        }
     }
 
     pub fn build(self) -> BuildPlan {
@@ -26,14 +29,16 @@ impl<'a> PlanBuilder<'a> {
         let variables = self.build_variables();
         let required_tools = self.required_tools();
         let installable_tools = self.installable_tools();
-        let chroot_modifier_lines = self.build_chroot_modifier_lines();
+        let (pre_runtime_commands, runtime_perl, post_runtime_commands) =
+            self.build_chroot_setup();
 
         Preamble {
             variables,
             required_tools,
             installable_tools,
-            runtime_mk: self.runtime_mk.clone(),
-            chroot_modifier_lines,
+            runtime_perl,
+            pre_runtime_commands,
+            post_runtime_commands,
         }
     }
 
@@ -67,25 +72,28 @@ impl<'a> PlanBuilder<'a> {
         }]
     }
 
-    fn build_chroot_modifier_lines(&self) -> Vec<String> {
-        let mut lines = Vec::new();
+    /// Build the chroot setup: pre-runtime commands, substituted Perl template, post-runtime commands.
+    fn build_chroot_setup(&self) -> (Vec<String>, Option<String>, Vec<String>) {
+        let mut pre = Vec::new();
+        let mut post = Vec::new();
 
-        // Noble repos (must come before runtime)
-        for cmd in self.config.build_env.distribution.extra_chroot_commands() {
-            lines.push(format!(
-                "SBUILD_FLAGS += --chroot-setup-commands='{}'",
-                shell_escape(&cmd)
-            ));
-        }
-
-        // Snapshot workaround (must come before runtime)
+        // Snapshot workaround (must come first)
         if self.config.build_env.uses_snapshot() {
-            lines.insert(
-                0,
-                "SBUILD_FLAGS += --chroot-setup-commands='echo '\\''Acquire::Check-Valid-Until \"false\";'\\'' > /etc/apt/apt.conf.d/99snapshot'"
+            pre.push(
+                r#"echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99snapshot"#
                     .to_string(),
             );
         }
+
+        // Noble/distribution repos (before runtime)
+        for cmd in self.config.build_env.distribution.extra_chroot_commands() {
+            pre.push(cmd);
+        }
+
+        // Runtime Perl template (substitute {{var}} placeholders)
+        let runtime_perl = self.runtime_perl.as_ref().map(|template| {
+            substitute_template(template, self.config)
+        });
 
         // Snapshot security (must come after runtime)
         if let Some(security_url) = self.config.build_env.security_repo_url() {
@@ -94,17 +102,14 @@ impl<'a> PlanBuilder<'a> {
                 config::build_env::Distribution::Debian(DebianCodename::Trixie) => "trixie",
                 _ => self.config.build_env.distribution.as_short(),
             };
-            lines.push(format!(
-                "SBUILD_FLAGS += --chroot-setup-commands='echo '\\''deb {} {}-security main'\\'' > /etc/apt/sources.list.d/security-snapshot.list'",
+            post.push(format!(
+                "echo 'deb {} {}-security main' > /etc/apt/sources.list.d/security-snapshot.list",
                 security_url, codename
             ));
-            lines.push(
-                "SBUILD_FLAGS += --chroot-setup-commands='apt-get update'"
-                    .to_string(),
-            );
+            post.push("apt-get update".to_string());
         }
 
-        lines
+        (pre, runtime_perl, post)
     }
 
     fn build_variables(&self) -> Vec<VarDecl> {
@@ -149,18 +154,6 @@ impl<'a> PlanBuilder<'a> {
             vars.push(simple("SNAPSHOT_SECURITY_DATE", date));
         }
         vars.push(raw("\n"));
-
-        // Testing flags
-        let testing = &env.testing;
-        vars.push(simple("RUN_LINTIAN", bool_str(testing.run_lintian)));
-        vars.push(simple("RUN_PIUPARTS", bool_str(testing.run_piuparts)));
-        vars.push(simple("RUN_AUTOPKGTEST", bool_str(testing.run_autopkgtest)));
-        vars.push(raw(concat!(
-            "\nTEST_TARGETS :=\n",
-            "ifeq ($(RUN_PIUPARTS),true)\nTEST_TARGETS += test-piuparts\nendif\n",
-            "ifeq ($(RUN_AUTOPKGTEST),true)\nTEST_TARGETS += test-autopkgtest\nendif\n",
-            "\n",
-        )));
 
         // Source
         match &self.config.source {
@@ -397,17 +390,6 @@ impl<'a> PlanBuilder<'a> {
             is_alias: false,
         });
 
-        // SBUILD_FLAGS (pseudo-phase for rendering)
-        phases.push(Phase {
-            name: "sbuild_flags".into(),
-            output: None,
-            deps: vec![],
-            order_only_deps: vec![],
-            operations: vec![],
-            condition: None,
-            is_alias: false,
-        });
-
         // Build phase
         phases.push(Phase {
             name: "build".into(),
@@ -448,17 +430,6 @@ impl<'a> PlanBuilder<'a> {
             is_alias: false,
         });
 
-        // Test
-        phases.push(Phase {
-            name: "test".into(),
-            output: None,
-            deps: vec![],
-            order_only_deps: vec![],
-            operations: vec![],
-            condition: None,
-            is_alias: false,
-        });
-
         // Clean
         phases.push(Phase {
             name: "clean".into(),
@@ -489,15 +460,6 @@ fn raw(text: &str) -> VarDecl {
         kind: AssignKind::Immediate,
     }
 }
-
-fn bool_str(b: bool) -> &'static str {
-    if b {
-        "true"
-    } else {
-        "false"
-    }
-}
-
 /// Convert an absolute path to a portable Makefile-friendly path.
 fn portabilize_path(path: &str, config_root: &Path) -> String {
     let config_root_str = config_root.display().to_string();
@@ -520,11 +482,6 @@ fn portabilize_path(path: &str, config_root: &Path) -> String {
     path.to_string()
 }
 
-/// Escape a string for safe use inside single-quoted shell arguments in Makefile.
-fn shell_escape(s: &str) -> String {
-    s.replace('\'', "'\\''")
-}
-
 /// Transform dotnet package name to apt name format.
 fn transform_dotnet_name(input: &str, arch: &config::build_env::Architecture) -> String {
     let arch_str = format!("_{}", arch);
@@ -533,5 +490,204 @@ fn transform_dotnet_name(input: &str, arch: &config::build_env::Architecture) ->
         trimmed.replace('_', "=")
     } else {
         input.replace('_', "=")
+    }
+}
+
+// --- Perl template substitution ---
+
+/// Substitute `{{var_name}}` placeholders in a runtime .perl template with config values.
+/// Also handles `{{packages_perl}}` for dotnet package arrays.
+fn substitute_template(template: &str, config: &PkgConfig) -> String {
+    let mut result = template.to_string();
+
+    if let Some(ref runtime) = config.runtime {
+        // Substitute scalar vars: {{key}} → value
+        for (key, value) in &runtime.vars {
+            if let toml::Value::String(s) = value {
+                // Use the TOML key directly (e.g. binary_url, jdk_version)
+                let escaped = perl_escape_single_quote(s);
+                result = result.replace(&format!("{{{{{}}}}}", key), &escaped);
+            }
+        }
+
+        // Substitute {{packages_perl}} for dotnet runtimes
+        if result.contains("{{packages_perl}}") {
+            let packages_perl = render_packages_perl(runtime, config);
+            result = result.replace("{{packages_perl}}", &packages_perl);
+        }
+    }
+
+    result
+}
+
+/// Escape a value for embedding in a Perl single-quoted string.
+/// Only `\` and `'` need escaping in Perl single quotes.
+fn perl_escape_single_quote(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('\'', "\\'")
+}
+
+/// Render dotnet packages as Perl hashref entries for the `@packages` array.
+fn render_packages_perl(
+    runtime: &config::runtime::RuntimeConfig,
+    config: &PkgConfig,
+) -> String {
+    let mut entries = Vec::new();
+
+    if let Some(toml::Value::Array(pkgs)) = runtime.vars.get("packages") {
+        for item in pkgs {
+            if let toml::Value::Table(table) = item {
+                let name = table
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let url = table
+                    .get("url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let hash = table
+                    .get("hash")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                let mut entry = format!(
+                    "    {{ name => '{}', url => '{}', hash => '{}'",
+                    perl_escape_single_quote(name),
+                    perl_escape_single_quote(url),
+                    perl_escape_single_quote(hash),
+                );
+
+                // Add apt_name for dotnet profiles that need it
+                if runtime.profile.starts_with("dotnet") {
+                    let apt_name = transform_dotnet_name(name, &config.build_env.arch);
+                    entry.push_str(&format!(
+                        ", apt_name => '{}'",
+                        perl_escape_single_quote(&apt_name)
+                    ));
+                }
+
+                entry.push_str(" }");
+                entries.push(entry);
+            }
+        }
+    }
+
+    entries.join(",\n") + ","
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_substitute_template_simple() {
+        let template = "my $url = '{{binary_url}}';\nmy $hash = '{{binary_checksum}}';\n";
+
+        // Build a minimal config with runtime vars
+        let mut vars = std::collections::BTreeMap::new();
+        vars.insert(
+            "binary_url".to_string(),
+            toml::Value::String("https://example.com/go.tar.gz".to_string()),
+        );
+        vars.insert(
+            "binary_checksum".to_string(),
+            toml::Value::String("abc123".to_string()),
+        );
+
+        let config = test_config_with_runtime("go", vars);
+        let result = substitute_template(template, &config);
+
+        assert!(result.contains("'https://example.com/go.tar.gz'"));
+        assert!(result.contains("'abc123'"));
+        assert!(!result.contains("{{"));
+    }
+
+    #[test]
+    fn test_substitute_template_no_runtime() {
+        let template = "my @runtime_commands = ();\n";
+        let config = test_config_without_runtime();
+        let result = substitute_template(template, &config);
+        assert_eq!(result, template);
+    }
+
+    #[test]
+    fn test_perl_escape_single_quote() {
+        assert_eq!(perl_escape_single_quote("hello"), "hello");
+        assert_eq!(perl_escape_single_quote("it's"), "it\\'s");
+        assert_eq!(perl_escape_single_quote("a\\b"), "a\\\\b");
+    }
+
+    // Test helpers
+    fn test_config_with_runtime(
+        profile: &str,
+        vars: std::collections::BTreeMap<String, toml::Value>,
+    ) -> PkgConfig {
+        use config::build_env::*;
+        use config::package::PackageFields;
+        use config::source::SourceKind;
+        use std::path::PathBuf;
+
+        PkgConfig {
+            package: PackageFields {
+                name: "test".into(),
+                version: "1.0.0".into(),
+                revision: "1".into(),
+                homepage: "https://example.com".into(),
+                spec: PathBuf::from("test.sss"),
+            },
+            source: SourceKind::Virtual,
+            build_env: BuildEnv {
+                distribution: Distribution::bookworm(),
+                arch: Architecture::Amd64,
+                pkg_builder_version: "0.3.1".into(),
+                chroot_dir: PathBuf::from("/tmp/cache"),
+                workdir: PathBuf::from("/tmp/work"),
+                tool_versions: ToolVersions {
+                    debcrafter: "8189263".into(),
+                    sbuild: "0.85.6".into(),
+                },
+                snapshot_date: None,
+                snapshot_security_date: None,
+            },
+            runtime: Some(config::runtime::RuntimeConfig {
+                profile: profile.into(),
+                vars,
+            }),
+            verify: None,
+            config_root: PathBuf::from("/tmp"),
+        }
+    }
+
+    fn test_config_without_runtime() -> PkgConfig {
+        use config::build_env::*;
+        use config::package::PackageFields;
+        use config::source::SourceKind;
+        use std::path::PathBuf;
+
+        PkgConfig {
+            package: PackageFields {
+                name: "test".into(),
+                version: "1.0.0".into(),
+                revision: "1".into(),
+                homepage: "https://example.com".into(),
+                spec: PathBuf::from("test.sss"),
+            },
+            source: SourceKind::Virtual,
+            build_env: BuildEnv {
+                distribution: Distribution::bookworm(),
+                arch: Architecture::Amd64,
+                pkg_builder_version: "0.3.1".into(),
+                chroot_dir: PathBuf::from("/tmp/cache"),
+                workdir: PathBuf::from("/tmp/work"),
+                tool_versions: ToolVersions {
+                    debcrafter: "8189263".into(),
+                    sbuild: "0.85.6".into(),
+                },
+                snapshot_date: None,
+                snapshot_security_date: None,
+            },
+            runtime: None,
+            verify: None,
+            config_root: PathBuf::from("/tmp"),
+        }
     }
 }

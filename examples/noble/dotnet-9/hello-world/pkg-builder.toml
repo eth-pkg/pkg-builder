@@ -31,16 +31,8 @@ packages = [
     { name = "dotnet-sdk-9.0_9.0.101-0ubuntu1~24.04.1~ppa1_amd64", hash = "7ffd077e478049cce63ad14a3d1d21b30a1922d7", url = "http://backup.eth-nodes.com/noble/20250107/dotnet-sdk-9.0_9.0.101-0ubuntu1~24.04.1~ppa1_amd64.deb" },
 ]
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.20"
 # [verify] hashes not yet populated — run build + verify to generate
