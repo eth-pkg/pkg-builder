@@ -119,25 +119,6 @@ binary_gpg_asc = "..."
 
 All other fields depend on the recipe. The recipe template uses `{{field_name}}` placeholders that are filled from the remaining fields via a flat key-value mapping. See [Runtime Recipes](../guides/runtime-recipes.md) for the fields required by each recipe.
 
-## `[testing]`
-
-Test configuration. All fields default to `false` if this section is omitted.
-
-```toml
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-```
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `lintian` | bool | `false` | Run lintian static analysis |
-| `piuparts` | bool | `false` | Run piuparts install/remove tests |
-| `autopkgtest` | bool | `false` | Run autopkgtest functional tests |
-
-See [Testing](../guides/testing.md) for details on each tool.
-
 ## `[tools]`
 
 Pinned versions of external tools. Used for reproducibility — recording which tool versions produced the build.
@@ -147,9 +128,6 @@ Pinned versions of external tools. Used for reproducibility — recording which 
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 ```
 
 | Field | Type | Required | Description |
@@ -157,9 +135,6 @@ autopkgtest = "5.28"
 | `pkg_builder` | string | yes | pkg-builder version |
 | `debcrafter` | string | yes | debcrafter version or commit hash |
 | `sbuild` | string | yes | sbuild version |
-| `lintian` | string | yes | lintian version |
-| `piuparts` | string | yes | piuparts version |
-| `autopkgtest` | string | yes | autopkgtest version |
 
 ## `[verify]`
 
@@ -211,18 +186,10 @@ recipe = "go"
 binary_url = "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz"
 binary_checksum = "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.20"
 
 [verify]
 package_hash = [

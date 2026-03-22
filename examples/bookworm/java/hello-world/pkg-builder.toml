@@ -27,6 +27,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-java_1.0.0-1.dsc", hash = "f913555dcc7ab630c17399472332ed282cefffe83537ad0bae6c18205ba9f9e0" },
-    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "7d43c83914c83f69168cc388352e4dff2e4354b2f4a70c633e58a1eb56ed5155" },
+    { name = "hello-world-java_1.0.0-1.dsc", hash = "e35ca8aecd16268f1f42fbfed26a4e0cf4eb06cd3c281cd0cb47bcf3c951f7bb" },
+    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "92a1d60b18c1adf8ef7ce9444021727f463f2f588f4d3e6c770534039b97f1b6" },
 ]

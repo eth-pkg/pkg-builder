@@ -6,7 +6,7 @@ pkg-builder is a command-line tool for creating reproducible Debian packages fro
 
 Debian packaging is powerful but notoriously difficult to get right. A typical packaging workflow involves writing and maintaining `debian/rules`, `debian/control`, `debian/changelog`, source format files, and more — each with its own syntax and subtle interactions. Reproducibility is hard: builds depend on the exact state of upstream archives, toolchain versions, and build environments.
 
-pkg-builder solves this by letting you define your entire package in a single `pkg-builder.toml` file. Instead of hand-writing Makefiles and debian control files, you declare what you want — source location, build distribution, runtime toolchain, test settings — and pkg-builder generates everything else. It pins snapshot archives, normalizes timestamps, and verifies output hashes so that the same config always produces the same `.deb`.
+pkg-builder solves this by letting you define your entire package in a single `pkg-builder.toml` file. Instead of hand-writing debian control files, you declare what you want — source location, build distribution, runtime toolchain — and pkg-builder handles everything else. It pins snapshot archives, normalizes timestamps, and verifies output hashes so that the same config always produces the same `.deb`.
 
 ## Features
 
@@ -15,16 +15,14 @@ pkg-builder solves this by letting you define your entire package in a single `p
 - **Multiple source types** — tarballs, git repositories (with submodule pinning), and virtual/meta-packages
 - **Multi-language support** — C, Rust, Go, Node.js (JavaScript/TypeScript), Java (with Gradle), .NET, Nim
 - **Multi-distribution** — Debian (bookworm, trixie) and Ubuntu (noble)
-- **Integrated testing** — lintian, piuparts, and autopkgtest
-- **Package verification** — SHA-1 hash checking for built `.dsc` and `.deb` files
+- **Package verification** — SHA-256 hash checking for built `.dsc` and `.deb` files
 - **Interactive init wizard** — scaffold new packages with auto-detection of runtime toolchains
 
 ## Quick start
 
 ```bash
 # Install prerequisites and build pkg-builder
-sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest \
-                 vmdb2 qemu-system-x86 git-lfs uidmap
+sudo apt install libssl-dev pkg-config quilt debhelper tar git-lfs uidmap
 cargo install --path crates/cli
 
 # Create the build environment
@@ -44,13 +42,14 @@ See [Installation](getting-started/installation.md) for full setup instructions 
 
 ## Architecture
 
-pkg-builder is a Rust workspace with four crates:
+pkg-builder is a Rust workspace with five crates:
 
 | Crate | Purpose |
 |-------|---------|
 | `crates/cli` | Command-line interface and argument parsing |
 | `crates/config` | TOML parsing, validation, and configuration types |
 | `crates/init` | Interactive project initialization wizard |
-| `crates/makefile` | Makefile generation with builder/IR/parser/renderer architecture |
+| `crates/executor` | Build pipeline executor (acquire, extract, debcrafter, sbuild) |
+| `crates/update` | Package version update tool |
 
-The build pipeline works by generating a Makefile from distribution-specific and language-specific recipe templates, then executing it via `make`.
+The build pipeline directly executes four steps: acquire source, extract tarball, generate debian packaging via debcrafter, and invoke sbuild.

@@ -7,7 +7,6 @@ use commands::{ActionType, EnvSubCommand, PkgBuilderArgs};
 use clap::Parser;
 use env_logger::Env;
 use log::{error, info};
-use std::path::Path;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -34,49 +33,27 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     if let ActionType::Update(ref update_cmd) = args.action {
         return update::run(update_cmd, &config_path);
     }
+
     let config = config::PkgConfig::load(&config_path)?;
 
-    let output_path = Path::new(&config_path);
-    let output_dir = if output_path.is_dir() {
-        output_path.to_path_buf()
-    } else {
-        output_path.parent().unwrap_or(Path::new(".")).to_path_buf()
-    };
-
-    // Handle verify early — no Makefile generation needed
-    if let ActionType::Verify = args.action {
-        config::verify::verify_hashes(&config)?;
-        info!("Verification successful!");
-        return Ok(());
-    }
-
-    // Generate Makefile and sbuild.conf
-    let output = makefile::generate(&config)?;
-    let makefile_path = output_dir.join("Makefile");
-    std::fs::write(&makefile_path, &output.makefile)?;
-    info!("Generated Makefile at {:?}", makefile_path);
-
-    let sbuild_conf_path = output_dir.join("sbuild.conf");
-    std::fs::write(&sbuild_conf_path, &output.sbuild_conf)?;
-    info!("Generated sbuild.conf at {:?}", sbuild_conf_path);
-
-    // Determine which make target to run
-    let target = match args.action {
+    match args.action {
         ActionType::Init(_) => unreachable!(),
         ActionType::Update(_) => unreachable!(),
-        ActionType::Verify => unreachable!(),
-        ActionType::Generate => return Ok(()),
-        ActionType::Build => "build",
+        ActionType::Verify => {
+            config::verify::verify_hashes(&config)?;
+            info!("Verification successful!");
+        }
+        ActionType::Build => {
+            executor::build(&config, args.resume)?;
+        }
         ActionType::Env(ref env_cmd) => match env_cmd.sub_command {
-            EnvSubCommand::Create => "env",
-            EnvSubCommand::Clean => "env-clean",
+            EnvSubCommand::Create => executor::create_env(&config)?,
+            EnvSubCommand::Clean => executor::clean_env(&config)?,
         },
-        ActionType::Clean => "clean",
-    };
-
-    // Run make
-    info!("Running: make {}", target);
-    makefile::run_make(target, &output_dir, args.install_deps)?;
+        ActionType::Clean => {
+            executor::clean(&config)?;
+        }
+    }
 
     Ok(())
 }

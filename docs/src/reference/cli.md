@@ -7,7 +7,7 @@ All commands accept global options before the subcommand:
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--config <PATH>` | string | `.` (current directory) | Path to `pkg-builder.toml` |
-| `--install-deps` | flag | `false` | Install missing dependencies instead of erroring |
+| `--resume` | flag | `false` | Skip build steps whose output artifacts already exist |
 | `-V`, `--version` | flag | | Print version and exit |
 | `-h`, `--help` | flag | | Print help |
 
@@ -62,29 +62,13 @@ pkg-builder init \
 
 ## `pkg-builder build`
 
-Build a Debian package.
+Build a Debian package. Runs a 4-step pipeline: acquire source, extract, generate debian packaging (via debcrafter), and invoke sbuild.
 
 ```bash
-pkg-builder build [OPTIONS]
+pkg-builder build
 ```
 
-**Options:**
-
-| Flag | Description |
-|------|-------------|
-| `--with-tests` | Also run enabled tests after building |
-
-Without `--with-tests`, only the package is built. With `--with-tests`, tests enabled in the `[testing]` section of the config are run after a successful build (including lintian inside sbuild).
-
-## `pkg-builder generate`
-
-Generate the Makefile without building.
-
-```bash
-pkg-builder generate
-```
-
-Useful for inspecting the generated build steps or debugging the template expansion.
+By default, `build` cleans the output directory and runs from scratch. Use `--resume` to skip steps whose output artifacts already exist (e.g., skip downloading if the tarball is present).
 
 ## `pkg-builder env create`
 
@@ -102,38 +86,6 @@ Remove the sbuild chroot environment (chroot tarball only).
 
 ```bash
 pkg-builder env clean
-```
-
-## `pkg-builder test`
-
-Run all enabled tests on an already-built package.
-
-```bash
-pkg-builder test
-```
-
-### `pkg-builder test lintian`
-
-Run lintian checks on the host against the built `.changes` file. This is separate from lintian running inside sbuild during `build --with-tests`.
-
-```bash
-pkg-builder test lintian
-```
-
-### `pkg-builder test piuparts`
-
-Run piuparts install/remove tests on an already-built package.
-
-```bash
-pkg-builder test piuparts
-```
-
-### `pkg-builder test autopkgtest`
-
-Run autopkgtest functional tests on an already-built package.
-
-```bash
-pkg-builder test autopkgtest
 ```
 
 ## `pkg-builder verify`

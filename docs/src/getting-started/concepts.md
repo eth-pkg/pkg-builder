@@ -10,22 +10,22 @@ Building a Debian package with pkg-builder involves three main tools:
 pkg-builder.toml
        │
        ▼
-  pkg-builder ──────► Makefile + source tree
+  pkg-builder (executor)
        │
-       ├── debcrafter ──► debian/ files (control, rules, changelog, ...)
-       │
-       └── sbuild ──────► .deb + .dsc (built inside a chroot)
+       ├── Step 1: Acquire source (download/clone/copy)
+       ├── Step 2: Extract source tarball
+       ├── Step 3: debcrafter ──► debian/ files (control, rules, changelog, ...)
+       └── Step 4: sbuild ──────► .deb + .dsc (built inside a chroot)
 ```
 
 ### pkg-builder
 
-The orchestrator. It reads your `pkg-builder.toml` configuration and coordinates the entire build:
+The orchestrator. It reads your `pkg-builder.toml` configuration and directly executes a 4-step build pipeline:
 
-1. **Generates a Makefile** from language-specific recipe templates and distribution templates
-2. **Prepares the source** (downloads tarballs, clones git repos, or sets up virtual packages)
-3. **Invokes debcrafter** to generate `debian/` packaging files from `.sss` spec files
+1. **Acquires the source** (downloads tarballs via HTTP, clones git repos, or creates virtual packages)
+2. **Extracts the source** tarball into the working directory
+3. **Invokes debcrafter** (as a library) to generate `debian/` packaging files from `.sss` spec files
 4. **Runs sbuild** to build the package inside an isolated chroot environment
-5. **Runs tests** (lintian, piuparts, autopkgtest) and **verifies hashes**
 
 ### debcrafter
 
@@ -74,4 +74,4 @@ Together, these mean that given the same `pkg-builder.toml`, you should always g
 
 ## Working directory
 
-Each build uses a working directory (`[build].workdir`) where pkg-builder stages the source tree, generates the Makefile, runs the build, and places output files. By default this is `~/.pkg-builder/packages/<distribution>/`. The `pkg-builder clean` command removes build artifacts from this directory.
+Each build uses a working directory (`[build].workdir`) where pkg-builder stages the source tree, runs the build, and places output files. By default this is `~/.pkg-builder/packages/<distribution>/`. The `pkg-builder clean` command removes build artifacts from this directory.

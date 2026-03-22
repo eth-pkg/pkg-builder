@@ -124,6 +124,9 @@ pub fn generate_toml(config: &InitConfig) -> String {
 struct SourceServiceSpec {
     name: String,
     maintainer: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    homepage: Option<String>,
+    standards_version: String,
     section: String,
     variants: Vec<String>,
     build_depends: Vec<String>,
@@ -149,9 +152,16 @@ struct PackageSpec {
 
 /// Generate the contents of `{name}.sss` (debcrafter source service spec).
 pub fn generate_sss(config: &InitConfig) -> String {
+    let homepage = if config.homepage.is_empty() {
+        None
+    } else {
+        Some(config.homepage.clone())
+    };
     let spec = SourceServiceSpec {
         name: config.name.clone(),
         maintainer: format!("{} <{}>", config.maintainer_name, config.maintainer_email),
+        homepage,
+        standards_version: "4.5.1".into(),
         section: config.section.clone(),
         variants: vec![],
         build_depends: vec![],

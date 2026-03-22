@@ -28,6 +28,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-nim_1.0.0-1.dsc", hash = "5027b50678f991b381d173027ff98e75c25d52136973ceab22f05623db35b34e" },
-    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "7b17ed7299e60b2b1d8cb5cecd0417454ebaf6cf7116d77d8e4508379934d27a" },
+    { name = "hello-world-nim_1.0.0-1.dsc", hash = "2383682bc8d608e920f39e6e7b0896118d4173e566accc46a2e781bd6e146490" },
+    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "29d6d3072a5d7fe6e0a21e4e1007409db1af89632132cb2a736d20619e7cd501" },
 ]

@@ -28,6 +28,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-typescript_1.0.0-1.dsc", hash = "e71e62e77f14770c53f3e1f70d764c732f98f1cfe58f053903a740a3b90c1814" },
-    { name = "hello-world-typescript_1.0.0-1_amd64.deb", hash = "08b707103f4b2d19a6e58a847fc3516fccd7f8fee567d83cb972fbccf7361255" },
+    { name = "hello-world-typescript_1.0.0-1.dsc", hash = "8ef3c56988911d197e3248deec17692879b42f3f8042300b1281ea467154e3f5" },
+    { name = "hello-world-typescript_1.0.0-1_amd64.deb", hash = "1f81332b35c7d50e02d2efa05b06f759794866b0f5d597ad727625f4de303c02" },
 ]

@@ -43,6 +43,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-rust_1.0.0-1.dsc", hash = "1beff93a525c54cdeb49f98c7e4e0cf5f1a858cbe25f47fab18fa18f0ec9ed97" },
-    { name = "hello-world-rust_1.0.0-1_amd64.deb", hash = "64c8d0c4f8a7bbc6f19ca9a12ab01521b963e12be9d114d3ed2f93869831b4cf" },
+    { name = "hello-world-rust_1.0.0-1.dsc", hash = "9f20ca77a2ea162dbe5977e2343c287ab1891fe6f41989b31d5709e8039aae5f" },
+    { name = "hello-world-rust_1.0.0-1_amd64.deb", hash = "5442cb0e10641f105cf1e27dd6a1f1917bd3216e3a9b9445e24e589d1501ce63" },
 ]

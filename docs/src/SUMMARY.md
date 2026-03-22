@@ -16,7 +16,6 @@
 - [Snapshot Pinning](guides/snapshot-pinning.md)
 - [Patching](guides/patching.md)
 - [Caching](guides/caching.md)
-- [Testing](guides/testing.md)
 - [Verification](guides/verification.md)
 
 # Reference

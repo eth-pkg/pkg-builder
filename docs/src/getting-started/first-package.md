@@ -64,18 +64,10 @@ distribution = "bookworm"
 arch = "amd64"
 workdir = "~/.pkg-builder/packages/bookworm"
 
-[testing]
-lintian = true
-piuparts = true
-autopkgtest = true
-
 [tools]
 pkg_builder = "0.3.1"
 debcrafter = "8189263"
 sbuild = "0.85.6"
-lintian = "2.116.3"
-piuparts = "1.1.7"
-autopkgtest = "5.28"
 
 [verify]
 package_hash = [
@@ -89,7 +81,6 @@ Let's break this down:
 - **`[package]`** — Package metadata: name, version, revision, and the debcrafter `.sss` spec file.
 - **`[source]`** — Where to get the source code. This example uses a local tarball, but it could be a URL or a git repository.
 - **`[build]`** — Target distribution, architecture, and working directory for build artifacts.
-- **`[testing]`** — Which tests to run after building (lintian, piuparts, autopkgtest).
 - **`[tools]`** — Pinned versions of all external tools for reproducibility.
 - **`[verify]`** — Expected SHA-1 hashes of the output `.dsc` and `.deb` files.
 
@@ -111,11 +102,10 @@ pkg-builder --config examples/bookworm/c/hello-world/pkg-builder.toml build
 
 pkg-builder will:
 
-1. Generate a Makefile from the C runtime recipe and distribution template
-2. Prepare the source tarball in the working directory
+1. Acquire the source tarball and copy it to the working directory
+2. Extract the source tarball
 3. Run debcrafter to generate Debian packaging files from the `.sss` spec
 4. Invoke sbuild to build the package inside the chroot
-5. Run lintian, piuparts, and autopkgtest (as configured in `[testing]`)
 
 The output `.deb` and `.dsc` files are placed in the workdir (`~/.pkg-builder/packages/bookworm/`).
 

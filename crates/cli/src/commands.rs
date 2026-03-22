@@ -7,9 +7,9 @@ pub struct PkgBuilderArgs {
     #[clap(long, global = true)]
     pub config: Option<String>,
 
-    /// Install missing dependencies instead of erroring
+    /// Resume a previous build (skip steps whose artifacts already exist)
     #[clap(long, global = true)]
-    pub install_deps: bool,
+    pub resume: bool,
 
     #[clap(subcommand)]
     pub action: ActionType,
@@ -23,8 +23,6 @@ pub enum ActionType {
     Update(UpdateCommand),
     /// Build the package
     Build,
-    /// Generate Makefile without building
-    Generate,
     /// Manage build environment (sbuild chroot)
     Env(EnvCommand),
     /// Verify package hashes
@@ -135,4 +133,3 @@ pub enum EnvSubCommand {
     /// Remove build environment (chroot tarball)
     Clean,
 }
-

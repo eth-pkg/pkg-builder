@@ -5,7 +5,7 @@ use serde::Deserialize;
 /// Runtime configuration from the [runtime] section.
 /// The `profile` field selects the runtime .mk profile.
 /// `recipe` is accepted as a deprecated alias for `profile`.
-/// All other fields are passed as variables to the generated Makefile.
+/// All other fields are passed as variables to the runtime Perl template.
 #[derive(Debug, Clone, Deserialize)]
 pub struct RuntimeConfig {
     #[serde(alias = "recipe")]

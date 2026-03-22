@@ -1,9 +1,9 @@
 use config::PkgConfig;
 
-use crate::ir::Preamble;
+use crate::chroot_setup::ChrootSetup;
 
-/// Generate a Perl sbuild.conf file from config + preamble.
-pub fn render_sbuild_conf(config: &PkgConfig, preamble: &Preamble) -> String {
+/// Generate a Perl sbuild.conf file from config + chroot setup.
+pub fn render_sbuild_conf(config: &PkgConfig, setup: &ChrootSetup) -> String {
     let mut out = String::new();
 
     // Header
@@ -47,7 +47,7 @@ pub fn render_sbuild_conf(config: &PkgConfig, preamble: &Preamble) -> String {
     out.push('\n');
 
     // Runtime Perl code (variable declarations + @runtime_commands)
-    if let Some(ref perl_code) = preamble.runtime_perl {
+    if let Some(ref perl_code) = setup.runtime_perl {
         out.push_str(perl_code);
         if !perl_code.ends_with('\n') {
             out.push('\n');
@@ -56,26 +56,23 @@ pub fn render_sbuild_conf(config: &PkgConfig, preamble: &Preamble) -> String {
     }
 
     // Assemble $external_commands
-    let has_pre = !preamble.pre_runtime_commands.is_empty();
-    let has_runtime = preamble.runtime_perl.is_some();
-    let has_post = !preamble.post_runtime_commands.is_empty();
+    let has_pre = !setup.pre_runtime_commands.is_empty();
+    let has_runtime = setup.runtime_perl.is_some();
+    let has_post = !setup.post_runtime_commands.is_empty();
 
     if has_pre || has_runtime || has_post {
         out.push_str("$external_commands = {\n");
         out.push_str("    'chroot-setup-commands' => [\n");
 
-        // Pre-runtime modifier commands
-        for cmd in &preamble.pre_runtime_commands {
+        for cmd in &setup.pre_runtime_commands {
             out.push_str(&format!("        {},\n", perl_quote(cmd)));
         }
 
-        // Runtime commands (flattened from Perl @runtime_commands array)
         if has_runtime {
             out.push_str("        @runtime_commands,\n");
         }
 
-        // Post-runtime modifier commands
-        for cmd in &preamble.post_runtime_commands {
+        for cmd in &setup.post_runtime_commands {
             out.push_str(&format!("        {},\n", perl_quote(cmd)));
         }
 
@@ -90,11 +87,7 @@ pub fn render_sbuild_conf(config: &PkgConfig, preamble: &Preamble) -> String {
 }
 
 /// Quote a string for use in a Perl single-quoted context.
-///
-/// If the string contains no single quotes, wraps in '...'.
-/// If it contains single quotes but no braces issues, uses q{...}.
-/// Falls back to double-quoted with escaping.
-pub(crate) fn perl_quote(s: &str) -> String {
+fn perl_quote(s: &str) -> String {
     if !s.contains('\'') {
         format!("'{}'", s)
     } else if !s.contains('}') || balanced_braces(s) {
@@ -110,8 +103,6 @@ pub(crate) fn perl_quote(s: &str) -> String {
 }
 
 /// Convert an absolute path to a portable Perl expression.
-/// Replaces the user's home directory with `$ENV{HOME}` so the config
-/// isn't tied to a specific user account.
 fn portabilize_perl_path(path: &str) -> String {
     if let Ok(home) = std::env::var("HOME") {
         if let Some(rest) = path.strip_prefix(&home) {

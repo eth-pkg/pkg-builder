@@ -4,7 +4,7 @@ members = [
     "crates/config",
     "crates/cli",
     "crates/init",
-    "crates/makefile",
+    "crates/executor",
     "crates/update",
 ]
 resolver = "2"
@@ -31,9 +31,10 @@ serde_json = "1.0"
 toml_edit = "0.22"
 chrono = "0.4"
 regex = "1"
+debcrafter = { git = "https://github.com/eth-pkg/debcrafter.git", branch = "refactor-extract-codegen-modules" }
 
 # Local crates
 pkg-builder-config = { path = "crates/config" }
 pkg-builder-init = { path = "crates/init" }
-pkg-builder-makefile = { path = "crates/makefile" }
+pkg-builder-executor = { path = "crates/executor" }
 pkg-builder-update = { path = "crates/update" }

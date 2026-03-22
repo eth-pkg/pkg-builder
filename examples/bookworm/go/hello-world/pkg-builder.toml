@@ -27,6 +27,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-go_1.0.0-1.dsc", hash = "fa0ec9d83f0ecfabeeb35ef9840c018bbb61bf571cb72c3826870347a7bcd53f" },
-    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "d3486ef9af019d71649c694c45d5789c9b4f9a788ddcff39ec9e5949807a209f" },
+    { name = "hello-world-go_1.0.0-1.dsc", hash = "e991a8b08e6f850b6facc9fca95bbbcab24cf118f31d9094f554ac4bbd47ab64" },
+    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "e67ed267f79f818a6fbacebf276bb870b5cca90ccd87537b364e37a2fbf9908f" },
 ]

@@ -59,7 +59,7 @@ fn validate_safe_url(field: &str, value: &str) -> Result<(), ConfigError> {
     Ok(())
 }
 
-/// Validate source-related fields that flow into shell commands in generated Makefiles.
+/// Validate source-related fields that flow into shell commands during the build pipeline.
 fn validate_source_fields(config: &PkgConfig) -> Result<(), ConfigError> {
     use crate::source::SourceKind;
 

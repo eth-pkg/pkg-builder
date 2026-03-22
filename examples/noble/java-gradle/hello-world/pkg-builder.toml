@@ -31,6 +31,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-java-gradle_1.0.0-1.dsc", hash = "fd01c59a71c4395250aa8ffa0e2f635ca2af4b7f02b550969d24b62b01bdfe8c" },
-    { name = "hello-world-java-gradle_1.0.0-1_amd64.deb", hash = "efa13fbd88b905b423c678c6c4093d174635945e309501c5bafa9cb7083c1dbd" },
+    { name = "hello-world-java-gradle_1.0.0-1.dsc", hash = "d3b802acfb68127255f796b32e77abd30a1e4476fe44d34ce3eb46a9a9fc8f17" },
+    { name = "hello-world-java-gradle_1.0.0-1_amd64.deb", hash = "e36240cb8e216a78360887d2e4f9a76da6999cbd28d9c71cd281398641ce7f41" },
 ]

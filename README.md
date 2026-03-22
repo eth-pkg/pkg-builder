@@ -7,7 +7,7 @@ A command-line tool for creating reproducible Debian packages from TOML configur
 
 ## Why pkg-builder?
 
-Debian packaging is powerful but notoriously difficult to get right. pkg-builder solves this by letting you define your entire package in a single `pkg-builder.toml` file. Instead of hand-writing Makefiles and debian control files, you declare what you want — source location, build distribution, runtime toolchain, test settings — and pkg-builder generates everything else. It pins snapshot archives, normalizes timestamps, and verifies output hashes so that the same config always produces the same `.deb`.
+Debian packaging is powerful but notoriously difficult to get right. pkg-builder solves this by letting you define your entire package in a single `pkg-builder.toml` file. Instead of hand-writing debian control files, you declare what you want — source location, build distribution, runtime toolchain — and pkg-builder handles everything else. It pins snapshot archives, normalizes timestamps, and verifies output hashes so that the same config always produces the same `.deb`.
 
 It works alongside [debcrafter](https://github.com/Kixunil/debcrafter), which generates the Debian specification files (`.sss` files) that describe package metadata and relationships. Together, they provide a fully declarative packaging pipeline: debcrafter handles *what* the package is, pkg-builder handles *how* it gets built.
 
@@ -16,8 +16,7 @@ It works alongside [debcrafter](https://github.com/Kixunil/debcrafter), which ge
 **1. Install prerequisites and build:**
 
 ```bash
-sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest \
-                 vmdb2 qemu-system-x86 git-lfs uidmap
+sudo apt install libssl-dev pkg-config quilt debhelper tar git-lfs uidmap
 sudo sbuild-adduser $(whoami)
 cargo install --path .
 ```
@@ -43,15 +42,14 @@ That's it — your `.deb` is in the workdir. See the [tutorial](docs/src/getting
 - **Multiple source types** — tarballs, git repositories (with submodule pinning), and virtual/meta-packages
 - **Multi-language support** — C, Rust, Go, Node.js (JavaScript/TypeScript), Java (with Gradle), .NET, Nim
 - **Multi-distribution** — Debian (bookworm, trixie) and Ubuntu (noble)
-- **Integrated testing** — lintian, piuparts, and autopkgtest
-- **Package verification** — SHA-1 hash checking for built `.dsc` and `.deb` files
+- **Package verification** — SHA-256 hash checking for built `.dsc` and `.deb` files
 
 ## Documentation
 
 Full documentation is in the [`docs/`](docs/src/SUMMARY.md) directory, built with [mdBook](https://rust-lang.github.io/mdBook/):
 
 - **Getting Started** — [Installation](docs/src/getting-started/installation.md) | [Tutorial](docs/src/getting-started/first-package.md) | [Concepts](docs/src/getting-started/concepts.md)
-- **Guides** — [Source Types](docs/src/guides/source-types.md) | [Runtime Recipes](docs/src/guides/runtime-recipes.md) | [Snapshot Pinning](docs/src/guides/snapshot-pinning.md) | [Patching](docs/src/guides/patching.md) | [Caching](docs/src/guides/caching.md) | [Testing](docs/src/guides/testing.md) | [Verification](docs/src/guides/verification.md)
+- **Guides** — [Source Types](docs/src/guides/source-types.md) | [Runtime Recipes](docs/src/guides/runtime-recipes.md) | [Snapshot Pinning](docs/src/guides/snapshot-pinning.md) | [Patching](docs/src/guides/patching.md) | [Caching](docs/src/guides/caching.md) | [Verification](docs/src/guides/verification.md)
 - **Reference** — [Configuration](docs/src/reference/config.md) | [CLI](docs/src/reference/cli.md) | [Recipes](docs/src/reference/recipes.md)
 - [Troubleshooting](docs/src/troubleshooting.md)
 

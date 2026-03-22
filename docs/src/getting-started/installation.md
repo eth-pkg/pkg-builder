@@ -5,8 +5,7 @@
 Install the required Debian packages:
 
 ```bash
-sudo apt install libssl-dev pkg-config quilt debhelper tar wget autopkgtest \
-                 vmdb2 qemu-system-x86 git-lfs uidmap
+sudo apt install libssl-dev pkg-config quilt debhelper tar git-lfs uidmap
 ```
 
 Add your user to the sbuild group:

@@ -22,6 +22,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-c_1.0.0-1.dsc", hash = "2360791d5a009d4997d750a6a1028a93b90fc33e84eb1145e3de40d875b94c8e" },
-    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "b6360d0a1b5012ffa00c058a7b348e27779454c3f46705ac5a30b343ce494533" },
+    { name = "hello-world-c_1.0.0-1.dsc", hash = "005f98c83cfc5f48c7e24d1dea07d4e4df916a8f217231896882b7d4968ea69d" },
+    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "004a6bd8c348f63e33d48aac5db16dc44adee319b715c57ff236df2ce2650ecd" },
 ]

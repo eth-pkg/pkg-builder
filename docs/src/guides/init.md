@@ -45,7 +45,6 @@ The main configuration file with all sections pre-populated:
 - `[source]` — type-specific source configuration
 - `[build]` — distribution, architecture, working directory
 - `[runtime]` — recipe and toolchain fields (if applicable)
-- `[testing]` — all tests disabled by default
 - `[tools]` — pinned to current tool versions
 
 ### `<name>.sss` (source service spec)

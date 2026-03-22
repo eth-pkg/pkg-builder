@@ -20,6 +20,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "test-virtual-package_1.0.0-1.dsc", hash = "6a8057455e9bbc2a4ef2687422aa1106fe879244edf6fb43f15e76e13b3b3898" },
-    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "8d46b37d27024e5747158990440140eea3c4e805ef97a87bc647b39ba7e65800" },
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "8ca174829ea2e72a650007cfcfe9fb07cd20cc8fdfcbaac2a58b198f78632acd" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "2c519f82ac82c53790e7aa6bea365864aefc28d4e33cadd374b41cfa98fc1878" },
 ]

@@ -28,6 +28,6 @@ sbuild = "0.85.6"
 
 [verify]
 package_hash = [
-    { name = "hello-world-javascript_1.0.0-1.dsc", hash = "2e3da269d4b21d91ec11ecff7feabf2eebb69141674106265952a4e462b0fabd" },
-    { name = "hello-world-javascript_1.0.0-1_amd64.deb", hash = "e1aea8f52bc6e2b3bc34a1ba164e1157b6cead0eb5b6b95bad5376903532bda0" },
+    { name = "hello-world-javascript_1.0.0-1.dsc", hash = "0bfd1099e12db3c8e640d1c7b146ab3973e258fe10c2e2b7d5b14267f2f5a354" },
+    { name = "hello-world-javascript_1.0.0-1_amd64.deb", hash = "3f62bfae072d15935032476fda216cdacdcc898bc2196801949dfd4eff838857" },
 ]
