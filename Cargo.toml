@@ -1,17 +1,17 @@
 
 [workspace]
 members = [
-    "workspace/packager_deb",
-    "workspace/cli",
-    "workspace/types",
-    "workspace/debian",
-    "workspace/pkg_builder",
+    "crates/config",
+    "crates/cli",
+    "crates/init",
+    "crates/executor",
+    "crates/update",
 ]
 resolver = "2"
 
 [workspace.package]
 edition = "2021"
-
+license = "Apache-2.0"
 
 [workspace.dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
@@ -19,26 +19,22 @@ toml = "0.8.12"
 serde = { version = "1.0", features = ["derive"] }
 env_logger = "0.11.3"
 log = "0.4"
-cargo_metadata = "0.18"
-regex = "1.10.4"
 thiserror = "1.0"
 shellexpand = "3.1.0"
 tempfile = "3.1"
-git2 = "0.18.3"
-test-case = "3.3.1"
-glob = "0.3.1"
-dirs = "5.0.1"
-rand = "0.9.0-alpha.1"
-sha2 = "0.11.0-pre.3"
-whoami = "1.5.1"
-sha1 = "0.11.0-pre.3"
-filetime = "0.2.23"
-httpmock = "0.7.0"
-semver = "1.0.20"  # Replace with the version you need
-url = "2.4.1"  # Use the latest version
+sha2 = "0.10"
+semver = "1.0.20"
+url = "2.4.1"
+dialoguer = "0.11"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+serde_json = "1.0"
+toml_edit = "0.22"
+chrono = "0.4"
+regex = "1"
+debcrafter = { git = "https://github.com/eth-pkg/debcrafter.git", branch = "refactor-extract-codegen-modules" }
 
 # Local crates
-cli = {path = "workspace/cli"}
-debian = {path = "workspace/debian"}
-packager_deb = {path = "workspace/packager_deb"}
-types = {path = "workspace/types"}
+pkg-builder-config = { path = "crates/config" }
+pkg-builder-init = { path = "crates/init" }
+pkg-builder-executor = { path = "crates/executor" }
+pkg-builder-update = { path = "crates/update" }

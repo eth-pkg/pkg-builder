@@ -1,0 +1,32 @@
+[package]
+name = "hello-world-go"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "hello-world-go.sss"
+
+[source]
+type = "tarball"
+url = "hello-world-go-1.0.0.tar.gz"
+hash = "c268da86e5489a61491313aac237baf895cf269da477cbe9dc8bf4afdf0847a52b4d15ffb763f2f3ea6022116e3ce44df25384522fbdd40dd79a3a84252640cb"
+
+[build]
+distribution = "trixie"
+arch = "amd64"
+workdir = "~/.pkg-builder/packages/trixie"
+
+[runtime]
+recipe = "go"
+binary_url = "https://go.dev/dl/go1.22.2.linux-amd64.tar.gz"
+binary_checksum = "5901c52b7a78002aeff14a21f93e0f064f74ce1360fce51c6ee68cd471216a17"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "hello-world-go_1.0.0-1.dsc", hash = "8fe9a6abe6f495805dce7cbcf37a5db0d4dfd96b404fe7350196062f6eccc133" },
+    { name = "hello-world-go_1.0.0-1_amd64.deb", hash = "7a30bbafc1a0d40ebf66a52e3bae9719aa1644653636cbcc1c4030216b369502" },
+]

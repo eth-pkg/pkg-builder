@@ -1,24 +1,25 @@
-[package_fields]
-spec_file = "test-virtual-package.sss"
-package_name = "test-virtual-package"
-version_number = "1.0.0"
-revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+[package]
+name = "test-virtual-package"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "test-virtual-package.sss"
 
-[package_type]
-package_type="virtual"
+[source]
+type = "virtual"
 
-[build_env]
-codename="noble numbat"
+[build]
+distribution = "noble numbat"
 arch = "amd64"
-pkg_builder_version="0.3.1"
-debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=false
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.20"
-sbuild_version="0.85.6"
-# package directory
-workdir="~/.pkg-builder/packages/noble"
+workdir = "~/.pkg-builder/packages/noble"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "8ca174829ea2e72a650007cfcfe9fb07cd20cc8fdfcbaac2a58b198f78632acd" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "2c519f82ac82c53790e7aa6bea365864aefc28d4e33cadd374b41cfa98fc1878" },
+]

@@ -1,0 +1,25 @@
+[package]
+name = "test-virtual-package"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "test-virtual-package.sss"
+
+[source]
+type = "virtual"
+
+[build]
+distribution = "trixie"
+arch = "amd64"
+workdir = "~/.pkg-builder/packages/trixie"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "61254d1e347b1156891460cc58cb1dc4261446b57bf9e3b9afed8cc10bd61963" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "fa896c9cd4ad158b57937da59a380bab38ff970b49a3de32e786b991e0c9f0b9" },
+]

@@ -1,30 +1,27 @@
-[package_fields]
-spec_file = "hello-world.sss"
-package_name = "hello-world"
-version_number = "1.0.0"
-revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+[package]
+name = "hello-world-c"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "hello-world-c.sss"
 
-[package_type]
-# virtual | git | default
-package_type="default"
-tarball_url = "hello-world-1.0.0.tar.gz"
-tarball_hash = "c93bdd829eca65af1e303d4a0b31cde0c3d3c2003fa1ca985393c412264b42c3b30c7893eb1d49ea654ca4f68269c30b3cca3db66d6b112f2be14f54c3d0edff"
+[source]
+type = "tarball"
+url = "hello-world-1.0.0.tar.gz"
+hash = "c93bdd829eca65af1e303d4a0b31cde0c3d3c2003fa1ca985393c412264b42c3b30c7893eb1d49ea654ca4f68269c30b3cca3db66d6b112f2be14f54c3d0edff"
 
-[package_type.language_env]
-language_env = "c"
-
-[build_env]
-codename="bookworm"
+[build]
+distribution = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
-debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=true
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
-# package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "hello-world-c_1.0.0-1.dsc", hash = "f0131a2e588dcbbabf3258f16ddceedca9a0f9e6ce9d49667992b4a5a5d96c46" },
+    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "ddaca84a08136ae206b94d3c5a0d6e03839e9063a3e78954e3bd942ebb54fda5" },
+]

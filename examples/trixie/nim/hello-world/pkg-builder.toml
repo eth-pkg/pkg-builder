@@ -1,0 +1,33 @@
+[package]
+name = "hello-world-nim"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "hello-world-nim.sss"
+
+[source]
+type = "tarball"
+url = "hello-world-nim-1.0.0.tar.gz"
+hash = "b24e4ff701d8cbccab0cc78f2de55518babcd05a861af8d5d140863637b0ec74ba3ed5255bafc7fbe596defcc227e8f788c1e540655725eeabb7144be573e8a7"
+
+[build]
+distribution = "trixie"
+arch = "amd64"
+workdir = "~/.pkg-builder/packages/trixie"
+
+[runtime]
+recipe = "nim"
+binary_url = "https://nim-lang.org/download/nim-2.0.2-linux_x64.tar.xz"
+binary_checksum = "047dde8ff40b18628ac1188baa9ca992d05f1f45c5121d1d07a76224f06e1551  nim-2.0.2-linux_x64.tar.xz"
+nim_version = "2.0.2"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "hello-world-nim_1.0.0-1.dsc", hash = "6645e6b5240a55a1e9807221a882b97f70515d6cfef1a8e141ca4eb6e6b11802" },
+    { name = "hello-world-nim_1.0.0-1_amd64.deb", hash = "7631698ea1dd6b64719f26a366ef498344381fddf327c45cd546eb5b136257d2" },
+]

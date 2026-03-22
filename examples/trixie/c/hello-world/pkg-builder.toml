@@ -1,0 +1,27 @@
+[package]
+name = "hello-world-c"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "hello-world-c.sss"
+
+[source]
+type = "tarball"
+url = "hello-world-1.0.0.tar.gz"
+hash = "c93bdd829eca65af1e303d4a0b31cde0c3d3c2003fa1ca985393c412264b42c3b30c7893eb1d49ea654ca4f68269c30b3cca3db66d6b112f2be14f54c3d0edff"
+
+[build]
+distribution = "trixie"
+arch = "amd64"
+workdir = "~/.pkg-builder/packages/trixie"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "hello-world-c_1.0.0-1.dsc", hash = "d07172b2ebb70a937b91ae45bbfc68e9f6e78fd8960828fac491369ba041ec0c" },
+    { name = "hello-world-c_1.0.0-1_amd64.deb", hash = "5c86c412e700ac287ec2129bd855c036d9654a364a86d9c763f2cb60196c6a0a" },
+]

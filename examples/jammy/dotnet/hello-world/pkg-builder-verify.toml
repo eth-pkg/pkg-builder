@@ -1,7 +1,0 @@
-[verify]
-package_hash=[
-    { hash="d913d8c324439cf090930fbe4e3a2f5c64eeffe3", name= "hello-world-dotnet_1.0.0-1.dsc"},
-    { hash="0ef2133c3ffe3239f70afcee13ce171a77ed7437", name= "hello-world-dotnet_1.0.0.orig.tar.gz"},
-    { hash="122ceca25b02c93d39e3efa49ecbc97e0cc38944", name= "hello-world-dotnet_1.0.0-1.debian.tar.xz"},
-    { hash="33d699cd154d47582cf83c760eea688ce097d3d1", name= "hello-world-dotnet_1.0.0-1_amd64.deb"},
-]

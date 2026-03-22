@@ -1,0 +1,32 @@
+[package]
+name = "hello-world-java"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "hello-world-java.sss"
+
+[source]
+type = "tarball"
+url = "hello-world-java-1.0.0.tar.gz"
+hash = "c361ad7853f4eb1e272eb10fe70ac8a5fd40677da5d23e205e1808f2c6f3bed7"
+
+[build]
+distribution = "trixie"
+arch = "amd64"
+workdir = "~/.pkg-builder/packages"
+
+[runtime]
+recipe = "java"
+binary_url = "https://download.oracle.com/java/17/archive/jdk-17.0.10_linux-x64_bin.tar.gz"
+binary_checksum = "e4fb2df9a32a876afb0a6e17f54c594c2780e18badfa2e8fc99bc2656b0a57b1"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "hello-world-java_1.0.0-1.dsc", hash = "31248c92451ea4aaee0090e615d9ae837e99383d6333be20dc018727ca8b8b80" },
+    { name = "hello-world-java_1.0.0-1_amd64.deb", hash = "a91c2a3dd0307ee98bdd2a836e8cf0412de42d700c56143977dd0c71491e3aad" },
+]

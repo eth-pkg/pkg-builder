@@ -1,0 +1,4 @@
+# if you don't upload to debian this is not a bug
+hello-world-nim: initial-upload-closes-no-bugs [usr/share/doc/hello-world-nim/changelog.Debian.gz:1]
+hello-world-nim: maintainer-script-ignores-errors [postrm]
+hello-world-nim: no-manual-page [usr/bin/hello-world]

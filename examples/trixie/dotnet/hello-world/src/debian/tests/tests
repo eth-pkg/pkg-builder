@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+
+exec 2>&1
+
+set -e
+
+test_binary_in_path(){
+  output="$(which hello-world)"
+  assertEquals "/usr/bin/hello-world" "$output"
+}
+
+test_invocation_without_dotnet(){
+  output="$(hello-world 2>&1 || true)"
+  assertContains "You must install .NET to run this application." "$output"
+}
+
+. shunit2

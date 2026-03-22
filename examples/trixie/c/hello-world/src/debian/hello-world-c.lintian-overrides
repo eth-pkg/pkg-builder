@@ -1,0 +1,6 @@
+# not a bug
+hello-world-c: initial-upload-closes-no-bugs [usr/share/doc/hello-world-c/changelog.Debian.gz:1]
+# not a bug
+hello-world-c: maintainer-script-ignores-errors [postrm]
+# FIX this
+hello-world-c: no-manual-page [usr/bin/hello_world]

@@ -1,7 +1,0 @@
-[verify]
-package_hash=[
-    { hash="4d1af802d1df0fc59f23137c5ceb02b9d9c7a25d", name= "test-virtual-package_1.0.0-1.dsc"},
-    { hash="b35f46d5fb424aee57b5d666e61b2eff83543aad", name= "test-virtual-package_1.0.0.orig.tar.gz"},
-    { hash="d72a2a5752372d6c8ceee4a59754f5d35048a8c3", name= "test-virtual-package_1.0.0-1.debian.tar.xz"},
-    { hash="b067249705ed091bffc42a2f5291445c6140a979", name= "test-virtual-package_1.0.0-1_amd64.deb"},
-]

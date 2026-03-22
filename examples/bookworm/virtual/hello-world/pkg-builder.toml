@@ -1,24 +1,25 @@
-[package_fields]
-spec_file = "test-virtual-package.sss"
-package_name = "test-virtual-package"
-version_number = "1.0.0"
-revision_number = "1"
-homepage="https://github.com/eth-pkg/pkg-builder#examples"
+[package]
+name = "test-virtual-package"
+version = "1.0.0"
+revision = "1"
+homepage = "https://github.com/eth-pkg/pkg-builder#examples"
+spec = "test-virtual-package.sss"
 
-[package_type]
-package_type="virtual"
+[source]
+type = "virtual"
 
-[build_env]
-codename="bookworm"
+[build]
+distribution = "bookworm"
 arch = "amd64"
-pkg_builder_version="0.3.1"
-debcrafter_version = "8189263"
-run_lintian=true
-run_piuparts=true
-run_autopkgtest=false
-lintian_version="2.116.3"
-piuparts_version="1.1.7"
-autopkgtest_version="5.28"
-sbuild_version="0.85.6"
-# package directory
-workdir="~/.pkg-builder/packages/bookworm"
+workdir = "~/.pkg-builder/packages/bookworm"
+
+[tools]
+pkg_builder = "0.3.1"
+debcrafter = "8189263"
+sbuild = "0.85.6"
+
+[verify]
+package_hash = [
+    { name = "test-virtual-package_1.0.0-1.dsc", hash = "8afb82972b8536623a794177ed591b5a8301a770ad1ce9869645eef31bcfd349" },
+    { name = "test-virtual-package_1.0.0-1_amd64.deb", hash = "d98b41e1e1163ebd2d8f2a2483a9892256759f47c1095ab28fe29ba280ce60e0" },
+]

@@ -1,0 +1,32 @@
+[workspace]
+changelog_update = true
+git_release_enable = true
+git_release_type = "auto"
+publish = false
+release_commits = "^feat|^fix|^refactor|^perf|^docs"
+
+[[package]]
+name = "pkg-builder-cli"
+# CLI is the primary release artifact
+changelog_path = "CHANGELOG.md"
+version_group = "pkg-builder"
+
+[[package]]
+name = "pkg-builder-config"
+release = false
+version_group = "pkg-builder"
+
+[[package]]
+name = "pkg-builder-init"
+release = false
+version_group = "pkg-builder"
+
+[[package]]
+name = "pkg-builder-executor"
+release = false
+version_group = "pkg-builder"
+
+[[package]]
+name = "pkg-builder-update"
+release = false
+version_group = "pkg-builder"

@@ -1,0 +1,18 @@
+[package]
+name = "pkg-builder-executor"
+version = "0.4.0-rc.1"
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "executor"
+path = "src/lib.rs"
+
+[dependencies]
+pkg-builder-config = { path = "../config" }
+debcrafter = { workspace = true }
+reqwest = { workspace = true }
+sha2 = { workspace = true }
+thiserror.workspace = true
+log.workspace = true
+toml.workspace = true

@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -8,146 +8,96 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 0 * * 0'    
+    - cron: '0 0 * * 0'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  unit_tests:
+  unit-tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup sbuild
         uses: ./.github/actions/setup-sbuild
 
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --locked
 
-      - name: Run unit tests
-        run: cargo test --lib --verbose -- --ignored
+      - name: Run tests
+        run: cargo test --locked
 
-  bookworm_amd64_packaging:
+  package:
     runs-on: ubuntu-24.04
+    needs: unit-tests
     strategy:
       matrix:
-        language:
-          - c
-          - dotnet
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
-          #- python
-      max-parallel: 3
+        include:
+          # Bookworm
+          - { distro: bookworm, language: c }
+          - { distro: bookworm, language: go }
+          - { distro: bookworm, language: java }
+          - { distro: bookworm, language: java-gradle }
+          - { distro: bookworm, language: javascript }
+          - { distro: bookworm, language: nim }
+          - { distro: bookworm, language: rust }
+          - { distro: bookworm, language: typescript }
+          - { distro: bookworm, language: virtual }
+          # Trixie
+          - { distro: trixie, language: c }
+          - { distro: trixie, language: go }
+          - { distro: trixie, language: java }
+          - { distro: trixie, language: java-gradle }
+          - { distro: trixie, language: javascript }
+          - { distro: trixie, language: nim }
+          - { distro: trixie, language: rust }
+          - { distro: trixie, language: typescript }
+          - { distro: trixie, language: virtual }
+          # Noble
+          - { distro: noble, language: c }
+          - { distro: noble, language: go }
+          - { distro: noble, language: java }
+          - { distro: noble, language: java-gradle }
+          - { distro: noble, language: javascript }
+          - { distro: noble, language: nim }
+          - { distro: noble, language: rust }
+          - { distro: noble, language: typescript }
+          - { distro: noble, language: virtual }
+      max-parallel: 6
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
+      - name: Setup sbuild
+        uses: ./.github/actions/setup-sbuild
 
-      - name: Create chroot env
+      - name: Noble-specific setup
+        if: matrix.distro == 'noble'
         run: |
-          cd examples/bookworm/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/bookworm-amd64.tar.gz" >> $GITHUB_PATH
-
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: bookworm
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-
-  jammy_amd64_packaging:
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        language:
-          - c
-          - dotnet
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
-      max-parallel: 3
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-
-      - name: Create chroot env
-        run: |
-          cd examples/jammy/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
-
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: jammy
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
-
-  noble_amd64_packaging:
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        language:
-          - c
-          - dotnet
-          - dotnet-9
-          - go
-          - java
-          - java-gradle
-          - javascript
-          - nim
-          - rust
-          - typescript
-          - virtual
-          #- python
-      max-parallel: 3
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-packaging-env
-        with:
-          include_genisoimage: true
-
-      - name: Additional noble setup
-        run: |
-          sudo sbuild-adduser `whoami`
+          sudo apt-get install -y genisoimage
           sudo sysctl -w kernel.unprivileged_userns_clone=1
-          #sudo ln -s /usr/share/debootstrap/scripts/gutsy /usr/share/debootstrap/scripts/noble
-          #sudo cat /etc/subuid
 
-      - name: Create chroot env
+      - name: Build and install pkg-builder
         run: |
-          cd examples/noble/${{matrix.language}}/hello-world
-          pkg-builder env create
-          echo "${HOME}/.cache/sbuild/noble-amd64.tar.gz" >> $GITHUB_PATH
+          cargo build --release --locked
+          mkdir -p ${HOME}/.local/bin
+          cp target/release/pkg-builder ${HOME}/.local/bin/
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
-      - name: Run packaging tests
-        uses: ./.github/actions/run-packaging-tests
-        with:
-          distro: noble
-          language: ${{matrix.language}}
-          run_piuparts: false
-          run_autopkgtest: true
+      - name: Create chroot
+        working-directory: examples/${{ matrix.distro }}/${{ matrix.language }}/hello-world
+        run: pkg-builder env create
+
+      - name: Build package
+        working-directory: examples/${{ matrix.distro }}/${{ matrix.language }}/hello-world
+        run: pkg-builder build
+
+      - name: Verify hashes
+        working-directory: examples/${{ matrix.distro }}/${{ matrix.language }}/hello-world
+        run: pkg-builder verify

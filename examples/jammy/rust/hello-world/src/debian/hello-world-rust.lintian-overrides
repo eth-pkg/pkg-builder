@@ -1,3 +1,0 @@
-hello-world-rust: initial-upload-closes-no-bugs
-hello-world-rust: maintainer-script-ignores-errors [postrm]
-hello-world-rust: no-manual-page usr/bin/hello-world
