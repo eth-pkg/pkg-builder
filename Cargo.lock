@@ -1135,7 +1135,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pkg-builder-cli"
-version = "0.3.1"
+version = "0.4.0-rc.1"
 dependencies = [
  "clap",
  "dialoguer",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder-config"
-version = "0.3.1"
+version = "0.4.0-rc.1"
 dependencies = [
  "log",
  "semver",
@@ -1165,7 +1165,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder-executor"
-version = "0.1.0"
+version = "0.4.0-rc.1"
 dependencies = [
  "debcrafter",
  "log",
@@ -1178,7 +1178,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder-init"
-version = "0.3.1"
+version = "0.4.0-rc.1"
 dependencies = [
  "log",
  "reqwest",
@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "pkg-builder-update"
-version = "0.3.1"
+version = "0.4.0-rc.1"
 dependencies = [
  "chrono",
  "dialoguer",
